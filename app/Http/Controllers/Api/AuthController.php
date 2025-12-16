@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\BaseApiController;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
-class AuthController extends Controller
+class AuthController extends BaseApiController
 {
     /**
      * Handle login request
@@ -24,23 +22,24 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+            return $this->validationErrorResponse(
+                $validator->errors()->toArray(),
+                'Validation failed'
+            );
         }
 
         $credentials = $request->only('email', 'password');
 
         if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials'
-            ], 401);
+            return $this->unauthorizedResponse('Invalid credentials');
         }
 
         $user = Auth::user();
+
+        // Check tenant status
+        if ($user->tenant_id && $user->tenant && $user->tenant->status !== 1) {
+            return $this->forbiddenResponse('Your tenant account has been suspended');
+        }
 
         // Delete existing tokens
         $user->tokens()->delete();
@@ -48,24 +47,16 @@ class AuthController extends Controller
         // Create new token
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        // Set tenant context for superadmin
-        $tenantContext = null;
-        if ($user->tenant_id === null) {
-            $tenant = \App\Models\Tenant::where('status', 1)->first();
-            if ($tenant) {
-                $tenantContext = $tenant;
-                session(['tenant_context.current_tenant' => $tenant]);
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'user' => $user,
+        return $this->successResponse([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'tenant_id' => $user->tenant_id,
+            ],
             'token' => $token,
-            'tenant_context' => $tenantContext,
-            'redirect_url' => $user->tenant_id === null ? '/admin/dashboard' : '/admin/dashboard'
-        ]);
+            'token_type' => 'bearer',
+        ], 'Login successful');
     }
 
     /**
@@ -73,13 +64,14 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
-        Auth::logout();
+        try {
+            $request->user()->tokens()->delete();
+            Auth::logout();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logged out successfully'
-        ]);
+            return $this->successResponse(null, 'Logged out successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to logout', 500);
+        }
     }
 
     /**
@@ -87,10 +79,18 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'user' => $request->user(),
-            'tenant_context' => session('tenant_context.current_tenant')
-        ]);
+        try {
+            $user = $request->user();
+
+            return $this->successResponse([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'tenant_id' => $user->tenant_id,
+                'roles' => $user->roles->pluck('name'),
+            ], 'User retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->unauthorizedResponse('User not authenticated');
+        }
     }
 }

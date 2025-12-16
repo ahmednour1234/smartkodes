@@ -32,6 +32,8 @@ class User extends Authenticatable
         'phone',
         'country',
         'password',
+        'passcode',
+        'passcode_set_at',
         'created_by',
         'updated_by',
     ];
@@ -43,6 +45,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'passcode',
         'remember_token',
     ];
 
@@ -56,6 +59,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'passcode' => 'hashed',
+            'passcode_set_at' => 'datetime',
         ];
     }
 
