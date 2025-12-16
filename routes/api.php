@@ -13,13 +13,14 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
     Route::post('/reset-password', [UserController::class, 'resetPassword']);
-    
-    // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+
+    // Protected routes (JWT authentication)
+    Route::middleware('auth:api')->group(function () {
         // Authentication routes
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
         Route::get('/me', [AuthController::class, 'user']);
-        
+
         // User routes
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index']);
@@ -28,7 +29,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/set-passcode', [UserController::class, 'setPasscode']);
             Route::post('/verify-passcode', [UserController::class, 'verifyPasscode']);
         });
-        
+
         // Work Order routes
         Route::prefix('work-orders')->group(function () {
             Route::get('/', [WorkOrderController::class, 'index']);
@@ -38,7 +39,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{workOrder}/forms/{form}', [WorkOrderController::class, 'getForm']);
             Route::post('/{workOrder}/submit-form', [WorkOrderController::class, 'submitForm']);
         });
-        
+
         // Form routes
         Route::prefix('forms')->group(function () {
             Route::get('/', [FormController::class, 'index']);
