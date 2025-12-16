@@ -18,7 +18,11 @@
         "mews/captcha": "^3.4",
         "stripe/stripe-php": "*",
         "symfony/expression-language": "^7.3",
+<<<<<<< HEAD
         "tymon/jwt-auth": "*"
+=======
+        "tymon/jwt-auth": "^2.2"
+>>>>>>> bb431f6 (wqeeqw)
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
