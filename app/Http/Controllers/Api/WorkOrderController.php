@@ -10,6 +10,7 @@ use App\Http\Resources\Api\FormResource;
 use App\Http\Resources\Api\RecordResource;
 use App\Repositories\WorkOrderRepository;
 use App\Repositories\FormRepository;
+use App\Services\ApiResponseService;
 use App\Services\WorkOrderService;
 use App\Constants\WorkOrderStatus;
 use App\Constants\RecordStatus;
@@ -25,10 +26,12 @@ class WorkOrderController extends BaseApiController
     protected WorkOrderService $workOrderService;
 
     public function __construct(
+        ApiResponseService $response,
         WorkOrderRepository $workOrderRepository,
         FormRepository $formRepository,
         WorkOrderService $workOrderService
     ) {
+        parent::__construct($response);
         $this->workOrderRepository = $workOrderRepository;
         $this->formRepository = $formRepository;
         $this->workOrderService = $workOrderService;

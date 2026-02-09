@@ -10,7 +10,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 abstract class BaseRepository implements RepositoryInterface
 {
     protected Model $model;
-    protected string $tenantId;
+    protected ?string $tenantId;
 
     public function __construct()
     {

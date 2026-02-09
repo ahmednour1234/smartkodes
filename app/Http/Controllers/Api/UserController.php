@@ -10,6 +10,7 @@ use App\Http\Requests\Api\User\ResetPasswordRequest;
 use App\Http\Resources\Api\UserResource;
 use App\Repositories\UserRepository;
 use App\Helpers\EmailHelper;
+use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
@@ -19,8 +20,9 @@ class UserController extends BaseApiController
 {
     protected UserRepository $repository;
 
-    public function __construct(UserRepository $repository)
+    public function __construct(ApiResponseService $response, UserRepository $repository)
     {
+        parent::__construct($response);
         $this->repository = $repository;
     }
 

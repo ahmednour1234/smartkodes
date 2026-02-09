@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Form\UpdateFormDataRequest;
 use App\Http\Resources\Api\FormResource;
 use App\Http\Resources\Api\RecordResource;
 use App\Repositories\FormRepository;
+use App\Services\ApiResponseService;
 use App\Services\FormService;
 use App\Models\Record;
 use App\Models\RecordField;
@@ -18,8 +19,9 @@ class FormController extends BaseApiController
     protected FormRepository $repository;
     protected FormService $formService;
 
-    public function __construct(FormRepository $repository, FormService $formService)
+    public function __construct(ApiResponseService $response, FormRepository $repository, FormService $formService)
     {
+        parent::__construct($response);
         $this->repository = $repository;
         $this->formService = $formService;
     }
