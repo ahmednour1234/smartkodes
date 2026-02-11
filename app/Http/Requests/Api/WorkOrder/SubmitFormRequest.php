@@ -13,6 +13,29 @@ class SubmitFormRequest extends BaseApiRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $formId = $this->input('form_id');
+        if (!$formId) {
+            return;
+        }
+        $form = Form::with('formFields')->find($formId);
+        if (!$form) {
+            return;
+        }
+        $data = $this->all();
+        foreach ($form->formFields as $field) {
+            if ($field->type !== 'multiselect' || !$this->has($field->name)) {
+                continue;
+            }
+            $value = $this->input($field->name);
+            if (!is_array($value)) {
+                $data[$field->name] = $value === null || $value === '' ? [] : [$value];
+            }
+        }
+        $this->merge($data);
+    }
+
     public function rules(): array
     {
         $workOrderId = $this->route('workOrder');
@@ -23,7 +46,7 @@ class SubmitFormRequest extends BaseApiRequest
         }
 
         $form = Form::with('formFields')->find($formId);
-        
+
         if (!$form) {
             return [];
         }
