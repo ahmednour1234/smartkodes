@@ -27,8 +27,7 @@ class RecordResource extends BaseResource
                     'id' => $this->workOrder->id,
                 ];
             }),
-            'status' => $this->status,
-            'status_label' => RecordStatus::getLabel($this->status),
+            'status' => RecordStatus::getLabel($this->status),
             'submitted_by' => $this->whenLoaded('submittedBy', function () {
                 return [
                     'id' => $this->submittedBy->id,

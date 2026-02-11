@@ -30,8 +30,7 @@ class WorkOrderResource extends BaseResource
                     'email' => $this->assignedUser->email,
                 ];
             }),
-            'status' => $this->status,
-            'status_label' => WorkOrderStatus::getLabel($this->status),
+            'status' => WorkOrderStatus::getLabel($this->status),
             'priority_value' => $this->priority_value,
             'priority_unit' => $this->priority_unit,
             'due_date' => $this->due_date?->toIso8601String(),

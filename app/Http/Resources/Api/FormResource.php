@@ -18,8 +18,7 @@ class FormResource extends BaseResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'status' => $this->status,
-            'status_label' => FormStatus::getLabel($this->status),
+            'status' => FormStatus::getLabel($this->status),
             'version' => $this->version,
             'schema_json' => $this->schema_json,
             'category' => $this->whenLoaded('category', function () {
