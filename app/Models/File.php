@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ class File extends Model
     protected $fillable = [
         'tenant_id',
         'record_id',
+        'form_field_id',
         'name',
         'path',
         'type',
@@ -42,5 +44,25 @@ class File extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function formField(): BelongsTo
+    {
+        return $this->belongsTo(FormField::class);
+    }
+
+    protected function filePath(): Attribute
+    {
+        return Attribute::get(fn () => $this->path);
+    }
+
+    protected function originalFilename(): Attribute
+    {
+        return Attribute::get(fn () => $this->name);
+    }
+
+    protected function fileSize(): Attribute
+    {
+        return Attribute::get(fn () => $this->size);
     }
 }

@@ -35,6 +35,7 @@ class WorkOrderService
         File::create([
             'tenant_id' => $tenantId,
             'record_id' => $record->id,
+            'form_field_id' => $formField->id,
             'name' => $file->getClientOriginalName(),
             'path' => $path,
             'type' => $formField->type,
