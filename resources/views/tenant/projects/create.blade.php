@@ -38,7 +38,7 @@
               </svg>
             </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-blue-800">Projects</h3>
+              <h3 class="text-sm font-medium text-blue-800">What is a project?</h3>
               <p class="mt-1 text-sm text-blue-700">
                 Projects group work by site or job. New projects start as <strong>Draft</strong>. When you set status to <strong>Active</strong>, the project becomes visible for work orders, form assignments, and team assignments; activate only when you are ready to use it.
               </p>
@@ -130,6 +130,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Managers</label>
+                <p class="text-xs text-gray-500 mb-2">Oversees the project and assigns work orders to field users.</p>
                 <div class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50">
                   @forelse($users as $user)
                     <label class="flex items-center py-2 px-2 hover:bg-white rounded cursor-pointer">
@@ -144,6 +145,7 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Field Users</label>
+                <p class="text-xs text-gray-500 mb-2">Completes assigned work orders and submits records in the field.</p>
                 <div class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50">
                   @forelse($users as $user)
                     <label class="flex items-center py-2 px-2 hover:bg-white rounded cursor-pointer">
@@ -158,6 +160,25 @@
               </div>
             </div>
           </section>
+
+          <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-green-800">Next step: set up your project</h3>
+                <p class="mt-1 text-sm text-green-700">After creating this project, you can:</p>
+                <ul class="mt-2 text-sm text-green-700 list-disc list-inside space-y-1">
+                  <li>Open the project page to add work orders and assign forms</li>
+                  <li>Assign or change managers and field users from the project</li>
+                  <li>Track work orders and records from the project dashboard</li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
           <!-- Actions -->
           <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">

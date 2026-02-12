@@ -45,9 +45,9 @@
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <h3 class="text-sm font-medium text-blue-800">Work Orders</h3>
+                                <h3 class="text-sm font-medium text-blue-800">What is a work order?</h3>
                                 <p class="mt-1 text-sm text-blue-700">
-                                    Work orders connect forms to projects and assign them to team members. After creation, assigned users will see this work order in their list and can fill out the attached forms; submitted records are tracked under this work order.
+                                    Work orders connect forms to a project and assign tasks to team members. Assigned users will see this work order in their list and can fill out the attached forms; submitted records are tracked under this work order.
                                 </p>
                             </div>
                         </div>
@@ -314,6 +314,25 @@
                             @error('description')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
+                        </div>
+
+                        <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-green-800">Next step: after you create</h3>
+                                    <p class="mt-1 text-sm text-green-700">Once this work order is created:</p>
+                                    <ul class="mt-2 text-sm text-green-700 list-disc list-inside space-y-1">
+                                        <li>Assigned users will see it in their work orders and can open the forms</li>
+                                        <li>You can view progress and submitted records on the work order page</li>
+                                        <li>You can edit the work order or reassign it anytime</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Submit Buttons -->
