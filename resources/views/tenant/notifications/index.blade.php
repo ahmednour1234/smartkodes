@@ -11,6 +11,7 @@
                             <h2 class="text-2xl font-bold">Notifications</h2>
                             <p class="text-blue-100 mt-1">Stay updated with your team's activities</p>
                         </div>
+                        @if(isset($notifications) && count($notifications) > 0)
                         <div class="flex space-x-3">
                             <button onclick="markAllAsRead()"
                                     class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
@@ -21,6 +22,7 @@
                                 Clear All
                             </button>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -54,7 +56,7 @@
             <!-- Notifications List -->
             <div class="space-y-4" id="notifications-container">
                 @forelse($notifications ?? [] as $notification)
-                    <div class="notification-item bg-white overflow-hidden shadow-sm sm:rounded-lg {{ $notification['read'] ? '' : 'border-l-4 border-blue-500' }}">
+                    <div class="notification-item bg-white overflow-hidden shadow-sm sm:rounded-lg {{ $notification['read'] ? '' : 'border-l-4 border-blue-500' }}" data-type="{{ $notification['type'] ?? '' }}" data-unread="{{ $notification['read'] ? '0' : '1' }}">
                         <div class="p-6">
                             <div class="flex items-start">
                                 <!-- Icon -->
@@ -107,11 +109,11 @@
                                                 {{ $notification['action_text'] ?? 'View Details' }}
                                             </a>
                                         @endif
-                                        <button onclick="markAsRead({{ $notification['id'] }})"
+                                        <button onclick="toggleRead('{{ $notification['id'] }}', {{ $notification['read'] ? 'true' : 'false' }})"
                                                 class="text-sm text-gray-600 hover:text-gray-800">
                                             {{ $notification['read'] ? 'Mark as unread' : 'Mark as read' }}
                                         </button>
-                                        <button onclick="deleteNotification({{ $notification['id'] }})"
+                                        <button onclick="deleteNotification('{{ $notification['id'] }}')"
                                                 class="text-sm text-red-600 hover:text-red-800">
                                             Delete
                                         </button>
@@ -153,86 +155,67 @@
             event.target.classList.add('active', 'bg-blue-100', 'text-blue-800');
             event.target.classList.remove('bg-gray-100', 'text-gray-800', 'hover:bg-gray-200');
 
-            // Filter notifications (this would typically make an AJAX request)
             const notifications = document.querySelectorAll('.notification-item');
             notifications.forEach(notification => {
+                const notifType = notification.getAttribute('data-type') || '';
+                const isUnread = notification.getAttribute('data-unread') === '1';
+                let show = true;
                 if (type === 'all') {
-                    notification.style.display = 'block';
+                    show = true;
                 } else if (type === 'unread') {
-                    notification.style.display = notification.classList.contains('border-l-4') ? 'block' : 'none';
+                    show = isUnread;
                 } else {
-                    // For type-specific filtering, you'd check data attributes or make AJAX call
-                    notification.style.display = 'block';
+                    show = notifType === type;
                 }
+                notification.style.display = show ? 'block' : 'none';
             });
         }
 
-        function markAsRead(notificationId) {
-            fetch(`/tenant/notifications/${notificationId}/read`, {
+        const csrf = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const jsonHeaders = () => ({
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrf()
+        });
+
+        function toggleRead(notificationId, isRead) {
+            const path = isRead ? 'unread' : 'read';
+            fetch(`/tenant/notifications/${notificationId}/${path}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
+                headers: jsonHeaders()
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                }
-            });
+            .then(r => r.ok ? r.json() : r.text().then(() => ({})))
+            .then(data => { if (data.success) location.reload(); });
         }
 
         function markAllAsRead() {
-            if (confirm('Mark all notifications as read?')) {
-                fetch('/tenant/notifications/mark-all-read', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
-                });
-            }
+            if (!confirm('Mark all notifications as read?')) return;
+            fetch('/tenant/notifications/mark-all-read', {
+                method: 'POST',
+                headers: jsonHeaders()
+            })
+            .then(r => r.ok ? r.json() : r.text().then(() => ({})))
+            .then(data => { if (data.success) location.reload(); });
         }
 
         function deleteNotification(notificationId) {
-            if (confirm('Delete this notification?')) {
-                fetch(`/tenant/notifications/${notificationId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
-                });
-            }
+            if (!confirm('Delete this notification?')) return;
+            fetch(`/tenant/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf() }
+            })
+            .then(r => r.ok ? r.json() : r.text().then(() => ({})))
+            .then(data => { if (data.success) location.reload(); });
         }
 
         function clearAll() {
-            if (confirm('Clear all notifications? This action cannot be undone.')) {
-                fetch('/tenant/notifications/clear-all', {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
-                });
-            }
+            if (!confirm('Clear all notifications? This action cannot be undone.')) return;
+            fetch('/tenant/notifications/clear-all', {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf() }
+            })
+            .then(r => r.ok ? r.json() : r.text().then(() => ({})))
+            .then(data => { if (data.success) location.reload(); });
         }
     </script>
 @endsection

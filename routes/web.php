@@ -160,6 +160,10 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
     Route::get('/subscription/{id}', [\App\Http\Controllers\Admin\TenantSubscriptionController::class, 'show'])->name('subscription.show');
 
     // Notifications (tenant-scoped)
+    Route::post('notifications/mark-all-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('notifications/clear-all', [\App\Http\Controllers\Admin\NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+    Route::post('notifications/{notification}/read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('notifications/{notification}/unread', [\App\Http\Controllers\Admin\NotificationController::class, 'markAsUnread'])->name('notifications.unread');
     Route::resource('notifications', \App\Http\Controllers\Admin\NotificationController::class);
 
     // Audit Logs (tenant-scoped)

@@ -44,14 +44,31 @@ class NotificationController extends Controller
             if (!$currentTenant) {
                 abort(403, 'No tenant context available.');
             }
-            $notifications = Notification::where('tenant_id', $currentTenant->id)
+            $query = Notification::where('tenant_id', $currentTenant->id)
+                ->where('user_id', Auth::id());
+            $notificationCounts = [
+                'all' => (clone $query)->count(),
+                'unread' => (clone $query)->whereNull('read_at')->count(),
+            ];
+            $notifications = (clone $query)
                 ->with(['user', 'creator'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
+            $notifications->getCollection()->transform(function ($n) {
+                $data = $n->toArray();
+                $data['read'] = !empty($n->read_at);
+                $data['created_at'] = $n->created_at?->format('M d, Y H:i');
+                $data['action_url'] = $n->action_url ?? (is_array($n->data) ? ($n->data['action_url'] ?? null) : null);
+                $data['action_text'] = is_array($n->data) ? ($n->data['action_text'] ?? 'View Details') : 'View Details';
+                return $data;
+            });
         }
 
         $viewPrefix = $this->getViewPrefix();
-        return view("{$viewPrefix}.notifications.index", compact('notifications'));
+        if (!isset($notificationCounts)) {
+            $notificationCounts = ['all' => 0, 'unread' => 0];
+        }
+        return view("{$viewPrefix}.notifications.index", compact('notifications', 'notificationCounts'));
     }
 
     /**
@@ -194,17 +211,39 @@ class NotificationController extends Controller
     /**
      * Mark notification as read.
      */
-    public function markAsRead(string $id)
+    public function markAsRead(string $notification)
     {
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
         }
 
-        $notification = Notification::where('tenant_id', $currentTenant->id)->findOrFail($id);
-        $notification->markAsRead();
+        $model = Notification::where('tenant_id', $currentTenant->id)->findOrFail($notification);
+        $model->markAsRead();
 
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
         return redirect()->back()->with('success', 'Notification marked as read.');
+    }
+
+    /**
+     * Mark notification as unread.
+     */
+    public function markAsUnread(string $notification)
+    {
+        $currentTenant = session('tenant_context.current_tenant');
+        if (!$currentTenant) {
+            abort(403, 'No tenant context available.');
+        }
+
+        $model = Notification::where('tenant_id', $currentTenant->id)->findOrFail($notification);
+        $model->update(['read_at' => null]);
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->back()->with('success', 'Notification marked as unread.');
     }
 
     /**
@@ -218,10 +257,34 @@ class NotificationController extends Controller
         }
 
         Notification::where('tenant_id', $currentTenant->id)
+                   ->where('user_id', Auth::id())
                    ->whereNull('read_at')
                    ->update(['read_at' => now()]);
 
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
         return redirect()->back()->with('success', 'All notifications marked as read.');
+    }
+
+    /**
+     * Clear all notifications for the current user.
+     */
+    public function clearAll()
+    {
+        $currentTenant = session('tenant_context.current_tenant');
+        if (!$currentTenant) {
+            abort(403, 'No tenant context available.');
+        }
+
+        Notification::where('tenant_id', $currentTenant->id)
+                   ->where('user_id', Auth::id())
+                   ->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->route('tenant.notifications.index')->with('success', 'All notifications cleared.');
     }
 
     /**
@@ -237,6 +300,9 @@ class NotificationController extends Controller
         $notification = Notification::where('tenant_id', $currentTenant->id)->findOrFail($id);
         $notification->delete();
 
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
         $routePrefix = $this->getRoutePrefix();
         return redirect()->route("{$routePrefix}.notifications.index")
                         ->with('success', 'Notification deleted successfully.');
