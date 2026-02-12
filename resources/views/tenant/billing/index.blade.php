@@ -75,6 +75,7 @@
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Current Usage</h3>
+                        <p class="text-xs text-gray-500 mb-3">Usage against your plan limits.</p>
                         <div class="space-y-4">
                             <div>
                                 <div class="flex justify-between text-sm mb-1">
@@ -84,6 +85,13 @@
                                 <div class="w-full bg-gray-200 rounded-full h-2">
                                     <div class="bg-blue-600 h-2 rounded-full" style="width: {{ min(($usage['projects_used'] ?? 0) / max($usage['projects_limit'] ?? 100, 1) * 100, 100) }}%"></div>
                                 </div>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    @if(is_numeric($usage['projects_limit'] ?? null))
+                                        {{ $usage['projects_used'] ?? 0 }} of {{ $usage['projects_limit'] }} projects used.
+                                    @else
+                                        Unlimited projects included in your plan.
+                                    @endif
+                                </p>
                             </div>
                             <div>
                                 <div class="flex justify-between text-sm mb-1">
@@ -93,6 +101,7 @@
                                 <div class="w-full bg-gray-200 rounded-full h-2">
                                     <div class="bg-green-600 h-2 rounded-full" style="width: {{ min(($usage['users_used'] ?? 0) / max($usage['users_limit'] ?? 10, 1) * 100, 100) }}%"></div>
                                 </div>
+                                <p class="text-xs text-gray-500 mt-1">{{ $usage['users_used'] ?? 0 }} of {{ $usage['users_limit'] ?? 10 }} team members used.</p>
                             </div>
                             {{-- <div>
                                 <div class="flex justify-between text-sm mb-1">
