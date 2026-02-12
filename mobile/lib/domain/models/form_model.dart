@@ -5,6 +5,7 @@ class FormModel {
   final String? status;
   final String? version;
   final List<FormFieldModel>? fields;
+  final int? fieldsCount;
 
   const FormModel({
     required this.id,
@@ -13,6 +14,7 @@ class FormModel {
     this.status,
     this.version,
     this.fields,
+    this.fieldsCount,
   });
 
   factory FormModel.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class FormModel {
       fields: (json['fields'] as List<dynamic>?)
           ?.map((e) => FormFieldModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      fieldsCount: json['fields_count'] as int?,
     );
   }
 }

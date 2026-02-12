@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../domain/models/work_order.dart';
+import '../../forms/presentation/forms_list_screen.dart';
 import '../data/work_order_repository.dart';
 import 'work_order_providers.dart';
 import 'work_order_detail_screen.dart';
@@ -47,6 +48,30 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
             onPressed: () => _showFilters(context),
           ),
         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            const DrawerHeader(
+              child: Text('SmartKodes', style: TextStyle(color: Colors.white, fontSize: 20)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment),
+              title: const Text('Work Orders'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.description),
+              title: const Text('Forms'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const FormsListScreen()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
       body: FutureBuilder<PaginatedResponse<WorkOrder>>(
         future: ref.read(workOrderRepositoryProvider).list(
