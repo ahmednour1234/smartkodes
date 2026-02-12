@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProjectsExport;
 
@@ -75,7 +76,7 @@ class ProjectController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:projects,code',
+            'code' => 'nullable|string|max:50|unique:projects,code',
             'description' => 'nullable|string',
             'status' => 'nullable|integer|in:0,1,2,3',
             'start_date' => 'nullable|date',
@@ -88,11 +89,14 @@ class ProjectController extends Controller
             'field_users.*' => 'exists:users,id',
         ]);
 
-        // Create project
+        $code = $validated['code'] ?? null;
+        if (blank($code)) {
+            $code = $this->generateUniqueProjectCode($validated['name']);
+        }
         $project = Project::create([
             'tenant_id' => $currentTenant->id,
             'name' => $validated['name'],
-            'code' => $validated['code'],
+            'code' => $code,
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 3,
             'start_date' => $validated['start_date'] ?? null,
@@ -317,5 +321,22 @@ class ProjectController extends Controller
         if (!$currentTenant || $project->tenant_id !== $currentTenant->id) {
             abort(403, 'Unauthorized');
         }
+    }
+
+    private function generateUniqueProjectCode(string $name): string
+    {
+        $slug = strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', trim($name)));
+        $slug = trim(Str::limit(str_replace('--', '-', $slug), 18, ''), '-') ?: 'PROJECT';
+        $y = date('y');
+        $m = date('m');
+        $d = date('d');
+        $his = date('His');
+        for ($seq = 1; $seq <= 999; $seq++) {
+            $code = sprintf('%s-%s-%s-%s-%03d-%s', $slug, $y, $m, $d, $seq, $his);
+            if (strlen($code) <= 50 && !Project::where('code', $code)->exists()) {
+                return $code;
+            }
+        }
+        return $slug . '-' . $y . $m . $d . '-' . $his . '-' . (string) time();
     }
 }
