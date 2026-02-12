@@ -191,58 +191,124 @@
                     });
                 </script>
             @else
-                <!-- Filters -->
+                <!-- Filters (collapsible) -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                    <div class="p-4">
-                        <form method="GET"
-                              action="{{ route('tenant.work-orders.index') }}"
-                              class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                                <input type="text"
-                                       name="search"
-                                       value="{{ request('search') }}"
-                                       placeholder="Search work orders..."
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                                <select name="status"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">All Statuses</option>
-                                    <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Draft</option>
-                                    <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Assigned</option>
-                                    <option value="2" {{ request('status') === '2' ? 'selected' : '' }}>In Progress</option>
-                                    <option value="3" {{ request('status') === '3' ? 'selected' : '' }}>Completed</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Project</label>
-                                <select name="project_id"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">All Projects</option>
-                                    @foreach(\App\Models\Project::where('tenant_id', session('tenant_context.current_tenant')->id ?? null)->get() as $project)
-                                        <option value="{{ $project->id }}"
-                                            {{ request('project_id') == $project->id ? 'selected' : '' }}>
-                                            {{ $project->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="flex items-end">
-                                <button type="submit"
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
-                                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor"
-                                         viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                                    </svg>
-                                    Apply Filters
-                                </button>
-                            </div>
-                        </form>
+                    <button type="button" id="work-order-filters-toggle" class="w-full px-4 py-3 flex items-center justify-between text-left text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                            aria-expanded="false" aria-controls="work-order-filters-body">
+                        <span class="inline-flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
+                            Filters
+                            @if(request('search') || request('status') !== null || request('project_id'))
+                                <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Active</span>
+                            @endif
+                        </span>
+                        <svg id="work-order-filters-chevron" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div id="work-order-filters-body" class="border-t border-gray-200 hidden" role="region">
+                        <div class="p-4">
+                            <form method="GET" id="work-order-filters-form"
+                                  action="{{ route('tenant.work-orders.index') }}"
+                                  class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <input type="hidden" name="view" value="list">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                                    <input type="text" id="filter-search"
+                                           name="search"
+                                           value="{{ request('search') }}"
+                                           placeholder="Search work orders..."
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                                    <select name="status" id="filter-status"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">All Statuses</option>
+                                        <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Draft</option>
+                                        <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Assigned</option>
+                                        <option value="2" {{ request('status') === '2' ? 'selected' : '' }}>In Progress</option>
+                                        <option value="3" {{ request('status') === '3' ? 'selected' : '' }}>Completed</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Project</label>
+                                    <select name="project_id" id="filter-project_id"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">All Projects</option>
+                                        @foreach(\App\Models\Project::where('tenant_id', session('tenant_context.current_tenant')->id ?? null)->get() as $project)
+                                            <option value="{{ $project->id }}"
+                                                {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                                {{ $project->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="submit"
+                                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                                        </svg>
+                                        Apply Filters
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
+
+                <script>
+                (function() {
+                    var STORAGE_KEY_OPEN = 'workOrdersFiltersOpen';
+                    var STORAGE_KEY_VALUES = 'workOrderFilterValues';
+                    var toggle = document.getElementById('work-order-filters-toggle');
+                    var body = document.getElementById('work-order-filters-body');
+                    var chevron = document.getElementById('work-order-filters-chevron');
+                    var form = document.getElementById('work-order-filters-form');
+
+                    function isOpen() { return !body.classList.contains('hidden'); }
+                    function setOpen(open) {
+                        body.classList.toggle('hidden', !open);
+                        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                        chevron.style.transform = open ? 'rotate(180deg)' : '';
+                        try { localStorage.setItem(STORAGE_KEY_OPEN, open ? '1' : '0'); } catch (e) {}
+                    }
+
+                    var savedOpen = false;
+                    try { savedOpen = localStorage.getItem(STORAGE_KEY_OPEN) === '1'; } catch (e) {}
+                    var hasParams = {{ (request('search') || request('status') !== null || request('project_id')) ? 'true' : 'false' }};
+                    setOpen(hasParams || savedOpen);
+
+                    toggle.addEventListener('click', function() { setOpen(!isOpen()); });
+
+                    try {
+                        var saved = localStorage.getItem(STORAGE_KEY_VALUES);
+                        if (saved) {
+                            var v = JSON.parse(saved);
+                            if (!hasParams && v) {
+                                if (v.search) { var el = document.getElementById('filter-search'); if (el) el.value = v.search; }
+                                if (v.status !== undefined) { var el = document.getElementById('filter-status'); if (el) el.value = v.status; }
+                                if (v.project_id) { var el = document.getElementById('filter-project_id'); if (el) el.value = v.project_id; }
+                            }
+                        }
+                    } catch (e) {}
+
+                    if (form) form.addEventListener('submit', function() {
+                        try {
+                            localStorage.setItem(STORAGE_KEY_VALUES, JSON.stringify({
+                                search: document.getElementById('filter-search')?.value || '',
+                                status: document.getElementById('filter-status')?.value ?? '',
+                                project_id: document.getElementById('filter-project_id')?.value || ''
+                            }));
+                        } catch (e) {}
+                    });
+                })();
+                </script>
 
                 <!-- Work Orders Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">

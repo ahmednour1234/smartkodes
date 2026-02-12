@@ -36,16 +36,31 @@ class WorkOrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
         }
 
-        $workOrders = WorkOrder::where('tenant_id', $currentTenant->id)
-                              ->with(['project', 'forms', 'assignedUser', 'creator'])
-                              ->paginate(15);
+        $query = WorkOrder::where('tenant_id', $currentTenant->id)
+                         ->with(['project', 'forms', 'assignedUser', 'creator']);
+
+        if ($request->filled('status') && $request->status !== '') {
+            $query->where('status', (int) $request->status);
+        }
+        if ($request->filled('project_id') && $request->project_id !== '') {
+            $query->where('project_id', $request->project_id);
+        }
+        if ($request->filled('search') && trim($request->search) !== '') {
+            $term = '%' . trim($request->search) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('title', 'like', $term)
+                  ->orWhere('description', 'like', $term);
+            });
+        }
+
+        $workOrders = $query->paginate(15)->withQueryString();
 
         $viewPrefix = $this->getViewPrefix();
         return view("{$viewPrefix}.work-orders.index", compact('workOrders'));
