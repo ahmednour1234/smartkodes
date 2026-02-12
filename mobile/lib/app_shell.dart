@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/api/api_client_provider.dart';
 import 'features/auth/presentation/auth_providers.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/work_orders/presentation/work_orders_list_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -29,10 +30,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       error: (_, __) => const LoginScreen(),
       data: (user) {
         if (user == null) return const LoginScreen();
-        return Scaffold(
-          appBar: AppBar(title: const Text('SmartKodes')),
-          body: const Center(child: Text('Home')),
-        );
+        return const WorkOrdersListScreen();
       },
     );
   }
