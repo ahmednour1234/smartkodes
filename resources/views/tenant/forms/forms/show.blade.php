@@ -42,7 +42,10 @@
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Version</dt>
-                                    <dd class="text-sm text-gray-900">v{{ $form->version }}</dd>
+                                    <dd class="text-sm text-gray-900">
+                                        v{{ $form->version }}
+                                        <p class="text-xs text-gray-500 mt-0.5">Increments when you publish in Builder. Work orders keep the version they were assigned.</p>
+                                    </dd>
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Created By</dt>

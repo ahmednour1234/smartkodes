@@ -136,7 +136,11 @@
                                             </span>
                                         @endif
 
+                                        <span class="group relative inline-flex items-center gap-0.5 cursor-help">
                                         <span class="text-xs text-gray-500">v{{ $form->version }}</span>
+                                        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span class="absolute bottom-full left-0 mb-1 px-2 py-1.5 text-xs font-normal text-white bg-gray-800 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50 w-56 text-left normal-case">Version increases when you publish in Builder; work orders keep their assigned version.</span>
+                                    </span>
                                     </div>
 
                                     <div class="text-sm text-gray-500">

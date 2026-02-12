@@ -51,7 +51,7 @@
                                                 @else Inactive @endif
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title="Version increments when you publish in Builder. Work orders keep the version they were assigned.">
                                             v{{ $form->version }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
