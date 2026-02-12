@@ -31,6 +31,7 @@ class WorkOrderResource extends BaseResource
                 ];
             }),
             'status' => WorkOrderStatus::getLabel($this->status),
+            'importance_level' => $this->importance_level,
             'priority_value' => $this->priority_value,
             'priority_unit' => $this->priority_unit,
             'due_date' => $this->due_date?->toIso8601String(),
