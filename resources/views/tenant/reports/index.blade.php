@@ -27,9 +27,29 @@
                                 Export Excel
                             </button>
                         </div>
+</div>
+            </div>
+        </div>
+
+            @php
+                $hasData = ($stats['total_projects'] ?? 0) > 0 || ($stats['total_submissions'] ?? 0) > 0 || ($stats['active_work_orders'] ?? 0) > 0;
+            @endphp
+            @if(!$hasData)
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            Reports will appear once you have projects, work orders, and form submissions. Create projects, assign work orders, and collect form data to see metrics and analytics here.
+                        </p>
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Quick Stats -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -62,8 +82,8 @@
                                 </div>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Completed Projects</p>
-                                <p class="text-2xl font-semibold text-gray-900">{{ $stats['completed_projects'] ?? 0 }}</p>
+                                <p class="text-sm font-medium text-gray-600">Archived Projects</p>
+                                <p class="text-2xl font-semibold text-gray-900">{{ $stats['archived_projects'] ?? 0 }}</p>
                             </div>
                         </div>
                     </div>
@@ -111,7 +131,8 @@
                 <!-- Project Status Chart -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Project Status Distribution</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">Project Status Distribution</h3>
+                        <p class="text-sm text-gray-500 mb-4">Live count of projects by status (Active, Paused, Draft, Archived).</p>
                         <canvas id="projectStatusChart" width="400" height="300"></canvas>
                     </div>
                 </div>
@@ -119,7 +140,8 @@
                 <!-- Monthly Submissions Chart -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Form Submissions</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">Monthly Form Submissions</h3>
+                        <p class="text-sm text-gray-500 mb-4">Number of form submissions per month (last 6 months, from your records).</p>
                         <canvas id="monthlySubmissionsChart" width="400" height="300"></canvas>
                     </div>
                 </div>
@@ -214,15 +236,20 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @php
+        $projectStatusData = $chartData['project_status'] ?? [0, 0, 0, 0];
+        $chartMonths = $chartData['months'] ?? [];
+        $monthlySubmissionsData = $chartData['monthly_submissions'] ?? [];
+    @endphp
     <script>
         // Project Status Chart
         const projectStatusCtx = document.getElementById('projectStatusChart').getContext('2d');
         new Chart(projectStatusCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Active', 'Completed', 'On Hold', 'Cancelled'],
+                labels: ['Active', 'Paused', 'Draft', 'Archived'],
                 datasets: [{
-                    data: {{ json_encode($chartData['project_status'] ?? [0, 0, 0, 0]) }},
+                    data: @json($projectStatusData),
                     backgroundColor: [
                         '#3B82F6',
                         '#10B981',
@@ -246,10 +273,10 @@
         new Chart(monthlySubmissionsCtx, {
             type: 'line',
             data: {
-                labels: {{ json_encode($chartData['months'] ?? []) }},
+                labels: @json($chartMonths),
                 datasets: [{
                     label: 'Form Submissions',
-                    data: {{ json_encode($chartData['monthly_submissions'] ?? []) }},
+                    data: @json($monthlySubmissionsData),
                     borderColor: '#3B82F6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     tension: 0.4

@@ -42,10 +42,10 @@ class ReportController extends Controller
             abort(403, 'No tenant context available.');
         }
 
-        // Get summary statistics
+        // Get summary statistics (all from DB)
         $stats = [
             'total_projects' => Project::where('tenant_id', $currentTenant->id)->count(),
-            'completed_projects' => Project::where('tenant_id', $currentTenant->id)->where('status', 3)->count(),
+            'archived_projects' => Project::where('tenant_id', $currentTenant->id)->where('status', 0)->count(),
             'total_submissions' => Record::where('tenant_id', $currentTenant->id)->count(),
             'active_work_orders' => WorkOrder::where('tenant_id', $currentTenant->id)->whereIn('status', [1, 2])->count(),
             'total_forms' => Form::where('tenant_id', $currentTenant->id)->count(),
@@ -53,7 +53,7 @@ class ReportController extends Controller
             'total_work_orders' => WorkOrder::where('tenant_id', $currentTenant->id)->count(),
             'completed_work_orders' => WorkOrder::where('tenant_id', $currentTenant->id)->where('status', 3)->count(),
             'total_records' => Record::where('tenant_id', $currentTenant->id)->count(),
-            'submitted_records' => Record::where('tenant_id', $currentTenant->id)->where('status', 1)->count(),
+            'submitted_records' => Record::where('tenant_id', $currentTenant->id)->whereNotNull('submitted_at')->count(),
             'total_users' => User::where('tenant_id', $currentTenant->id)->count(),
         ];
 
@@ -87,21 +87,22 @@ class ReportController extends Controller
                 ];
             });
 
-        // Chart data for project status
+        // Chart data: project status (1=Active, 2=Paused, 3=Draft, 0=Archived)
         $chartData = [
             'project_status' => [
-                Project::where('tenant_id', $currentTenant->id)->where('status', 1)->count(), // Active
-                Project::where('tenant_id', $currentTenant->id)->where('status', 3)->count(), // Completed
-                Project::where('tenant_id', $currentTenant->id)->where('status', 2)->count(), // On Hold
-                Project::where('tenant_id', $currentTenant->id)->where('status', 0)->count(), // Cancelled
+                Project::where('tenant_id', $currentTenant->id)->where('status', 1)->count(),
+                Project::where('tenant_id', $currentTenant->id)->where('status', 2)->count(),
+                Project::where('tenant_id', $currentTenant->id)->where('status', 3)->count(),
+                Project::where('tenant_id', $currentTenant->id)->where('status', 0)->count(),
             ],
-            'months' => collect(range(0, 5))->map(fn($i) => now()->subMonths($i)->format('M Y'))->reverse()->values(),
-            'monthly_submissions' => collect(range(0, 5))->map(function ($i) use ($currentTenant) {
+            'months' => collect(range(5, 0))->map(fn($i) => now()->subMonths($i)->format('M Y'))->values()->all(),
+            'monthly_submissions' => collect(range(5, 0))->map(function ($i) use ($currentTenant) {
+                $date = now()->subMonths($i);
                 return Record::where('tenant_id', $currentTenant->id)
-                    ->whereYear('submitted_at', now()->subMonths($i)->year)
-                    ->whereMonth('submitted_at', now()->subMonths($i)->month)
+                    ->whereYear('submitted_at', $date->year)
+                    ->whereMonth('submitted_at', $date->month)
                     ->count();
-            })->reverse()->values(),
+            })->values()->all(),
         ];
 
         $viewPrefix = $this->getViewPrefix();
@@ -216,15 +217,13 @@ class ReportController extends Controller
             abort(403, 'No tenant context available.');
         }
 
-        $reportType = $request->input('report_type', 'submissions');
+        $reportType = $request->input('report_type', 'form_submissions');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
         $groupBy = $request->input('group_by', 'form');
         $exportFormat = $request->input('export_format', 'view');
 
         $query = Record::where('tenant_id', $currentTenant->id);
-
-        // Apply date filters
         if ($dateFrom) {
             $query->whereDate('submitted_at', '>=', $dateFrom);
         }
@@ -232,8 +231,15 @@ class ReportController extends Controller
             $query->whereDate('submitted_at', '<=', $dateTo);
         }
 
-        // Generate report based on type and grouping
-        switch ($reportType) {
+        $normalized = match ($reportType) {
+            'project_summary' => 'projects',
+            'form_submissions' => 'submissions',
+            'team_performance' => 'users',
+            'work_order_status' => 'work_order_status',
+            default => $reportType,
+        };
+
+        switch ($normalized) {
             case 'submissions':
                 $data = $this->generateSubmissionsReport($query, $groupBy);
                 break;
@@ -245,6 +251,9 @@ class ReportController extends Controller
                 break;
             case 'users':
                 $data = $this->generateUsersReport($currentTenant->id, $dateFrom, $dateTo);
+                break;
+            case 'work_order_status':
+                $data = $this->generateWorkOrderStatusReport($currentTenant->id);
                 break;
             default:
                 $data = ['headers' => [], 'rows' => []];
@@ -369,17 +378,17 @@ class ReportController extends Controller
             })
             ->select(
                 'projects.name',
-                'projects.location',
+                'projects.area',
                 DB::raw('count(records.id) as total_submissions')
             )
-            ->groupBy('projects.id', 'projects.name', 'projects.location')
+            ->groupBy('projects.id', 'projects.name', 'projects.area')
             ->get();
 
-        $headers = ['Project Name', 'Location', 'Total Submissions'];
+        $headers = ['Project Name', 'Area', 'Total Submissions'];
         $rows = $query->map(function ($item) {
             return [
                 $item->name,
-                $item->location ?? 'N/A',
+                $item->area ?? 'N/A',
                 $item->total_submissions
             ];
         })->toArray();
@@ -461,7 +470,28 @@ class ReportController extends Controller
     }
 
     /**
-     * Generate work order status report.
+     * Generate work order status report (for Custom Report form).
+     */
+    private function generateWorkOrderStatusReport($tenantId): array
+    {
+        $statuses = [0 => 'Draft', 1 => 'Assigned', 2 => 'In Progress', 3 => 'Completed'];
+        $counts = WorkOrder::where('tenant_id', $tenantId)
+            ->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $headers = ['Status', 'Count'];
+        $rows = [];
+        foreach ($statuses as $key => $label) {
+            $rows[] = [$label, $counts[$key] ?? 0];
+        }
+        return ['headers' => $headers, 'rows' => $rows];
+    }
+
+    /**
+     * Get work order status counts (API/chart).
      */
     public function workOrderStatus(Request $request)
     {
