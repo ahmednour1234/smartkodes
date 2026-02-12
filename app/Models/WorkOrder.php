@@ -15,6 +15,7 @@ class WorkOrder extends Model
 
     protected $fillable = [
         'tenant_id',
+        'title',
         'project_id',
         'assigned_to',
         'status',
@@ -22,10 +23,11 @@ class WorkOrder extends Model
         'due_date',
         'created_by',
         'updated_by',
-              'priority_value',
+        'priority_value',
         'priority_unit',
         'latitude',
         'longitude',
+        'description',
     ];
 
     protected function casts(): array
