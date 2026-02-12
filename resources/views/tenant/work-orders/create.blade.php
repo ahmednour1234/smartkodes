@@ -128,7 +128,7 @@
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                                 <p class="mt-1 text-sm text-gray-500">
-                                    Select a team member to assign this work order to.
+                                    Select a team member to assign this work order to. Unassigned work orders remain pending and are not visible or actionable to field users until assigned.
                                 </p>
                             </div>
                         </div>
