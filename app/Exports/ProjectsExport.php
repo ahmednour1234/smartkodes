@@ -78,6 +78,7 @@ class ProjectsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             0 => 'Archived',
             1 => 'Active',
             2 => 'Paused',
+            3 => 'Draft',
             default => 'Unknown'
         };
     }

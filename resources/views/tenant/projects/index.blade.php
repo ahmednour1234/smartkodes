@@ -74,12 +74,14 @@
                                     <p class="text-gray-600 text-sm mb-3">{{ Str::limit($project->description, 100) }}</p>
                                 </div>
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                    @if($project->status == 0) bg-gray-100 text-gray-800
+                                    @if($project->status == 3) bg-gray-100 text-gray-800
                                     @elseif($project->status == 1) bg-green-100 text-green-800
-                                    @else bg-blue-100 text-blue-800 @endif">
-                                    @if($project->status == 0) Draft
+                                    @elseif($project->status == 2) bg-blue-100 text-blue-800
+                                    @else bg-gray-200 text-gray-700 @endif">
+                                    @if($project->status == 3) Draft
                                     @elseif($project->status == 1) Active
-                                    @else Completed @endif
+                                    @elseif($project->status == 2) Paused
+                                    @else Archived @endif
                                 </span>
                             </div>
 

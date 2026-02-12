@@ -38,12 +38,14 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-4">
                                 <span class="px-3 py-1 text-sm font-semibold rounded-full
-                                    @if($project->status == 0) bg-gray-100 text-gray-800
+                                    @if($project->status == 3) bg-gray-100 text-gray-800
                                     @elseif($project->status == 1) bg-green-100 text-green-800
-                                    @else bg-blue-100 text-blue-800 @endif">
-                                    @if($project->status == 0) Draft
+                                    @elseif($project->status == 2) bg-blue-100 text-blue-800
+                                    @else bg-gray-200 text-gray-700 @endif">
+                                    @if($project->status == 3) Draft
                                     @elseif($project->status == 1) Active
-                                    @else Completed @endif
+                                    @elseif($project->status == 2) Paused
+                                    @else Archived @endif
                                 </span>
                                 <span class="text-sm text-gray-500">
                                     Created {{ $project->created_at->format('M d, Y') }}
@@ -78,12 +80,14 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                                     <span class="px-2 py-1 text-sm font-semibold rounded-full
-                                        @if($project->status == 0) bg-gray-100 text-gray-800
+                                        @if($project->status == 3) bg-gray-100 text-gray-800
                                         @elseif($project->status == 1) bg-green-100 text-green-800
-                                        @else bg-blue-100 text-blue-800 @endif">
-                                        @if($project->status == 0) Draft
+                                        @elseif($project->status == 2) bg-blue-100 text-blue-800
+                                        @else bg-gray-200 text-gray-700 @endif">
+                                        @if($project->status == 3) Draft
                                         @elseif($project->status == 1) Active
-                                        @else Completed @endif
+                                        @elseif($project->status == 2) Paused
+                                        @else Archived @endif
                                     </span>
                                 </div>
                                 <div class="md:col-span-2">

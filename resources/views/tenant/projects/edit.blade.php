@@ -85,6 +85,7 @@
                                     </label>
                                     <select name="status" id="status" required
                                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="3" {{ old('status', $project->status) == 3 ? 'selected' : '' }}>Draft</option>
                                         <option value="1" {{ old('status', $project->status) == 1 ? 'selected' : '' }}>Active</option>
                                         <option value="2" {{ old('status', $project->status) == 2 ? 'selected' : '' }}>Paused</option>
                                         <option value="0" {{ old('status', $project->status) == 0 ? 'selected' : '' }}>Archived</option>

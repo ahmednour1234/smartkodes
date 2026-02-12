@@ -40,7 +40,7 @@
             <div class="ml-3">
               <h3 class="text-sm font-medium text-blue-800">Projects</h3>
               <p class="mt-1 text-sm text-blue-700">
-                Projects group work by site or job. After creation, you can create work orders, assign forms and team members, and track progress from the project page.
+                Projects group work by site or job. New projects start as <strong>Draft</strong>. When you set status to <strong>Active</strong>, the project becomes visible for work orders, form assignments, and team assignments; activate only when you are ready to use it.
               </p>
             </div>
           </div>
@@ -72,7 +72,8 @@
                 <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status <span class="text-red-500">*</span></label>
                 <select id="status" name="status" required
                         class="mt-1 block w-full rounded-lg border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                  <option value="1" {{ old('status','1')=='1' ? 'selected' : '' }}>Active</option>
+                  <option value="3" {{ old('status','3')=='3' ? 'selected' : '' }}>Draft</option>
+                  <option value="1" {{ old('status')=='1' ? 'selected' : '' }}>Active</option>
                   <option value="2" {{ old('status')=='2' ? 'selected' : '' }}>Paused</option>
                   <option value="0" {{ old('status')=='0' ? 'selected' : '' }}>Archived</option>
                 </select>
