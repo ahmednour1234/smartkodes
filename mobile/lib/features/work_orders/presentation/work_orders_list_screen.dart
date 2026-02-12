@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/api/api_response.dart';
 import '../../../domain/models/work_order.dart';
 import '../../forms/presentation/forms_list_screen.dart';
+import '../../notifications/presentation/notifications_list_screen.dart';
 import '../data/work_order_repository.dart';
 import 'work_order_providers.dart';
 import 'work_order_detail_screen.dart';
@@ -67,6 +68,16 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                 Navigator.pop(context);
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (_) => const FormsListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
                 );
               },
             ),

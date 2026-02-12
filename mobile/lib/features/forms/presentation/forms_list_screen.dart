@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../domain/models/form_model.dart';
+import '../../notifications/presentation/notifications_list_screen.dart';
 import '../../work_orders/presentation/work_orders_list_screen.dart';
 import '../data/forms_repository.dart';
 import 'forms_providers.dart';
@@ -40,6 +41,16 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
               leading: const Icon(Icons.description),
               title: const Text('Forms'),
               onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
+                );
+              },
             ),
           ],
         ),
