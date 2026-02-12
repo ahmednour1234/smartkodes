@@ -30,6 +30,22 @@
           </div>
         @endif
 
+        <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800">Projects</h3>
+              <p class="mt-1 text-sm text-blue-700">
+                Projects group work by site or job. After creation, you can create work orders, assign forms and team members, and track progress from the project page.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <form method="POST" action="{{ route('tenant.projects.store') }}" id="projectForm" class="space-y-8">
           @csrf
 

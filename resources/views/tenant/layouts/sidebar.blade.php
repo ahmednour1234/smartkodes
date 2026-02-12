@@ -54,75 +54,64 @@
         </button>
     </div>
 
-    <ul class="mt-4 space-y-1 px-0 flex-1 overflow-y-auto">
+    <ul class="mt-4 space-y-1 px-0 flex-1 overflow-y-auto" id="mobileSidebarNav">
         <li>
-            <a href="{{ route('tenant.dashboard') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.dashboard') ? 'bg-blue-700' : '' }}">
+            <a href="{{ route('tenant.dashboard') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.dashboard') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
             </a>
         </li>
 
-        <li>
-            <a href="{{ route('tenant.projects.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.projects.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-project-diagram mr-2"></i>Projects
-            </a>
+        <li class="pt-2">
+            <details class="mobile-menu-section" {{ request()->routeIs('tenant.projects.*','tenant.forms.*','tenant.work-orders.*','tenant.records.*') ? 'open' : '' }}>
+                <summary class="px-4 py-2 text-xs font-semibold text-blue-200 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between hover:bg-blue-700 rounded">
+                    <span>Operations</span>
+                    <svg class="w-4 h-4 transition-transform details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <ul class="pl-4 pb-1">
+                    <li><a href="{{ route('tenant.projects.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.projects.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-project-diagram mr-2"></i>Projects</a></li>
+                    <li><a href="{{ route('tenant.forms.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.forms.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-file-alt mr-2"></i>Forms</a></li>
+                    <li><a href="{{ route('tenant.work-orders.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.work-orders.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-clipboard-list mr-2"></i>Work Orders</a></li>
+                    <li><a href="{{ route('tenant.records.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.records.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-database mr-2"></i>Records</a></li>
+                </ul>
+            </details>
         </li>
 
-        <li>
-            <a href="{{ route('tenant.forms.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.forms.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-file-alt mr-2"></i>Forms
-            </a>
+        <li class="pt-2">
+            <details class="mobile-menu-section" {{ request()->routeIs('tenant.users.*') ? 'open' : '' }}>
+                <summary class="px-4 py-2 text-xs font-semibold text-blue-200 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between hover:bg-blue-700 rounded">
+                    <span>People</span>
+                    <svg class="w-4 h-4 transition-transform details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <ul class="pl-4 pb-1">
+                    <li><a href="{{ route('tenant.users.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.users.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-users mr-2"></i>Users</a></li>
+                </ul>
+            </details>
         </li>
 
-        <li>
-            <a href="{{ route('tenant.work-orders.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.work-orders.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-clipboard-list mr-2"></i>Workforce
-            </a>
+        <li class="pt-2">
+            <details class="mobile-menu-section" {{ request()->routeIs('tenant.reports.*') ? 'open' : '' }}>
+                <summary class="px-4 py-2 text-xs font-semibold text-blue-200 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between hover:bg-blue-700 rounded">
+                    <span>Insights</span>
+                    <svg class="w-4 h-4 transition-transform details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <ul class="pl-4 pb-1">
+                    <li><a href="{{ route('tenant.reports.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.reports.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-chart-bar mr-2"></i>Reports</a></li>
+                </ul>
+            </details>
         </li>
 
-        <li>
-            <a href="{{ route('tenant.records.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.records.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-database mr-2"></i>Records
-            </a>
-        </li>
-
-        <li>
-            <a href="{{ route('tenant.files.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.files.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-file-upload mr-2"></i>Files
-            </a>
-        </li>
-
-        <li>
-            <a href="{{ route('tenant.users.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.users.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-users mr-2"></i>Users
-            </a>
-        </li>
-
-        <li>
-            <a href="{{ route('tenant.reports.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.reports.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-chart-bar mr-2"></i>Reports
-            </a>
-        </li>
-
-        <li>
-            <a href="{{ route('tenant.billing.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.billing.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-credit-card mr-2"></i>Billing
-            </a>
-        </li>
-
-        <li>
-            <a href="{{ route('tenant.notifications.index') }}"
-               class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.notifications.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-bell mr-2"></i>Notifications
-            </a>
+        <li class="pt-2">
+            <details class="mobile-menu-section" {{ request()->routeIs('tenant.files.*','tenant.billing.*','tenant.notifications.*') ? 'open' : '' }}>
+                <summary class="px-4 py-2 text-xs font-semibold text-blue-200 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between hover:bg-blue-700 rounded">
+                    <span>System</span>
+                    <svg class="w-4 h-4 transition-transform details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <ul class="pl-4 pb-1">
+                    <li><a href="{{ route('tenant.files.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.files.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-file-upload mr-2"></i>Files</a></li>
+                    <li><a href="{{ route('tenant.billing.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.billing.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-credit-card mr-2"></i>Billing</a></li>
+                    <li><a href="{{ route('tenant.notifications.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.notifications.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-bell mr-2"></i>Notifications</a></li>
+                </ul>
+            </details>
         </li>
     </ul>
 
@@ -158,54 +147,61 @@
             </a>
         </li>
 
+        <li class="pt-2">
+            <p class="px-4 py-1 text-xs font-semibold text-blue-200 uppercase tracking-wider">Operations</p>
+        </li>
         <li>
             <a href="{{ route('tenant.projects.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.projects.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-project-diagram mr-2"></i>Projects
             </a>
         </li>
-
         <li>
             <a href="{{ route('tenant.forms.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.forms.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-file-alt mr-2"></i>Forms
             </a>
         </li>
-
         <li>
             <a href="{{ route('tenant.work-orders.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.work-orders.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-clipboard-list mr-2"></i>Workforce
+                <i class="fas fa-clipboard-list mr-2"></i>Work Orders
             </a>
         </li>
-
         <li>
             <a href="{{ route('tenant.records.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.records.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-database mr-2"></i>Records
             </a>
         </li>
 
-        <li>
-            <a href="{{ route('tenant.files.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.files.*') ? 'bg-blue-700' : '' }}">
-                <i class="fas fa-file-upload mr-2"></i>Files
-            </a>
+        <li class="pt-2">
+            <p class="px-4 py-1 text-xs font-semibold text-blue-200 uppercase tracking-wider">People</p>
         </li>
-
         <li>
             <a href="{{ route('tenant.users.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.users.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-users mr-2"></i>Users
             </a>
         </li>
 
+        <li class="pt-2">
+            <p class="px-4 py-1 text-xs font-semibold text-blue-200 uppercase tracking-wider">Insights</p>
+        </li>
         <li>
             <a href="{{ route('tenant.reports.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.reports.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-chart-bar mr-2"></i>Reports
             </a>
         </li>
 
+        <li class="pt-2">
+            <p class="px-4 py-1 text-xs font-semibold text-blue-200 uppercase tracking-wider">System</p>
+        </li>
+        <li>
+            <a href="{{ route('tenant.files.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.files.*') ? 'bg-blue-700' : '' }}">
+                <i class="fas fa-file-upload mr-2"></i>Files
+            </a>
+        </li>
         <li>
             <a href="{{ route('tenant.billing.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.billing.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-credit-card mr-2"></i>Billing
             </a>
         </li>
-
         <li>
             <a href="{{ route('tenant.notifications.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.notifications.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-bell mr-2"></i>Notifications
@@ -223,6 +219,11 @@
     </div>
 </nav>
 
+@push('styles')
+<style>
+#mobileSidebar details[open] .details-chevron { transform: rotate(180deg); }
+</style>
+@endpush
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -244,6 +245,10 @@
         if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
         if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
         if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+        document.querySelectorAll('#mobileSidebar .mobile-nav-link').forEach(function (link) {
+            link.addEventListener('click', closeSidebar);
+        });
 
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeSidebar();

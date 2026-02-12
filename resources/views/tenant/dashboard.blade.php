@@ -44,6 +44,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Projects</p>
                         <p class="text-2xl font-bold text-gray-900">{{ $stats['total_projects'] ?? 0 }}</p>
+                        <a href="{{ route('tenant.projects.create') }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Create Project</a>
                     </div>
                 </div>
             </div>
@@ -58,6 +59,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Active Forms</p>
                         <p class="text-2xl font-bold text-gray-900">{{ $stats['active_forms'] ?? 0 }}</p>
+                        <a href="{{ route('tenant.forms.create') }}" class="text-xs text-green-600 hover:text-green-800 font-medium">Create Form</a>
                     </div>
                 </div>
             </div>
@@ -72,6 +74,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Work Orders</p>
                         <p class="text-2xl font-bold text-gray-900">{{ $stats['total_work_orders'] ?? 0 }}</p>
+                        <a href="{{ route('tenant.work-orders.create') }}" class="text-xs text-yellow-600 hover:text-yellow-800 font-medium">Create Work Order</a>
                     </div>
                 </div>
             </div>
@@ -86,23 +89,40 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Team Members</p>
                         <p class="text-2xl font-bold text-gray-900">{{ $stats['total_users'] ?? 0 }}</p>
+                        <a href="{{ route('tenant.users.index') }}" class="text-xs text-purple-600 hover:text-purple-800 font-medium">Manage Users</a>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Charts Section -->
+        @php
+            $projectLabels = $projectChartData['project_labels'] ?? [];
+            $projectData = $projectChartData['project_data'] ?? [];
+            $userLabels = $manpowerChartData['user_labels'] ?? [];
+            $userData = $manpowerChartData['user_data'] ?? [];
+            $hasProjectChartData = count($projectLabels) > 0 && array_sum($projectData) > 0;
+            $hasManpowerChartData = count($userLabels) > 0 && array_sum($userData) > 0;
+        @endphp
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Project Progress Chart -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Project Progress (Monthly)</h3>
-                <canvas id="projectProgressChart" width="400" height="200"></canvas>
+                @if($hasProjectChartData)
+                    <canvas id="projectProgressChart" width="400" height="200"></canvas>
+                @else
+                    <p class="text-gray-500 text-center py-8">Data will appear here once projects and work orders are created.</p>
+                @endif
             </div>
 
             <!-- Manpower Chart -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Manpower Distribution</h3>
-                <canvas id="manpowerChart" width="400" height="200"></canvas>
+                @if($hasManpowerChartData)
+                    <canvas id="manpowerChart" width="400" height="200"></canvas>
+                @else
+                    <p class="text-gray-500 text-center py-8">Data will appear here once projects and work orders are created.</p>
+                @endif
             </div>
         </div>
 
@@ -184,15 +204,8 @@
         </div>
     </div>
 
-    @php
-        $projectLabels = $projectChartData['project_labels'] ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        $projectData = $projectChartData['project_data'] ?? [12, 19, 3, 5, 2, 3];
-        $userLabels = $manpowerChartData['user_labels'] ?? ['Field Workers', 'Managers', 'Admins'];
-        $userData = $manpowerChartData['user_data'] ?? [15, 5, 2];
-    @endphp
-
     <script>
-        // Project Progress Chart
+        @if($hasProjectChartData)
         const projectCtx = document.getElementById('projectProgressChart').getContext('2d');
         new Chart(projectCtx, {
             type: 'line',
@@ -209,14 +222,13 @@
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        position: 'top',
-                    }
+                    legend: { position: 'top' }
                 }
             }
         });
+        @endif
 
-        // Manpower Chart
+        @if($hasManpowerChartData)
         const manpowerCtx = document.getElementById('manpowerChart').getContext('2d');
         new Chart(manpowerCtx, {
             type: 'doughnut',
@@ -224,21 +236,16 @@
                 labels: @json($userLabels),
                 datasets: [{
                     data: @json($userData),
-                    backgroundColor: [
-                        'rgb(34, 197, 94)',
-                        'rgb(251, 191, 36)',
-                        'rgb(239, 68, 68)'
-                    ]
+                    backgroundColor: ['rgb(34, 197, 94)', 'rgb(251, 191, 36)', 'rgb(239, 68, 68)']
                 }]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                    }
+                    legend: { position: 'bottom' }
                 }
             }
         });
+        @endif
     </script>
 @endsection
