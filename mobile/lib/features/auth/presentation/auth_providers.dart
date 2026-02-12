@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_client_provider.dart';
+import '../../../core/api/api_client_provider.dart';
+import '../../../domain/models/user.dart';
 import '../data/auth_repository.dart';
 import 'auth_notifier.dart';
 
@@ -11,5 +12,4 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
 });
 
-final authStateProvider =
-    AsyncNotifierProvider<AuthNotifier, AsyncValue<User?>>(AuthNotifier.new);
+final authStateProvider = AsyncNotifierProvider<AuthNotifier, User?>(AuthNotifier.new);

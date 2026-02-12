@@ -13,7 +13,7 @@ class SyncService {
 
   Future<bool> get isOnline async {
     final result = await Connectivity().checkConnectivity();
-    return result.any((c) => c != ConnectivityResult.none);
+    return result != ConnectivityResult.none;
   }
 
   Future<int> syncPending() async {

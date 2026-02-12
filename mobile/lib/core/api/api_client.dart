@@ -107,7 +107,7 @@ class ApiClient {
   Future<PaginatedResponse<T>> requestPaginated<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
-    T Function(dynamic) fromJsonT,
+    required T Function(dynamic) fromJsonT,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>(
       path,

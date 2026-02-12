@@ -5,7 +5,7 @@ import 'app_shell.dart';
 import 'core/fcm/fcm_service.dart';
 
 void main() async {
-  WidgetsBinding.flutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
   await FcmService.init();
   runApp(const ProviderScope(child: SmartKodesApp()));
 }

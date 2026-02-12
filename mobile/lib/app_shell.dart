@@ -50,14 +50,13 @@ class _SyncOnConnectivity extends ConsumerStatefulWidget {
 }
 
 class _SyncOnConnectivityState extends ConsumerState<_SyncOnConnectivity> {
-  StreamSubscription<List<ConnectivityResult>>? _sub;
+  StreamSubscription<ConnectivityResult>? _sub;
 
   @override
   void initState() {
     super.initState();
-    _sub = Connectivity().onConnectivityChanged.listen((results) {
-      final hasConnection = results.any((r) => r != ConnectivityResult.none);
-      if (hasConnection) {
+    _sub = Connectivity().onConnectivityChanged.listen((result) {
+      if (result != ConnectivityResult.none) {
         ref.read(syncServiceProvider).syncPending();
       }
     });
