@@ -176,6 +176,10 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
     Route::put('/settings/notifications', [\App\Http\Controllers\Admin\SettingController::class, 'updateNotifications'])->name('settings.update-notifications');
     Route::put('/settings/password', [\App\Http\Controllers\Admin\SettingController::class, 'changePassword'])->name('settings.change-password');
     Route::delete('/settings/organization', [\App\Http\Controllers\Admin\SettingController::class, 'deleteOrganization'])->name('settings.delete-organization');
+    Route::post('/onboarding/complete', function () {
+        session(['onboarding_done' => true]);
+        return response()->json(['ok' => true]);
+    })->name('onboarding.complete');
 });
 
 /*

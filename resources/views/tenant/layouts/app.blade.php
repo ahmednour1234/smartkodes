@@ -51,6 +51,54 @@
 
         </div>
 
+        @if(!session('onboarding_done'))
+        <div id="onboarding-backdrop" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+            <div id="onboarding-modal" class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div id="onboarding-step-1" class="onboarding-step p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Welcome to Smart Kodes</h2>
+                    <p class="text-gray-600 text-sm mb-6">Your workspace for projects, forms, work orders, and team collaboration. This short tour highlights the main areas.</p>
+                    <button type="button" onclick="onboardingNext()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg">Next</button>
+                </div>
+                <div id="onboarding-step-2" class="onboarding-step p-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Key sections</h2>
+                    <ul class="text-gray-600 text-sm space-y-2 mb-6">
+                        <li><strong>Dashboard</strong> — Overview and quick stats</li>
+                        <li><strong>Operations</strong> — Projects, Forms, Work Orders, Records</li>
+                        <li><strong>People</strong> — Team members and roles</li>
+                        <li><strong>System</strong> — Files, Billing, Notifications, Settings</li>
+                    </ul>
+                    <button type="button" onclick="onboardingNext()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg">Next</button>
+                </div>
+                <div id="onboarding-step-3" class="onboarding-step p-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Permissions</h2>
+                    <p class="text-gray-600 text-sm mb-4">We may ask for:</p>
+                    <ul class="text-gray-600 text-sm space-y-2 mb-6">
+                        <li><strong>Notifications</strong> — To alert you about new assignments and updates</li>
+                        <li><strong>Location</strong> — Only when a form or work order requires it (e.g. field checks)</li>
+                    </ul>
+                    <p class="text-xs text-gray-500 mb-6">You can change these later in your device or browser settings.</p>
+                    <button type="button" onclick="onboardingComplete()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg">Get started</button>
+                </div>
+            </div>
+        </div>
+        <script>
+        var onboardingStep = 1;
+        function onboardingNext() {
+            document.getElementById('onboarding-step-' + onboardingStep).classList.add('hidden');
+            onboardingStep++;
+            document.getElementById('onboarding-step-' + onboardingStep).classList.remove('hidden');
+        }
+        function onboardingComplete() {
+            fetch('{{ route("tenant.onboarding.complete") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+            }).then(function() {
+                document.getElementById('onboarding-backdrop').remove();
+            });
+        }
+        </script>
+        @endif
+
         @stack('scripts')
     </body>
 </html>
