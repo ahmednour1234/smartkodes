@@ -138,6 +138,9 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Assign Forms <span class="text-red-500">*</span>
                             </label>
+                            <p class="text-sm text-gray-600 mb-2">
+                                Create or select a form before assigning a work order. Form templates are built in <a href="{{ route('tenant.forms.index') }}" class="text-blue-600 hover:text-blue-800 underline">Forms</a>; then choose one or more below to attach to this work order.
+                            </p>
 
                             <div
                                 class="border border-gray-300 rounded-lg p-4 max-h-80 overflow-y-auto @error('form_ids') border-red-500 @enderror">
@@ -202,6 +205,11 @@
                             <p class="mt-1 text-sm text-gray-500">
                                 Select one or more forms that must be completed for this work order.
                             </p>
+                            @if($forms->count() === 0)
+                                <p class="mt-1 text-sm text-amber-600">
+                                    No forms yet. Create a form template first, then return here to assign it.
+                                </p>
+                            @endif
                         </div>
 
                         <!-- Status, Priority, Due Date -->
