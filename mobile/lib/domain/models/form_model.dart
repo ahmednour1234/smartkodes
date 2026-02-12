@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class FormModel {
   final String id;
   final String name;
@@ -19,17 +21,26 @@ class FormModel {
 
   factory FormModel.fromJson(Map<String, dynamic> json) {
     return FormModel(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      status: json['status'] as String?,
-      version: json['version'] as String?,
+      id: _str(json['id']) ?? '',
+      name: _str(json['name']) ?? '',
+      description: _str(json['description']),
+      status: _str(json['status']),
+      version: _str(json['version']),
       fields: (json['fields'] as List<dynamic>?)
           ?.map((e) => FormFieldModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      fieldsCount: json['fields_count'] as int?,
+      fieldsCount: _toInt(json['fields_count']),
     );
   }
+}
+
+String? _str(dynamic v) => v == null ? null : v.toString();
+int? _toInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v);
+  return null;
 }
 
 class FormFieldModel {
@@ -64,16 +75,30 @@ class FormFieldModel {
       opts = o.map((e) => e.toString()).toList();
     }
     return FormFieldModel(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      type: json['type'] as String? ?? 'text',
-      label: json['label'] as String? ?? json['name'] as String?,
-      placeholder: json['placeholder'] as String?,
-      required: json['required'] as bool? ?? false,
-      order: json['order'] as int?,
+      id: _str(json['id']) ?? '',
+      name: _str(json['name']) ?? '',
+      type: _str(json['type']) ?? 'text',
+      label: _str(json['label']) ?? _str(json['name']),
+      placeholder: _str(json['placeholder']),
+      required: json['required'] == true,
+      order: _toInt(json['order']),
       defaultValue: json['default_value'],
-      config: json['config'] as Map<String, dynamic>?,
+      config: _toMap(json['config']),
       options: opts,
     );
   }
+}
+
+Map<String, dynamic>? _toMap(dynamic v) {
+  if (v == null) return null;
+  if (v is Map<String, dynamic>) return v;
+  if (v is String) {
+    try {
+      final decoded = jsonDecode(v);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
 }

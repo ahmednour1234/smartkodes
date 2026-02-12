@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../domain/models/form_model.dart';
+import '../../auth/presentation/auth_providers.dart';
 import '../../notifications/presentation/notifications_list_screen.dart';
 import '../../work_orders/presentation/work_orders_list_screen.dart';
 import '../data/forms_repository.dart';
@@ -20,7 +21,16 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Forms')),
+      appBar: AppBar(
+        title: const Text('Forms'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+            tooltip: 'Home',
+          ),
+        ],
+      ),
       drawer: Drawer(
         child: ListView(
           children: [
@@ -50,6 +60,15 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
                 );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Log out'),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(authStateProvider.notifier).logout();
               },
             ),
           ],

@@ -2,6 +2,6 @@ class Env {
   Env._();
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost/api/v1',
+    defaultValue: 'https://smartkodes.test/api/v1/',
   );
 }

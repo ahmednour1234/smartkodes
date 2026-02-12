@@ -23,5 +23,6 @@ class SecureStorage {
   Future<void> clearAuth() async {
     await deleteToken();
     await deleteUser();
+    await _storage.delete(key: _passcodeKey);
   }
 }

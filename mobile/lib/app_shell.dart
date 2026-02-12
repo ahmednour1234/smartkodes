@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/api/api_client_provider.dart';
 import 'features/auth/presentation/auth_providers.dart';
 import 'features/auth/presentation/login_screen.dart';
-import 'features/work_orders/presentation/work_orders_list_screen.dart';
+import 'features/auth/presentation/set_passcode_screen.dart';
+import 'features/auth/presentation/verify_passcode_screen.dart';
+import 'features/home/presentation/field_worker_home_screen.dart';
 import 'features/work_orders/presentation/work_order_providers.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -25,6 +27,13 @@ class _AppShellState extends ConsumerState<AppShell> {
         ref.read(authStateProvider.notifier).forceUnauthenticated();
       }
     });
+    ref.listen(authStateProvider, (prev, next) {
+      final user = next.valueOrNull;
+      if (user == null) {
+        ref.read(passcodeVerifiedForSessionProvider.notifier).state = false;
+        ref.read(skipPasscodeSetupProvider.notifier).state = false;
+      }
+    });
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
@@ -34,7 +43,37 @@ class _AppShellState extends ConsumerState<AppShell> {
       error: (_, __) => const LoginScreen(),
       data: (user) {
         if (user == null) return const LoginScreen();
-        return _SyncOnConnectivity(child: const WorkOrdersListScreen());
+        final hasPasscode = ref.watch(hasPasscodeProvider);
+        final verified = ref.watch(passcodeVerifiedForSessionProvider);
+        final skipped = ref.watch(skipPasscodeSetupProvider);
+
+        return hasPasscode.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, __) => _SyncOnConnectivity(child: const FieldWorkerHomeScreen()),
+          data: (has) {
+            if (has && !verified) {
+              return VerifyPasscodeScreen(
+                onSuccess: () {
+                  ref.read(passcodeVerifiedForSessionProvider.notifier).state = true;
+                },
+              );
+            }
+            if (!has && !skipped) {
+              return SetPasscodeScreen(
+                onDone: () {
+                  ref.read(passcodeVerifiedForSessionProvider.notifier).state = true;
+                  ref.invalidate(hasPasscodeProvider);
+                },
+                onSkip: () {
+                  ref.read(skipPasscodeSetupProvider.notifier).state = true;
+                },
+              );
+            }
+            return _SyncOnConnectivity(child: const FieldWorkerHomeScreen());
+          },
+        );
       },
     );
   }

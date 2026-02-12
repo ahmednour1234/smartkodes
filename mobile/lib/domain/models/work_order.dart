@@ -35,26 +35,26 @@ class WorkOrder {
 
   factory WorkOrder.fromJson(Map<String, dynamic> json) {
     return WorkOrder(
-      id: json['id'] as String,
+      id: _toStr(json['id']) ?? '',
       project: json['project'] != null
           ? WorkOrderProject.fromJson(json['project'] as Map<String, dynamic>)
           : null,
-      status: json['status'] as String? ?? '',
-      importanceLevel: json['importance_level'] as int?,
-      priorityValue: json['priority_value'] as int?,
-      priorityUnit: json['priority_unit'] as String?,
-      dueDate: json['due_date'] as String?,
+      status: _toStr(json['status']) ?? '',
+      importanceLevel: _toInt(json['importance_level']),
+      priorityValue: _toInt(json['priority_value']),
+      priorityUnit: _toStr(json['priority_unit']),
+      dueDate: _toStr(json['due_date']),
       location: json['location'] != null
           ? WorkOrderLocation.fromJson(json['location'] as Map<String, dynamic>)
           : null,
       forms: (json['forms'] as List<dynamic>?)
           ?.map((e) => WorkOrderFormRef.fromJson(e as Map<String, dynamic>))
           .toList(),
-      recordsCount: json['records_count'] as int?,
-      distance: (json['distance'] as num?)?.toDouble(),
-      distanceUnit: json['distance_unit'] as String?,
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
+      recordsCount: _toInt(json['records_count']),
+      distance: _toDouble(json['distance']),
+      distanceUnit: _toStr(json['distance_unit']),
+      createdAt: _toStr(json['created_at']),
+      updatedAt: _toStr(json['updated_at']),
       map: json['map'] as Map<String, dynamic>?,
     );
   }
@@ -69,9 +69,9 @@ class WorkOrderProject {
 
   factory WorkOrderProject.fromJson(Map<String, dynamic> json) {
     return WorkOrderProject(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      code: json['code'] as String?,
+      id: _toStr(json['id']) ?? '',
+      name: _toStr(json['name']) ?? '',
+      code: _toStr(json['code']),
     );
   }
 }
@@ -84,10 +84,25 @@ class WorkOrderLocation {
 
   factory WorkOrderLocation.fromJson(Map<String, dynamic> json) {
     return WorkOrderLocation(
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
+      latitude: _toDouble(json['latitude']),
+      longitude: _toDouble(json['longitude']),
     );
   }
+}
+
+double? _toDouble(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
+int? _toInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v);
+  return null;
 }
 
 class WorkOrderFormRef {
@@ -99,9 +114,14 @@ class WorkOrderFormRef {
 
   factory WorkOrderFormRef.fromJson(Map<String, dynamic> json) {
     return WorkOrderFormRef(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      version: json['version'] as String?,
+      id: _toStr(json['id']) ?? '',
+      name: _toStr(json['name']) ?? '',
+      version: _toStr(json['version']),
     );
   }
+}
+
+String? _toStr(dynamic v) {
+  if (v == null) return null;
+  return v.toString();
 }

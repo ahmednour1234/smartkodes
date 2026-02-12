@@ -17,12 +17,12 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      phone: json['phone'] as String?,
-      country: json['country'] as String?,
-      tenantId: json['tenant_id'] as String?,
+      id: _str(json['id']) ?? '',
+      name: _str(json['name']) ?? '',
+      email: _str(json['email']) ?? '',
+      phone: _str(json['phone']),
+      country: _str(json['country']),
+      tenantId: _str(json['tenant_id']),
     );
   }
 
@@ -35,3 +35,5 @@ class User {
         'tenant_id': tenantId,
       };
 }
+
+String? _str(dynamic v) => v == null ? null : v.toString();

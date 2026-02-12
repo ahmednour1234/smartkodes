@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../domain/models/work_order.dart';
+import '../../auth/presentation/auth_providers.dart';
 import '../../forms/presentation/forms_list_screen.dart';
 import '../../notifications/presentation/notifications_list_screen.dart';
 import '../data/work_order_repository.dart';
@@ -45,6 +46,11 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
         title: const Text('Work Orders'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+            tooltip: 'Home',
+          ),
+          IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () => _showFilters(context),
           ),
@@ -79,6 +85,15 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
                 );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Log out'),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(authStateProvider.notifier).logout();
               },
             ),
           ],

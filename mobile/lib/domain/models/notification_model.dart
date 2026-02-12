@@ -23,14 +23,16 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id']?.toString() ?? '',
-      type: json['type'] as String?,
-      title: json['title'] as String?,
-      message: json['message'] as String?,
+      id: _str(json['id']) ?? '',
+      type: _str(json['type']),
+      title: _str(json['title']),
+      message: _str(json['message']),
       data: json['data'] as Map<String, dynamic>?,
-      actionUrl: json['action_url'] as String?,
-      readAt: json['read_at'] as String?,
-      createdAt: json['created_at'] as String? ?? '',
+      actionUrl: _str(json['action_url']),
+      readAt: _str(json['read_at']),
+      createdAt: _str(json['created_at']) ?? '',
     );
   }
 }
+
+String? _str(dynamic v) => v == null ? null : v.toString();
