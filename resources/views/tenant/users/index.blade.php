@@ -67,7 +67,7 @@
             <!-- Users Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 @forelse($users as $user)
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition duration-200">
+                    <div class="bg-white overflow-visible shadow-sm sm:rounded-lg hover:shadow-md transition duration-200">
                         <div class="p-6">
                             <!-- User Info -->
                             <div class="flex items-center mb-4">
@@ -82,22 +82,35 @@
 
                             <!-- User Details -->
                             <div class="space-y-2 mb-4">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Role:</span>
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                        @if($user->role == 'admin') bg-purple-100 text-purple-800
-                                        @elseif($user->role == 'manager') bg-blue-100 text-blue-800
-                                        @elseif($user->role == 'field_worker') bg-green-100 text-green-800
-                                        @else bg-gray-100 text-gray-800 @endif">
-                                        {{ ucfirst(str_replace('_', ' ', $user->role ?? 'user')) }}
-                                    </span>
+                                <div class="flex justify-between items-start gap-2">
+                                    <span class="text-sm text-gray-600 shrink-0">Role:</span>
+                                    <div class="text-right">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                            @if($user->role == 'admin') bg-purple-100 text-purple-800
+                                            @elseif($user->role == 'manager') bg-blue-100 text-blue-800
+                                            @elseif($user->role == 'field_worker') bg-green-100 text-green-800
+                                            @else bg-gray-100 text-gray-800 @endif">
+                                            {{ ucfirst(str_replace('_', ' ', $user->role ?? 'user')) }}
+                                        </span>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            @if($user->role == 'admin') Manages users, billing, and system settings
+                                            @elseif($user->role == 'manager') Manages work orders, forms, and team assignments
+                                            @elseif($user->role == 'field_worker') Completes assigned work orders and submits forms
+                                            @else Access to assigned work and own data
+                                            @endif
+                                        </p>
+                                    </div>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm text-gray-600">Status:</span>
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                        @if($user->status == 1) bg-green-100 text-green-800
-                                        @else bg-red-100 text-red-800 @endif">
-                                        {{ $user->status == 1 ? 'Active' : 'Inactive' }}
+                                    <span class="group relative inline-flex items-center gap-0.5 cursor-help">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                            @if($user->status == 1) bg-green-100 text-green-800
+                                            @else bg-red-100 text-red-800 @endif">
+                                            {{ $user->status == 1 ? 'Active' : 'Inactive' }}
+                                        </span>
+                                        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span class="absolute top-full left-0 mt-1 px-2 py-1.5 text-xs font-normal text-white bg-gray-800 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50 w-56 text-left normal-case">{{ $user->status == 1 ? 'Can sign in and access assigned work.' : 'Cannot sign in; not available for new assignments.' }}</span>
                                     </span>
                                 </div>
                                 <div class="flex justify-between items-center">

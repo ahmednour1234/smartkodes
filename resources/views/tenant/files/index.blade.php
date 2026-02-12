@@ -10,6 +10,7 @@
                         <div>
                             <h2 class="text-2xl font-bold">Files</h2>
                             <p class="text-blue-100 mt-1">Manage your uploaded files and documents</p>
+                            <p class="text-blue-200 text-sm mt-1">Supported: PDF, JPG, PNG, and others — max 50MB per file</p>
                         </div>
                         <a href="{{ route('tenant.files.create') }}" class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
                             <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

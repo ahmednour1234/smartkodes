@@ -127,6 +127,13 @@
           <!-- Team -->
           <section class="border-l-4 border-indigo-500 pl-4">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Team Membership Assignment</h3>
+            <div class="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-600">
+              <span class="font-medium text-gray-700">Role summary:</span>
+              <ul class="mt-1 list-disc list-inside space-y-0.5">
+                <li><strong>Manager</strong> — manages projects, work orders, and team assignments</li>
+                <li><strong>Field worker</strong> — completes assigned work orders and updates records</li>
+              </ul>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Managers</label>
