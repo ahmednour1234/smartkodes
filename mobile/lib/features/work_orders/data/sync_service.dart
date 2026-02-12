@@ -25,7 +25,7 @@ class SyncService {
     final fileFields = <String, ({Uint8List bytes, String filename})>{};
     for (final e in p.filePaths!.entries) {
       final f = io.File(e.value);
-      if (await f.exists) {
+      if (await f.exists()) {
         final bytes = await f.readAsBytes();
         final filename = e.value.split(RegExp(r'[/\\]')).last;
         fileFields[e.key] = (bytes: bytes, filename: filename);
