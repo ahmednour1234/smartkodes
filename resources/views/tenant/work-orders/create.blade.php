@@ -311,6 +311,7 @@
 
                         <!-- Location on Map -->
                         <div>
+                            <p class="text-sm text-gray-500 mb-2">Location helps assign work orders and guide field teams on-site.</p>
                             <x-location-picker
                                 lat-name="latitude"
                                 lng-name="longitude"
