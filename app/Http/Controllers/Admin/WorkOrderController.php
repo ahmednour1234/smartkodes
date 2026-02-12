@@ -89,6 +89,7 @@ class WorkOrderController extends Controller
         'assigned_to'  => ['nullable', 'exists:users,id'],
 
         'status'       => ['required', 'integer', 'in:0,1,2,3'], // 0=draft, 1=assigned, 2=in_progress, 3=completed
+        'importance_level' => ['nullable', 'string', 'in:low,medium,high,critical'],
         'due_date'     => ['nullable', 'date', 'after:today'],
 
         'priority_value' => ['nullable', 'integer', 'min:1', 'required_with:priority_unit'],
@@ -106,6 +107,7 @@ class WorkOrderController extends Controller
         'project_id'      => $request->project_id,
         'assigned_to'     => $request->assigned_to,
         'status'          => $request->status,
+        'importance_level' => $request->importance_level,
         'due_date'        => $request->due_date,
         'priority_value'  => $request->priority_value,
         'priority_unit'   => $request->priority_unit,
@@ -197,6 +199,7 @@ public function update(Request $request, string $id)
         'assigned_to'  => ['nullable', 'exists:users,id'],
 
         'status'       => ['required', 'integer', 'in:0,1,2,3'],
+        'importance_level' => ['nullable', 'string', 'in:low,medium,high,critical'],
         'due_date'     => ['nullable', 'date'], // you can change to 'after:today' if you want same as store
 
         'priority_value' => ['nullable', 'integer', 'min:1', 'required_with:priority_unit'],
@@ -213,6 +216,7 @@ public function update(Request $request, string $id)
         'project_id'     => $request->project_id,
         'assigned_to'    => $request->assigned_to,
         'status'         => $request->status,
+        'importance_level' => $request->importance_level,
         'due_date'       => $request->due_date,
         'priority_value' => $request->priority_value,
         'priority_unit'  => $request->priority_unit,

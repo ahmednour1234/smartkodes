@@ -18,6 +18,7 @@ class WorkOrder extends Model
         'project_id',
         'assigned_to',
         'status',
+        'importance_level',
         'due_date',
         'created_by',
         'updated_by',

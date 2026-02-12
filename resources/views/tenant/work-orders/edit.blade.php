@@ -153,7 +153,7 @@
                     </p>
                 </div>
 
-                <!-- Status, Priority, Due Date -->
+                <!-- Status, Priority (importance), Due Date -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- Status -->
                     <div>
@@ -176,40 +176,26 @@
                         @enderror
                     </div>
 
-                    <!-- Priority (SLA) -->
+                    <!-- Priority (importance level) -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Priority (SLA)
+                        <label for="importance_level" class="block text-sm font-medium text-gray-700 mb-2">
+                            Priority
                         </label>
-                        <div class="flex space-x-2">
-                            <input
-                                type="number"
-                                name="priority_value"
-                                min="1"
-                                value="{{ old('priority_value', $workOrder->priority_value) }}"
-                                class="block w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('priority_value') border-red-500 @enderror"
-                                placeholder="1"
-                            >
-                            <select
-                                name="priority_unit"
-                                class="block w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('priority_unit') border-red-500 @enderror"
-                            >
-                                <option value="">Select...</option>
-                                <option value="hour"  {{ old('priority_unit', $workOrder->priority_unit) == 'hour' ? 'selected' : '' }}>Hour(s)</option>
-                                <option value="day"   {{ old('priority_unit', $workOrder->priority_unit) == 'day' ? 'selected' : '' }}>Day(s)</option>
-                                <option value="week"  {{ old('priority_unit', $workOrder->priority_unit) == 'week' ? 'selected' : '' }}>Week(s)</option>
-                                <option value="month" {{ old('priority_unit', $workOrder->priority_unit) == 'month' ? 'selected' : '' }}>Month(s)</option>
-                            </select>
-                        </div>
-                        @error('priority_value')
+                        <select
+                            name="importance_level"
+                            id="importance_level"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('importance_level') border-red-500 @enderror"
+                        >
+                            <option value="">No priority</option>
+                            <option value="low" {{ old('importance_level', $workOrder->importance_level) == 'low' ? 'selected' : '' }}>Low</option>
+                            <option value="medium" {{ old('importance_level', $workOrder->importance_level) == 'medium' ? 'selected' : '' }}>Medium</option>
+                            <option value="high" {{ old('importance_level', $workOrder->importance_level) == 'high' ? 'selected' : '' }}>High</option>
+                            <option value="critical" {{ old('importance_level', $workOrder->importance_level) == 'critical' ? 'selected' : '' }}>Critical</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Importance level (how critical this work is).</p>
+                        @error('importance_level')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                        @error('priority_unit')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                        <p class="mt-1 text-xs text-gray-500">
-                            Example: 1 day, 4 hours, 1 week. Used for SLA and scheduling.
-                        </p>
                     </div>
 
                     <!-- Due Date -->
@@ -224,13 +210,45 @@
                             value="{{ old('due_date', $workOrder->due_date ? $workOrder->due_date->format('Y-m-d\TH:i') : '') }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('due_date') border-red-500 @enderror"
                         >
+                        <p class="mt-1 text-xs text-gray-500">Optional deadline for completion.</p>
                         @error('due_date')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-1 text-xs text-gray-500">
-                            Optional hard deadline for completing this work order.
-                        </p>
                     </div>
+                </div>
+
+                <!-- SLA (time to completion) - separate from Priority -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        SLA (time to completion)
+                    </label>
+                    <p class="text-sm text-gray-500 mb-2">Target time allowed to complete this work order (e.g. 4 hours, 1 day). This is separate from Priority (importance).</p>
+                    <div class="flex space-x-2 max-w-xs">
+                        <input
+                            type="number"
+                            name="priority_value"
+                            min="1"
+                            value="{{ old('priority_value', $workOrder->priority_value) }}"
+                            class="block w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('priority_value') border-red-500 @enderror"
+                            placeholder="1"
+                        >
+                        <select
+                            name="priority_unit"
+                            class="block w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('priority_unit') border-red-500 @enderror"
+                        >
+                            <option value="">Select...</option>
+                            <option value="hour"  {{ old('priority_unit', $workOrder->priority_unit) == 'hour' ? 'selected' : '' }}>Hour(s)</option>
+                            <option value="day"   {{ old('priority_unit', $workOrder->priority_unit) == 'day' ? 'selected' : '' }}>Day(s)</option>
+                            <option value="week"  {{ old('priority_unit', $workOrder->priority_unit) == 'week' ? 'selected' : '' }}>Week(s)</option>
+                            <option value="month" {{ old('priority_unit', $workOrder->priority_unit) == 'month' ? 'selected' : '' }}>Month(s)</option>
+                        </select>
+                    </div>
+                    @error('priority_value')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    @error('priority_unit')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Location on Map -->

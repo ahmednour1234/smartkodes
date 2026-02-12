@@ -108,49 +108,62 @@
                         </span>
                     </div>
 
-                    <!-- Priority (SLA) -->
+                    <!-- Priority (importance level) -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-500 mb-1">Priority (SLA)</label>
-                        @php
-                            /** Priority display logic:
-                             *  - If priority_value + priority_unit exist: "4 Hours", "1 Day"
-                             *  - Else if priority_minutes exist: convert to best unit
-                             */
-                            $priorityLabel = null;
+                        <label class="block text-sm font-medium text-gray-500 mb-1">Priority</label>
+                        <p class="text-xs text-gray-500 mb-1">Importance level (how critical this work is).</p>
+                        @if(!empty($workOrder->importance_level))
+                            @php
+                                $importanceLabels = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+                                $importanceClass = match($workOrder->importance_level) {
+                                    'critical' => 'bg-red-100 text-red-800',
+                                    'high' => 'bg-orange-100 text-orange-800',
+                                    'medium' => 'bg-blue-100 text-blue-800',
+                                    default => 'bg-gray-100 text-gray-800',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full {{ $importanceClass }}">
+                                {{ $importanceLabels[$workOrder->importance_level] ?? ucfirst($workOrder->importance_level) }}
+                            </span>
+                        @else
+                            <p class="text-sm text-gray-400 italic">Not set</p>
+                        @endif
+                    </div>
 
+                    <!-- SLA (time to completion) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">SLA (time to completion)</label>
+                        <p class="text-xs text-gray-500 mb-1">Target time allowed to complete this work order.</p>
+                        @php
+                            $slaLabel = null;
                             if (!is_null($workOrder->priority_value ?? null) && !empty($workOrder->priority_unit ?? null)) {
                                 $value = (int) $workOrder->priority_value;
-                                $unit  = $workOrder->priority_unit; // hour, day, week, month
+                                $unit  = $workOrder->priority_unit;
                                 $unitLabel = \Illuminate\Support\Str::plural($unit, $value);
-                                $priorityLabel = $value . ' ' . ucfirst($unitLabel);
+                                $slaLabel = $value . ' ' . ucfirst($unitLabel);
                             } elseif (!empty($workOrder->priority_minutes ?? null)) {
                                 $minutes = (int) $workOrder->priority_minutes;
-
                                 if ($minutes >= 60 * 24 * 30) {
                                     $months = (int) round($minutes / (60 * 24 * 30));
-                                    $priorityLabel = $months.' '.\Illuminate\Support\Str::plural('Month', $months);
+                                    $slaLabel = $months.' '.\Illuminate\Support\Str::plural('Month', $months);
                                 } elseif ($minutes >= 60 * 24 * 7) {
                                     $weeks = (int) round($minutes / (60 * 24 * 7));
-                                    $priorityLabel = $weeks.' '.\Illuminate\Support\Str::plural('Week', $weeks);
+                                    $slaLabel = $weeks.' '.\Illuminate\Support\Str::plural('Week', $weeks);
                                 } elseif ($minutes >= 60 * 24) {
                                     $days = (int) round($minutes / (60 * 24));
-                                    $priorityLabel = $days.' '.\Illuminate\Support\Str::plural('Day', $days);
+                                    $slaLabel = $days.' '.\Illuminate\Support\Str::plural('Day', $days);
                                 } else {
                                     $hours = max(1, (int) round($minutes / 60));
-                                    $priorityLabel = $hours.' '.\Illuminate\Support\Str::plural('Hour', $hours);
+                                    $slaLabel = $hours.' '.\Illuminate\Support\Str::plural('Hour', $hours);
                                 }
                             }
                         @endphp
-
-                        @if($priorityLabel)
+                        @if($slaLabel)
                             <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
-                                <i class="fas fa-bolt mr-2"></i>{{ $priorityLabel }}
+                                <i class="fas fa-clock mr-2"></i>{{ $slaLabel }}
                             </span>
-                            <p class="text-xs text-gray-500 mt-1">
-                                Target completion time based on SLA priority.
-                            </p>
                         @else
-                            <p class="text-sm text-gray-400 italic">No SLA priority set</p>
+                            <p class="text-sm text-gray-400 italic">Not set</p>
                         @endif
                     </div>
 
