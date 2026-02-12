@@ -7,9 +7,12 @@
             <h1 class="text-3xl font-bold text-gray-900">Form Submissions</h1>
             <p class="mt-2 text-sm text-gray-600">View and manage all submitted form records</p>
         </div>
-        <!-- Export Dropdown with Filters -->
+        <!-- Export Dropdown (disabled when no records) -->
+        @php $hasRecords = $records->total() > 0; @endphp
         <div class="relative inline-block text-left">
-            <button type="button" onclick="toggleRecordExportMenu()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <button type="button"
+                    @if(!$hasRecords) disabled title="No records to export" @else onclick="toggleRecordExportMenu()" @endif
+                    class="inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 {{ $hasRecords ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50' : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' }}">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -18,6 +21,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
+            @if($hasRecords)
             <div id="record-export-menu" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                 <div class="py-1" role="menu">
                     <a href="{{ route('tenant.records.export', array_merge(['format' => 'xlsx'], request()->only(['form_id', 'project_id', 'status', 'date_from', 'date_to']))) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
@@ -34,6 +38,7 @@
                     </a>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 
@@ -133,7 +138,8 @@
                 <p class="mt-1 text-sm text-gray-500">No form submissions match your current filters.</p>
             </div>
         @else
-            <table class="min-w-full divide-y divide-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left">
@@ -239,6 +245,7 @@
                     @endforeach
                 </tbody>
             </table>
+            </div>
 
             <!-- Pagination -->
             <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
