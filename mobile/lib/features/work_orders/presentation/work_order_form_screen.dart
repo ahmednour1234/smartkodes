@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../data/local/pending_submissions_store.dart';
 import '../../../domain/models/form_model.dart';
 import '../data/work_order_repository.dart';
 import 'work_order_providers.dart';
@@ -85,6 +86,32 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       lat = pos.latitude;
       lon = pos.longitude;
     } catch (_) {}
+    final syncService = ref.read(syncServiceProvider);
+    final isOnline = await syncService.isOnline;
+    if (!isOnline) {
+      final store = ref.read(pendingSubmissionsStoreProvider);
+      await store.add(PendingSubmission(
+        workOrderId: widget.workOrderId,
+        formId: widget.formId,
+        fields: Map<String, dynamic>.from(_values),
+        filePaths: _filePaths.isEmpty ? null : Map<String, String>.from(_filePaths),
+        latitude: lat,
+        longitude: lon,
+        createdAt: DateTime.now(),
+      ));
+      setState(() => _submitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_filePaths.isEmpty
+                ? 'Saved offline. Will sync when connected.'
+                : 'Saved offline. Connect to internet to upload attachments, then sync.'),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+      return;
+    }
     final repo = ref.read(workOrderRepositoryProvider);
     final fileFields = <String, File>{};
     for (final e in _filePaths.entries) {
