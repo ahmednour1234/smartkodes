@@ -15,10 +15,12 @@ class WorkOrderFormScreen extends ConsumerStatefulWidget {
     super.key,
     required this.workOrderId,
     required this.formId,
+    this.initialFields,
   });
 
   final String workOrderId;
   final String formId;
+  final Map<String, dynamic>? initialFields;
 
   @override
   ConsumerState<WorkOrderFormScreen> createState() => _WorkOrderFormScreenState();
@@ -48,6 +50,11 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
         if (form != null) {
           for (final f in form.fields ?? []) {
             if (f.defaultValue != null) _values[f.name] = f.defaultValue;
+          }
+          if (widget.initialFields != null) {
+            for (final e in widget.initialFields!.entries) {
+              _values[e.key] = e.value;
+            }
           }
         }
       });

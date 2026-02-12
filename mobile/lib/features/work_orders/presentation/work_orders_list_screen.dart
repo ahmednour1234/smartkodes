@@ -29,17 +29,33 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
   double _radius = 50;
   bool _useNearby = false;
   bool _isListView = true;
+  bool _locationRequesting = false;
+  bool _locationDenied = false;
 
   Future<void> _fetchLocation() async {
-    final ok = await Geolocator.checkPermission();
-    if (ok == LocationPermission.denied) {
-      await Geolocator.requestPermission();
+    if (_locationRequesting) return;
+    _locationRequesting = true;
+    setState(() {});
+    try {
+      LocationPermission ok = await Geolocator.checkPermission();
+      if (ok == LocationPermission.denied) {
+        ok = await Geolocator.requestPermission();
+      }
+      if (ok == LocationPermission.denied || ok == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _locationDenied = true);
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      if (mounted) setState(() {
+        _lat = pos.latitude;
+        _lon = pos.longitude;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _locationDenied = true);
+    } finally {
+      _locationRequesting = false;
+      if (mounted) setState(() {});
     }
-    final pos = await Geolocator.getCurrentPosition();
-    setState(() {
-      _lat = pos.latitude;
-      _lon = pos.longitude;
-    });
   }
 
   static String _priorityLabel(WorkOrder wo) {
@@ -332,23 +348,58 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
     );
   }
 
+  static bool _isValidLatLon(double? lat, double? lon) {
+    if (lat == null || lon == null) return false;
+    return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 &&
+        (lat != 0 || lon != 0);
+  }
+
   Widget _buildMapView(BuildContext context, List<WorkOrder> list) {
-    if (!_isListView && _lat == null) {
-      _fetchLocation();
+    if (!_locationDenied && _lat == null && !_locationRequesting) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fetchLocation());
     }
-    final woWithLocation = list.where((wo) => wo.location?.latitude != null && wo.location?.longitude != null).toList();
-    LatLng? center;
-    if (_lat != null && _lon != null) {
+    if (_lat == null && !_locationDenied && _locationRequesting) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Requesting location permission...'),
+          ],
+        ),
+      );
+    }
+    final woWithLocation = list.where((wo) =>
+        _isValidLatLon(wo.location?.latitude, wo.location?.longitude)).toList();
+    final hasUserLocation = _lat != null && _lon != null &&
+        _isValidLatLon(_lat, _lon);
+    if (!hasUserLocation && !_locationDenied) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Getting your location...'),
+          ],
+        ),
+      );
+    }
+    if (!hasUserLocation && woWithLocation.isEmpty) {
+      return const Center(
+        child: Text('No location data. Enable location for map.'),
+      );
+    }
+    LatLng center;
+    if (hasUserLocation) {
       center = LatLng(_lat!, _lon!);
-    } else if (woWithLocation.isNotEmpty) {
+    } else {
       final loc = woWithLocation.first.location!;
       center = LatLng(loc.latitude!, loc.longitude!);
     }
-    if (center == null) {
-      return const Center(child: Text('No location data. Enable location for map.'));
-    }
     final markers = <Marker>{};
-    if (_lat != null && _lon != null) {
+    if (hasUserLocation) {
       markers.add(
         Marker(
           markerId: const MarkerId('worker'),
@@ -357,14 +408,12 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
         ),
       );
     }
-    for (var i = 0; i < woWithLocation.length; i++) {
-      final wo = woWithLocation[i];
+    for (final wo in woWithLocation) {
       final loc = wo.location!;
-      final pos = LatLng(loc.latitude!, loc.longitude!);
       markers.add(
         Marker(
           markerId: MarkerId(wo.id),
-          position: pos,
+          position: LatLng(loc.latitude!, loc.longitude!),
           icon: BitmapDescriptor.defaultMarkerWithHue(_priorityHue(wo)),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -394,10 +443,39 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
       );
     }
     return GoogleMap(
-      initialCameraPosition: CameraPosition(target: center, zoom: 12),
+      key: ValueKey('map_${center.latitude}_${center.longitude}_${markers.length}'),
+      initialCameraPosition: CameraPosition(target: center, zoom: 15),
       markers: markers,
-      myLocationEnabled: true,
+      myLocationEnabled: hasUserLocation,
       myLocationButtonEnabled: true,
+      onMapCreated: (controller) {
+        if (markers.length <= 1) {
+          controller.animateCamera(
+            CameraUpdate.newLatLngZoom(center, 15),
+          );
+          return;
+        }
+        double minLat = markers.first.position.latitude;
+        double maxLat = minLat;
+        double minLon = markers.first.position.longitude;
+        double maxLon = minLon;
+        for (final m in markers) {
+          final p = m.position;
+          if (p.latitude < minLat) minLat = p.latitude;
+          if (p.latitude > maxLat) maxLat = p.latitude;
+          if (p.longitude < minLon) minLon = p.longitude;
+          if (p.longitude > maxLon) maxLon = p.longitude;
+        }
+        controller.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            LatLngBounds(
+              southwest: LatLng(minLat, minLon),
+              northeast: LatLng(maxLat, maxLon),
+            ),
+            80,
+          ),
+        );
+      },
     );
   }
 
