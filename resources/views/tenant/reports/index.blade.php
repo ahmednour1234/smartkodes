@@ -200,7 +200,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Custom Report Generation</h3>
-                    <form method="POST" action="{{ route('tenant.reports.generate') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <form id="custom-report-form" method="POST" action="{{ route('tenant.reports.generate') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         @csrf
                         <div>
                             <label for="report_type" class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
@@ -225,6 +225,7 @@
                             </button>
                         </div>
                     </form>
+                    <div id="custom-report-result" class="mt-4 hidden overflow-x-auto"></div>
                 </div>
             </div>
         </div>
@@ -328,5 +329,32 @@
                     btns.forEach(b => { b.disabled = false; });
                 });
         }
+
+        document.getElementById('custom-report-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const resultEl = document.getElementById('custom-report-result');
+            const fd = new FormData(this);
+            fd.set('export_format', 'view');
+            resultEl.classList.add('hidden');
+            resultEl.innerHTML = '';
+            fetch(this.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.headers || !data.rows) { resultEl.innerHTML = '<p class="text-gray-600">No data.</p>'; resultEl.classList.remove('hidden'); return; }
+                    let table = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr>';
+                    data.headers.forEach(h => { table += '<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">' + escapeHtml(h) + '</th>'; });
+                    table += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
+                    data.rows.forEach(row => {
+                        table += '<tr>';
+                        row.forEach(cell => { table += '<td class="px-4 py-2 text-sm text-gray-700">' + escapeHtml(String(cell)) + '</td>'; });
+                        table += '</tr>';
+                    });
+                    table += '</tbody></table>';
+                    resultEl.innerHTML = table;
+                    resultEl.classList.remove('hidden');
+                })
+                .catch(() => { resultEl.innerHTML = '<p class="text-red-600">Failed to load report.</p>'; resultEl.classList.remove('hidden'); });
+        });
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     </script>
 @endsection

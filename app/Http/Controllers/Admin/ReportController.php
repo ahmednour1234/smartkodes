@@ -264,12 +264,12 @@ class ReportController extends Controller
         $groupBy = $request->input('group_by', 'form');
         $exportFormat = $request->input('export_format', 'view');
 
-        $query = Record::where('tenant_id', $currentTenant->id);
+        $query = Record::where('records.tenant_id', $currentTenant->id);
         if ($dateFrom) {
-            $query->whereDate('submitted_at', '>=', $dateFrom);
+            $query->whereDate('records.submitted_at', '>=', $dateFrom);
         }
         if ($dateTo) {
-            $query->whereDate('submitted_at', '<=', $dateTo);
+            $query->whereDate('records.submitted_at', '<=', $dateTo);
         }
 
         $normalized = match ($reportType) {
@@ -407,7 +407,7 @@ class ReportController extends Controller
      */
     private function generateProjectsReport($tenantId, $dateFrom, $dateTo)
     {
-        $query = Project::where('tenant_id', $tenantId)
+        $query = Project::where('projects.tenant_id', $tenantId)
             ->leftJoin('records', function($join) use ($dateFrom, $dateTo) {
                 $join->on('projects.id', '=', 'records.project_id');
                 if ($dateFrom) {
@@ -442,7 +442,7 @@ class ReportController extends Controller
      */
     private function generateUsersReport($tenantId, $dateFrom, $dateTo)
     {
-        $query = User::where('tenant_id', $tenantId)
+        $query = User::where('users.tenant_id', $tenantId)
             ->leftJoin('records', function($join) use ($dateFrom, $dateTo) {
                 $join->on('users.id', '=', 'records.submitted_by');
                 if ($dateFrom) {

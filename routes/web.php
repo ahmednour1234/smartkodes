@@ -149,7 +149,7 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
         Route::get('/submissions-by-status', [\App\Http\Controllers\Admin\ReportController::class, 'submissionsByStatus'])->name('submissions-by-status');
         Route::get('/submissions-over-time', [\App\Http\Controllers\Admin\ReportController::class, 'submissionsOverTime'])->name('submissions-over-time');
         Route::get('/form-analytics', [\App\Http\Controllers\Admin\ReportController::class, 'formAnalytics'])->name('form-analytics');
-        Route::get('/generate', [\App\Http\Controllers\Admin\ReportController::class, 'generate'])->name('generate');
+        Route::match(['get', 'post'], '/generate', [\App\Http\Controllers\Admin\ReportController::class, 'generate'])->name('generate');
     });
 
     // Billing (tenant subscription & invoices)
