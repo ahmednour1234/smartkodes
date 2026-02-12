@@ -11,20 +11,15 @@
                             <h2 class="text-2xl font-bold">Reports & Analytics</h2>
                             <p class="text-blue-100 mt-1">Comprehensive insights into your operations</p>
                         </div>
-                        <div class="flex space-x-3">
-                            <button onclick="exportReport('pdf')"
-                                    class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
-                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                Export PDF
+                        <div class="flex space-x-3 items-center">
+                            <div id="export-message" class="text-sm hidden"></div>
+                            <button id="btn-export-pdf" type="button" onclick="exportReport('pdf', this)"
+                                    class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed">
+                                <span class="btn-label"><svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export PDF</span>
                             </button>
-                            <button onclick="exportReport('excel')"
-                                    class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
-                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                Export Excel
+                            <button id="btn-export-excel" type="button" onclick="exportReport('excel', this)"
+                                    class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed">
+                                <span class="btn-label"><svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export Excel</span>
                             </button>
                         </div>
 </div>
@@ -292,10 +287,46 @@
             }
         });
 
-        function exportReport(format) {
+        function exportReport(format, btn) {
             const url = new URL(window.location);
             url.searchParams.set('export', format);
-            window.open(url.toString(), '_blank');
+            const msgEl = document.getElementById('export-message');
+            const btns = [document.getElementById('btn-export-pdf'), document.getElementById('btn-export-excel')];
+            msgEl.classList.add('hidden');
+            msgEl.textContent = '';
+            btns.forEach(b => { b.disabled = true; });
+            const label = btn.querySelector('.btn-label');
+            const orig = label.innerHTML;
+            label.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span>Exporting…';
+            fetch(url.toString(), { credentials: 'same-origin' })
+                .then(r => {
+                    if (!r.ok) throw new Error('Export failed');
+                    const disp = r.headers.get('Content-Disposition');
+                    const filename = disp && /filename="?([^";]+)/.test(disp) ? disp.match(/filename="?([^";]+)/)[1].trim() : 'reports_summary.csv';
+                    return r.blob().then(blob => ({ blob, filename }));
+                })
+                .then(({ blob, filename }) => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(a.href);
+                    msgEl.textContent = 'Export completed successfully.';
+                    msgEl.classList.remove('hidden');
+                    msgEl.className = msgEl.className.replace(/text-red-600|text-green-600/g, '') + ' text-green-600';
+                    setTimeout(() => { msgEl.classList.add('hidden'); }, 4000);
+                })
+                .catch(() => {
+                    msgEl.textContent = 'Export failed. Please try again.';
+                    msgEl.classList.remove('hidden');
+                    msgEl.className = msgEl.className.replace(/text-green-600|text-red-600/g, '') + ' text-red-600';
+                })
+                .finally(() => {
+                    label.innerHTML = orig;
+                    btns.forEach(b => { b.disabled = false; });
+                });
         }
     </script>
 @endsection

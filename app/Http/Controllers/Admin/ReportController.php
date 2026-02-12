@@ -11,6 +11,7 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
@@ -35,11 +36,16 @@ class ReportController extends Controller
     /**
      * Display a listing of reports.
      */
-    public function index()
+    public function index(Request $request)
     {
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
+        }
+
+        $exportFormat = $request->input('export');
+        if (in_array($exportFormat, ['pdf', 'excel'], true)) {
+            return $this->exportSummaryReport($currentTenant, $exportFormat);
         }
 
         // Get summary statistics (all from DB)
@@ -107,6 +113,41 @@ class ReportController extends Controller
 
         $viewPrefix = $this->getViewPrefix();
         return view("{$viewPrefix}.reports.index", compact('stats', 'projectPerformance', 'teamProductivity', 'chartData'));
+    }
+
+    private function exportSummaryReport($currentTenant, string $format)
+    {
+        $stats = [
+            'Total Projects' => Project::where('tenant_id', $currentTenant->id)->count(),
+            'Archived Projects' => Project::where('tenant_id', $currentTenant->id)->where('status', 0)->count(),
+            'Total Submissions' => Record::where('tenant_id', $currentTenant->id)->count(),
+            'Active Work Orders' => WorkOrder::where('tenant_id', $currentTenant->id)->whereIn('status', [1, 2])->count(),
+            'Total Work Orders' => WorkOrder::where('tenant_id', $currentTenant->id)->count(),
+            'Completed Work Orders' => WorkOrder::where('tenant_id', $currentTenant->id)->where('status', 3)->count(),
+            'Total Forms' => Form::where('tenant_id', $currentTenant->id)->count(),
+            'Total Users' => User::where('tenant_id', $currentTenant->id)->count(),
+        ];
+        if ($format === 'pdf') {
+            $html = '<h1>Reports Summary</h1><p>Generated ' . date('Y-m-d H:i') . '</p><table border="1" cellpadding="8" cellspacing="0"><tr><th>Metric</th><th>Value</th></tr>';
+            foreach ($stats as $metric => $value) {
+                $html .= '<tr><td>' . htmlspecialchars($metric) . '</td><td>' . (int) $value . '</td></tr>';
+            }
+            $html .= '</table>';
+            $filename = 'reports_summary_' . date('Y-m-d_His') . '.pdf';
+            return Pdf::loadHtml($html)->download($filename);
+        }
+        $filename = 'reports_summary_' . date('Y-m-d_His') . '.csv';
+        $handle = fopen('php://temp', 'r+');
+        fputcsv($handle, ['Metric', 'Value']);
+        foreach ($stats as $metric => $value) {
+            fputcsv($handle, [$metric, $value]);
+        }
+        rewind($handle);
+        $csvContent = stream_get_contents($handle);
+        fclose($handle);
+        return response($csvContent)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     /**
