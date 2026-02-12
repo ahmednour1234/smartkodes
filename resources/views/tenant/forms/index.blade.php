@@ -111,7 +111,7 @@
             <!-- Forms Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 @forelse($forms as $form)
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition duration-200">
+                    <div class="bg-white overflow-visible shadow-sm sm:rounded-lg hover:shadow-md transition duration-200">
                         <div class="p-6">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex-1">
@@ -145,46 +145,34 @@
                                 </div>
                             </div>
 
-                            {{-- Row 1: Builder + View --}}
-                            <div class="flex flex-wrap gap-2 mb-3">
+                            <div class="flex items-center gap-2">
                                 <a href="{{ route('tenant.forms.builder', $form) }}"
-                                   class="flex-1 bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
+                                   class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition duration-200 shadow-sm">
                                     Builder
                                 </a>
-                                <a href="{{ route('tenant.forms.show', $form) }}"
-                                   class="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
-                                    View
-                                </a>
-                            </div>
-
-                            {{-- Row 2: Edit + Submissions --}}
-                            <div class="flex flex-wrap gap-2 mb-3">
-                                <a href="{{ route('tenant.forms.edit', $form) }}"
-                                   class="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
-                                    Edit
-                                </a>
-                                <a href="{{ route('tenant.records.index', ['form_id' => $form->id]) }}"
-                                   class="flex-1 bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
-                                    Submissions
-                                </a>
-                            </div>
-
-                            {{-- Row 3: Copy + Delete --}}
-                            <div class="flex flex-wrap gap-2">
-                                <a href="{{ route('tenant.forms.clone', $form) }}"
-                                   class="flex-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
-                                    Copy
-                                </a>
-
-                                <form action="{{ route('tenant.forms.destroy', $form) }}" method="POST" class="flex-1"
-                                      onsubmit="return confirm('Are you sure you want to delete this form? This action cannot be undone.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="w-full bg-red-50 text-red-700 hover:bg-red-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
-                                        Delete
+                                <div class="relative inline-block text-left">
+                                    <button type="button" onclick="toggleFormActionsMenu('form-actions-{{ $form->id }}')"
+                                            class="inline-flex items-center justify-center w-10 h-[42px] border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 transition duration-200">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
                                     </button>
-                                </form>
+                                    <div id="form-actions-{{ $form->id }}" class="hidden origin-top-right absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                                        <div class="py-1" role="menu">
+                                            <a href="{{ route('tenant.forms.show', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">View</a>
+                                            <a href="{{ route('tenant.forms.edit', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Edit</a>
+                                            <a href="{{ route('tenant.records.index', ['form_id' => $form->id]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Submissions</a>
+                                            <a href="{{ route('tenant.forms.clone', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Copy</a>
+                                            <div class="border-t border-gray-100" role="separator"></div>
+                                            <form action="{{ route('tenant.forms.destroy', $form) }}" method="POST" class="block" role="menuitem"
+                                                  onsubmit="return confirm('Are you sure you want to delete this form? This action cannot be undone.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -230,12 +218,22 @@
             menu.classList.toggle('hidden');
         }
 
-        // Close menu when clicking outside
+        function toggleFormActionsMenu(id) {
+            const menu = document.getElementById(id);
+            document.querySelectorAll('[id^="form-actions-"]').forEach(function(m) {
+                if (m.id !== id) m.classList.add('hidden');
+            });
+            menu.classList.toggle('hidden');
+        }
+
         document.addEventListener('click', function(event) {
             const menu = document.getElementById('form-export-menu');
             const button = event.target.closest('button[onclick="toggleFormExportMenu()"]');
-            if (!button && !menu.contains(event.target)) {
+            if (!button && menu && !menu.contains(event.target)) {
                 menu.classList.add('hidden');
+            }
+            if (!event.target.closest('[id^="form-actions-"]') && !event.target.closest('button[onclick^="toggleFormActionsMenu"]')) {
+                document.querySelectorAll('[id^="form-actions-"]').forEach(function(m) { m.classList.add('hidden'); });
             }
         });
     </script>
