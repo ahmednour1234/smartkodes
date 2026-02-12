@@ -18,6 +18,22 @@ class FormsListScreen extends ConsumerStatefulWidget {
 }
 
 class _FormsListScreenState extends ConsumerState<FormsListScreen> {
+  Widget _metaChip(BuildContext context, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,17 +104,56 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
             return const Center(child: Text('No forms'));
           }
           return ListView.builder(
+            padding: const EdgeInsets.all(16),
             itemCount: res.data.length,
             itemBuilder: (context, i) {
               final form = res.data[i];
-              return ListTile(
-                title: Text(form.name),
-                subtitle: Text(
-                  'Version ${form.version ?? '—'} • ${form.fieldsCount ?? 0} fields',
-                ),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => FormDetailScreen(formId: form.id),
+              final version = form.version ?? '—';
+              final fieldsCount = form.fieldsCount ?? 0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Material(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                form.name,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  _metaChip(context, 'v$version'),
+                                  const SizedBox(width: 8),
+                                  _metaChip(context, '$fieldsCount fields'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => FormDetailScreen(formId: form.id),
+                            ),
+                          ),
+                          tooltip: 'Update',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

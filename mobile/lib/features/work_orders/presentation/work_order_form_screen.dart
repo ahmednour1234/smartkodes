@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,7 +27,7 @@ class WorkOrderFormScreen extends ConsumerStatefulWidget {
 class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
   FormModel? _form;
   final _values = <String, dynamic>{};
-  final _filePaths = <String, String>{};
+  final _fileData = <String, ({Uint8List bytes, String filename})>{};
   bool _loading = true;
   bool _submitting = false;
   String? _error;
@@ -60,19 +60,12 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
   }
 
   Future<void> _pickFile(FormFieldModel field) async {
-    if (field.type == 'photo' || field.type == 'image') {
-      final picker = ImagePicker();
-      final x = await picker.pickImage(source: ImageSource.gallery);
-      if (x != null) {
-        setState(() => _filePaths[field.name] = x.path);
-      }
-    } else {
-      // Generic file pick would need file_picker package; for now use image
-      final picker = ImagePicker();
-      final x = await picker.pickImage(source: ImageSource.gallery);
-      if (x != null) {
-        setState(() => _filePaths[field.name] = x.path);
-      }
+    final picker = ImagePicker();
+    final x = await picker.pickImage(source: ImageSource.gallery);
+    if (x != null) {
+      final bytes = await x.readAsBytes();
+      final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
+      setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
     }
   }
 
@@ -94,7 +87,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
         workOrderId: widget.workOrderId,
         formId: widget.formId,
         fields: Map<String, dynamic>.from(_values),
-        filePaths: _filePaths.isEmpty ? null : Map<String, String>.from(_filePaths),
+        filePaths: null,
         latitude: lat,
         longitude: lon,
         createdAt: DateTime.now(),
@@ -102,10 +95,8 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       setState(() => _submitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_filePaths.isEmpty
-                ? 'Saved offline. Will sync when connected.'
-                : 'Saved offline. Connect to internet to upload attachments, then sync.'),
+          const SnackBar(
+            content: Text('Saved offline. Will sync when connected.'),
           ),
         );
         Navigator.of(context).pop();
@@ -113,16 +104,12 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       return;
     }
     final repo = ref.read(workOrderRepositoryProvider);
-    final fileFields = <String, File>{};
-    for (final e in _filePaths.entries) {
-      fileFields[e.key] = File(e.value);
-    }
     try {
       final ok = await repo.submitForm(
         widget.workOrderId,
         widget.formId,
         Map<String, dynamic>.from(_values),
-        fileFields: fileFields.isEmpty ? null : fileFields,
+        fileFields: _fileData.isEmpty ? null : _fileData,
         latitude: lat,
         longitude: lon,
       );
@@ -210,10 +197,10 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
             const SizedBox(height: 4),
             OutlinedButton(
               onPressed: () => _pickFile(f),
-              child: Text(_filePaths[f.name] != null ? 'Change file' : 'Pick file'),
+              child: Text(_fileData[f.name] != null ? 'Change file' : 'Pick file'),
             ),
-            if (_filePaths[f.name] != null)
-              Text(_filePaths[f.name]!.split(RegExp(r'[/\\]')).last,
+            if (_fileData[f.name] != null)
+              Text(_fileData[f.name]!.filename,
                   style: Theme.of(context).textTheme.bodySmall),
           ],
         ),

@@ -1,8 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+import 'pending_submissions_store_impl_io.dart'
+    if (dart.library.html) 'pending_submissions_store_impl_web.dart' as impl;
 
 class PendingSubmission {
   final String workOrderId;
@@ -51,23 +48,9 @@ class PendingSubmission {
 }
 
 class PendingSubmissionsStore {
-  static const _fileName = 'pending_submissions.json';
-
-  Future<File> _file() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File(p.join(dir.path, _fileName));
-  }
-
   Future<List<PendingSubmission>> load() async {
-    final f = await _file();
-    if (!await f.exists()) return [];
-    try {
-      final content = await f.readAsString();
-      final list = jsonDecode(content) as List<dynamic>;
-      return list.map((e) => PendingSubmission.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return [];
-    }
+    final list = await impl.loadPendingJson();
+    return list.map((e) => PendingSubmission.fromJson(e)).toList();
   }
 
   Future<void> add(PendingSubmission s) async {
@@ -93,8 +76,6 @@ class PendingSubmissionsStore {
   }
 
   Future<void> _save(List<PendingSubmission> list) async {
-    final f = await _file();
-    final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
-    await f.writeAsString(encoded);
+    await impl.savePendingJson(list.map((e) => e.toJson()).toList());
   }
 }

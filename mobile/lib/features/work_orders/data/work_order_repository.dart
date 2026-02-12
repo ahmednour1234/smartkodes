@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -85,7 +85,7 @@ class WorkOrderRepository {
     String workOrderId,
     String formId,
     Map<String, dynamic> fields, {
-    Map<String, File>? fileFields,
+    Map<String, ({Uint8List bytes, String filename})>? fileFields,
     double? latitude,
     double? longitude,
   }) async {
@@ -98,9 +98,9 @@ class WorkOrderRepository {
     };
     if (fileFields != null) {
       for (final e in fileFields.entries) {
-        map[e.key] = await MultipartFile.fromFile(
-          e.value.path,
-          filename: e.value.path.split(RegExp(r'[/\\]')).last,
+        map[e.key] = MultipartFile.fromBytes(
+          e.value.bytes,
+          filename: e.value.filename,
         );
       }
     }

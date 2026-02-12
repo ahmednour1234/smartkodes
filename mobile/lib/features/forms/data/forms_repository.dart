@@ -40,6 +40,14 @@ class FormsRepository {
     return response.success;
   }
 
+  Future<bool> delete(String id) async {
+    final response = await _client.request<dynamic>(
+      'forms/$id',
+      method: 'DELETE',
+    );
+    return response.success;
+  }
+
   Future<String> _cacheDir() async {
     final dir = await getApplicationDocumentsDirectory();
     final cache = p.join(dir.path, 'forms_cache');
