@@ -107,9 +107,10 @@
                 </div>
 
                 <!-- Notification Preferences -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div id="notifications" class="bg-white overflow-hidden shadow-sm sm:rounded-lg scroll-mt-4">
                     <div class="p-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h3>
+                        <p class="text-sm text-gray-600 mb-4">Choose which in-app and email notifications you receive for projects, forms, work orders, and system updates.</p>
                         <form method="POST" action="{{ route('tenant.settings.update-notifications') }}" class="space-y-4">
                             @csrf
                             @method('PUT')

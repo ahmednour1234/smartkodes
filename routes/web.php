@@ -172,6 +172,10 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
     // Settings (tenant settings)
     Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+    Route::put('/settings/profile', [\App\Http\Controllers\Admin\SettingController::class, 'updateProfile'])->name('settings.update-profile');
+    Route::put('/settings/notifications', [\App\Http\Controllers\Admin\SettingController::class, 'updateNotifications'])->name('settings.update-notifications');
+    Route::put('/settings/password', [\App\Http\Controllers\Admin\SettingController::class, 'changePassword'])->name('settings.change-password');
+    Route::delete('/settings/organization', [\App\Http\Controllers\Admin\SettingController::class, 'deleteOrganization'])->name('settings.delete-organization');
 });
 
 /*

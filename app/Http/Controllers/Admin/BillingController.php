@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -39,23 +41,56 @@ class BillingController extends Controller
             abort(403, 'No tenant context available.');
         }
 
-        // Get current subscription
         $subscription = Subscription::where('tenant_id', $currentTenant->id)
                                   ->with(['plan', 'payments'])
                                   ->latest()
                                   ->first();
 
-        // Get billing history
+        $plan = $subscription?->plan ?? Plan::first();
+        $features = $plan?->features ?? [];
+        $currentPlan = [
+            'name' => $plan?->name ?? 'Professional',
+            'price' => $plan?->price ?? 99,
+            'projects_limit' => $features['projects_limit'] ?? 'Unlimited',
+            'users_limit' => $features['users_limit'] ?? 10,
+            'forms_limit' => $features['forms_limit'] ?? 'Unlimited',
+        ];
+
+        $projectsLimit = is_numeric($currentPlan['projects_limit']) ? (int) $currentPlan['projects_limit'] : 999;
+        $usersLimit = (int) $currentPlan['users_limit'];
+        $usage = [
+            'projects_used' => Project::where('tenant_id', $currentTenant->id)->count(),
+            'projects_limit' => $projectsLimit,
+            'users_used' => User::where('tenant_id', $currentTenant->id)->count(),
+            'users_limit' => $usersLimit,
+        ];
+
         $payments = Payment::where('tenant_id', $currentTenant->id)
                           ->with('subscription.plan')
                           ->orderBy('created_at', 'desc')
                           ->paginate(10);
 
-        // Get available plans for upgrade/downgrade
+        $invoices = $payments->getCollection()->map(function ($p, $i) {
+            return [
+                'number' => $p->id ? substr($p->id, -8) : ($i + 1),
+                'description' => $p->subscription?->plan?->name ?? 'Subscription',
+                'date' => $p->created_at->format('M d, Y'),
+                'amount' => (float) $p->amount,
+                'status' => $p->status === 1 ? 'paid' : ($p->status === 0 ? 'pending' : 'failed'),
+            ];
+        });
+        $payments->setCollection($invoices->values());
+        $invoices = $payments;
+
+        $subscriptionStatus = $subscription ? ($subscription->status === 1 ? 'Active' : ($subscription->status === 0 ? 'Pending' : 'Cancelled')) : 'No subscription';
+        $billingFrequency = 'Monthly';
+        $nextRenewalDate = $subscription?->end_date?->format('M d, Y');
+
+        $paymentMethod = null;
         $plans = Plan::all();
 
         $viewPrefix = $this->getViewPrefix();
-        return view("{$viewPrefix}.billing.index", compact('subscription', 'payments', 'plans'));
+        return view("{$viewPrefix}.billing.index", compact('subscription', 'payments', 'plans', 'currentPlan', 'usage', 'invoices', 'paymentMethod', 'subscriptionStatus', 'billingFrequency', 'nextRenewalDate'));
     }
 
     /**

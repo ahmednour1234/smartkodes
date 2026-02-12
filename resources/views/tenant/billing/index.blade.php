@@ -21,6 +21,38 @@
                 </div>
             </div>
 
+            <!-- Subscription overview -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Subscription overview</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-500">Status</p>
+                            <p class="font-medium text-gray-900 mt-0.5">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    @if(($subscriptionStatus ?? '') === 'Active') bg-green-100 text-green-800
+                                    @elseif(($subscriptionStatus ?? '') === 'Pending') bg-yellow-100 text-yellow-800
+                                    @else bg-gray-100 text-gray-800 @endif">
+                                    {{ $subscriptionStatus ?? 'No subscription' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Billing frequency</p>
+                            <p class="font-medium text-gray-900 mt-0.5">{{ $billingFrequency ?? 'Monthly' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Next renewal date</p>
+                            <p class="font-medium text-gray-900 mt-0.5">{{ $nextRenewalDate ?? '—' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Current plan</p>
+                            <p class="font-medium text-gray-900 mt-0.5">{{ $currentPlan['name'] ?? 'Professional' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Current Plan & Usage -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Current Plan -->
@@ -34,8 +66,7 @@
                                 <div>✓ {{ $currentPlan['projects_limit'] ?? 'Unlimited' }} Projects</div>
                                 <div>✓ {{ $currentPlan['users_limit'] ?? '10' }} Team Members</div>
                                 <div>✓ {{ $currentPlan['forms_limit'] ?? 'Unlimited' }} Forms</div>
-{{--                                 <div>✓ {{ $currentPlan['storage_limit'] ?? '10GB' }} Storage</div>
- --}}                            </div>
+                            </div>
                         </div>
                     </div>
                 </div>

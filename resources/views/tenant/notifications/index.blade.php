@@ -53,6 +53,20 @@
                 </div>
             </div>
 
+            <!-- Scope & preferences -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-gray-700">What triggers these notifications</h3>
+                    <a href="{{ route('tenant.settings.index') }}#notifications" class="text-sm text-blue-600 hover:text-blue-800">Manage preferences</a>
+                </div>
+                <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                    <div><span class="font-medium text-gray-800">Projects:</span> Created, updated, or when you are assigned.</div>
+                    <div><span class="font-medium text-gray-800">Forms:</span> New submissions, form published, or when you are assigned.</div>
+                    <div><span class="font-medium text-gray-800">Work orders:</span> Assigned to you, status changed, or due date updated.</div>
+                    <div><span class="font-medium text-gray-800">System:</span> Account, billing, and security-related updates.</div>
+                </div>
+            </div>
+
             <!-- Notifications List -->
             <div class="space-y-4" id="notifications-container">
                 @forelse($notifications ?? [] as $notification)

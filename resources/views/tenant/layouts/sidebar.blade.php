@@ -101,7 +101,7 @@
         </li>
 
         <li class="pt-2">
-            <details class="mobile-menu-section" {{ request()->routeIs('tenant.files.*','tenant.billing.*','tenant.notifications.*') ? 'open' : '' }}>
+            <details class="mobile-menu-section" {{ request()->routeIs('tenant.files.*','tenant.billing.*','tenant.notifications.*','tenant.settings.*') ? 'open' : '' }}>
                 <summary class="px-4 py-2 text-xs font-semibold text-blue-200 uppercase tracking-wider cursor-pointer list-none flex items-center justify-between hover:bg-blue-700 rounded">
                     <span>System</span>
                     <svg class="w-4 h-4 transition-transform details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -110,6 +110,7 @@
                     <li><a href="{{ route('tenant.files.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.files.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-file-upload mr-2"></i>Files</a></li>
                     <li><a href="{{ route('tenant.billing.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.billing.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-credit-card mr-2"></i>Billing</a></li>
                     <li><a href="{{ route('tenant.notifications.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.notifications.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-bell mr-2"></i>Notifications</a></li>
+                    <li><a href="{{ route('tenant.settings.index') }}" class="mobile-nav-link block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.settings.*') ? 'bg-blue-700' : '' }}"><i class="fas fa-cog mr-2"></i>Settings</a></li>
                 </ul>
             </details>
         </li>
@@ -205,6 +206,11 @@
         <li>
             <a href="{{ route('tenant.notifications.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.notifications.*') ? 'bg-blue-700' : '' }}">
                 <i class="fas fa-bell mr-2"></i>Notifications
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('tenant.settings.index') }}" class="block px-4 py-2 hover:bg-blue-700 {{ request()->routeIs('tenant.settings.*') ? 'bg-blue-700' : '' }}">
+                <i class="fas fa-cog mr-2"></i>Settings
             </a>
         </li>
     </ul>
