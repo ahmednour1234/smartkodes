@@ -90,7 +90,7 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(wo.id),
+        title: Text(wo.title?.isNotEmpty == true ? wo.title! : wo.id),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(color: statusColor.withValues(alpha: 0.3), height: 3),
@@ -112,6 +112,20 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (wo.title?.isNotEmpty == true) ...[
+                        Text(
+                          wo.title!,
+                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          wo.id,
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,

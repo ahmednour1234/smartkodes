@@ -260,12 +260,23 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                wo.id,
+                                wo.title?.isNotEmpty == true ? wo.title! : wo.id,
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              if (wo.title?.isNotEmpty == true)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    wo.id,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.outline,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               const SizedBox(height: 4),
                               Text(
                                 formName,

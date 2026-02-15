@@ -16,6 +16,7 @@ class WorkOrderResource extends BaseResource
     {
         $data = [
             'id' => $this->id,
+            'title' => $this->title,
             'project' => $this->whenLoaded('project', function () {
                 return [
                     'id' => $this->project->id,
