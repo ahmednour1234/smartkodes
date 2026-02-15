@@ -36,10 +36,10 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
+    await _storage.clearAuth();
     try {
       await _client.dio.post('logout');
     } catch (_) {}
-    await _storage.clearAuth();
   }
 
   Future<String?> refreshToken() async {

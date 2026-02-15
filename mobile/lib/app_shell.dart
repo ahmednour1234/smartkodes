@@ -32,6 +32,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (user == null) {
         ref.read(passcodeVerifiedForSessionProvider.notifier).state = false;
         ref.read(skipPasscodeSetupProvider.notifier).state = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        });
       }
     });
     final authState = ref.watch(authStateProvider);
