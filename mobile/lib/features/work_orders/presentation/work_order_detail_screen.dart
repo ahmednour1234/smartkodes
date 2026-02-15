@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../domain/models/record_model.dart';
 import '../../../domain/models/work_order.dart';
+import '../../forms/data/forms_repository.dart';
+import '../../forms/presentation/form_update_record_screen.dart';
+import '../../forms/presentation/forms_providers.dart';
 import '../data/work_order_repository.dart';
 import 'work_order_providers.dart';
 import 'work_order_form_screen.dart';
@@ -28,6 +32,7 @@ class WorkOrderDetailScreen extends ConsumerStatefulWidget {
 
 class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
   WorkOrder? _wo;
+  List<RecordModel>? _myRecords;
   String? _directionsUrl;
   bool _loading = true;
   String? _error;
@@ -47,11 +52,14 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
       lon = pos.longitude;
     } catch (_) {}
     final repo = ref.read(workOrderRepositoryProvider);
+    final formsRepo = ref.read(formsRepositoryProvider);
     try {
       final wo = await repo.get(widget.workOrderId, currentLatitude: lat, currentLongitude: lon);
       final url = await repo.getDirectionsUrl(widget.workOrderId, latitude: lat, longitude: lon);
+      final recordsRes = await formsRepo.listMyRecords(workOrderId: widget.workOrderId, perPage: 100);
       setState(() {
         _wo = wo;
+        _myRecords = recordsRes.data;
         _directionsUrl = url;
         _loading = false;
       });
@@ -283,19 +291,46 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
               else
                 ...wo.forms!.asMap().entries.map((e) {
                   final f = e.value;
-                  final idx = e.key;
+                  RecordModel? record;
+                  if (_myRecords != null) {
+                    for (final r in _myRecords!) {
+                      if (r.form?.id == f.id) {
+                        record = r;
+                        break;
+                      }
+                    }
+                  }
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _FormCard(
                       form: f,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => WorkOrderFormScreen(
-                            workOrderId: widget.workOrderId,
-                            formId: f.id,
-                          ),
-                        ),
-                      ),
+                      isSubmitted: record != null,
+                      onTap: () async {
+                        final rec = record;
+                        if (rec != null && rec.form != null) {
+                          final formModel = await ref.read(formsRepositoryProvider).get(f.id);
+                          if (!mounted || formModel == null) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => FormUpdateRecordScreen(
+                                formId: f.id,
+                                recordId: rec.id,
+                                form: formModel,
+                                initialFields: rec.fields,
+                              ),
+                            ),
+                          ).then((_) => _load());
+                        } else {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => WorkOrderFormScreen(
+                                workOrderId: widget.workOrderId,
+                                formId: f.id,
+                              ),
+                            ),
+                          ).then((_) => _load());
+                        }
+                      },
                     ),
                   );
                 }),
@@ -342,10 +377,11 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _FormCard extends StatelessWidget {
-  const _FormCard({required this.form, required this.onTap});
+  const _FormCard({required this.form, required this.onTap, this.isSubmitted = false});
 
   final WorkOrderFormRef form;
   final VoidCallback onTap;
+  final bool isSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -376,12 +412,18 @@ class _FormCard extends StatelessWidget {
                     Text(form.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text(
-                      'Version ${form.version ?? '—'}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                      isSubmitted ? 'Submitted' : 'Version ${form.version ?? '—'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isSubmitted ? Colors.green.shade700 : theme.colorScheme.outline,
+                        fontWeight: isSubmitted ? FontWeight.w600 : null,
+                      ),
                     ),
                   ],
                 ),
               ),
+              if (isSubmitted)
+                Icon(Icons.check_circle, color: Colors.green.shade700, size: 22),
+              if (isSubmitted) const SizedBox(width: 8),
               Icon(Icons.chevron_right, color: theme.colorScheme.outline),
             ],
           ),

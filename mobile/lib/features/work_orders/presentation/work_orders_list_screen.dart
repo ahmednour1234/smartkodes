@@ -92,15 +92,6 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
             onPressed: () => setState(() => _isListView = !_isListView),
             tooltip: _isListView ? 'Map view' : 'List view',
           ),
-          IconButton(
-            icon: const Icon(Icons.home_outlined),
-            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
-            tooltip: 'Home',
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilters(context),
-          ),
         ],
       ),
       drawer: const AppDrawer(),
@@ -163,6 +154,13 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Text(
+            'My Orders',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         Padding(
@@ -409,13 +407,15 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
         ),
       );
     }
-    return GoogleMap(
-      key: ValueKey('map_${center.latitude}_${center.longitude}_${markers.length}'),
-      initialCameraPosition: CameraPosition(target: center, zoom: 15),
-      markers: markers,
-      myLocationEnabled: hasUserLocation,
-      myLocationButtonEnabled: true,
-      onMapCreated: (controller) {
+    return Stack(
+      children: [
+        GoogleMap(
+          key: ValueKey('map_${center.latitude}_${center.longitude}_${markers.length}'),
+          initialCameraPosition: CameraPosition(target: center, zoom: 15),
+          markers: markers,
+          myLocationEnabled: hasUserLocation,
+          myLocationButtonEnabled: true,
+          onMapCreated: (controller) {
         if (markers.length <= 1) {
           controller.animateCamera(
             CameraUpdate.newLatLngZoom(center, 15),
@@ -443,6 +443,35 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
           ),
         );
       },
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _LegendItem(color: Colors.blue, label: 'Your location'),
+                      _LegendItem(color: Colors.red, label: 'High priority'),
+                      _LegendItem(color: Colors.orange, label: 'Medium'),
+                      _LegendItem(color: Colors.green, label: 'Low priority'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -510,6 +539,34 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 1),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 }
