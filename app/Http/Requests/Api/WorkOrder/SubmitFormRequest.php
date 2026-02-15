@@ -148,5 +148,32 @@ class SubmitFormRequest extends BaseApiRequest
 
         return $rules;
     }
+
+    public function messages(): array
+    {
+        $formId = $this->input('form_id');
+        if (!$formId) {
+            return [];
+        }
+        $form = Form::with('formFields')->find($formId);
+        if (!$form) {
+            return [];
+        }
+        $out = [];
+        foreach ($form->formFields as $field) {
+            $label = $field->label ?? str_replace('_', ' ', ucfirst($field->name));
+            $out["{$field->name}.required"] = "$label is required.";
+            $out["{$field->name}.date"] = "$label must be a valid date (e.g. Y-m-d).";
+            $out["{$field->name}.date_format"] = "$label must match the required format.";
+            $out["{$field->name}.numeric"] = "$label must be a number.";
+            $out["{$field->name}.email"] = "$label must be a valid email address.";
+            $out["{$field->name}.url"] = "$label must be a valid URL.";
+            $out["{$field->name}.in"] = "$label must be one of the allowed values.";
+            $out["{$field->name}.min"] = "$label must be at least :min.";
+            $out["{$field->name}.max"] = "$label must not exceed :max.";
+            $out["{$field->name}.regex"] = "$label format is invalid.";
+        }
+        return $out;
+    }
 }
 

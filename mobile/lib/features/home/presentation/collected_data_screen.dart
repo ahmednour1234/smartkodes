@@ -62,6 +62,7 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final refreshTrigger = ref.watch(pendingListRefreshTriggerProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Collected Data'),
@@ -78,7 +79,7 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
         ],
       ),
       body: FutureBuilder<List<PendingSubmission>>(
-        key: ValueKey(_refreshKey),
+        key: ValueKey('$refreshTrigger-$_refreshKey'),
         future: ref.read(pendingSubmissionsStoreProvider).load(),
         builder: (context, snapshot) {
           final list = snapshot.data ?? [];

@@ -30,6 +30,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
   FormModel? _form;
   final _values = <String, dynamic>{};
   final _fileData = <String, ({Uint8List bytes, String filename})>{};
+  final _fieldErrors = <String, String>{};
   bool _loading = true;
   bool _submitting = false;
   String? _error;
@@ -76,9 +77,58 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     }
   }
 
+  String? _validateField(FormFieldModel f, dynamic value) {
+    if (f.required && (value == null || value.toString().trim().isEmpty)) {
+      return '${f.label ?? f.name} is required';
+    }
+    if (value == null || value.toString().trim().isEmpty) return null;
+    final s = value.toString().trim();
+    switch (f.type) {
+      case 'date':
+      case 'datetime':
+        final d = DateTime.tryParse(s);
+        if (d == null) return '${f.label ?? f.name} must be a valid date';
+        break;
+      case 'time':
+        if (!RegExp(r'^\d{1,2}:\d{2}(:\d{2})?$').hasMatch(s)) {
+          return '${f.label ?? f.name} must be a valid time (HH:mm)';
+        }
+        break;
+      case 'number':
+      case 'currency':
+        if (num.tryParse(s) == null) return '${f.label ?? f.name} must be a number';
+        break;
+      case 'email':
+        if (!RegExp(r'^[\w.-]+@[\w.-]+\.\w+$').hasMatch(s)) {
+          return '${f.label ?? f.name} must be a valid email';
+        }
+        break;
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     if (_form == null) return;
-    setState(() => _submitting = true);
+    final fields = _form!.fields ?? [];
+    final errs = <String, String>{};
+    for (final f in fields) {
+      final v = _values[f.name];
+      final msg = _validateField(f, v);
+      if (msg != null) errs[f.name] = msg;
+    }
+    if (errs.isNotEmpty) {
+      setState(() {
+        _fieldErrors.clear();
+        _fieldErrors.addAll(errs);
+        _error = 'Please fix the errors below.';
+      });
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+      _fieldErrors.clear();
+    });
     double? lat;
     double? lon;
     try {
@@ -132,7 +182,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     } catch (e) {
       setState(() {
         _submitting = false;
-        _error = e.toString();
+        if (e is SubmitFormValidationException) {
+          _fieldErrors.clear();
+          _fieldErrors.addAll(e.fieldErrors);
+          _error = e.message;
+        } else {
+          _error = e.toString();
+        }
       });
     }
   }
@@ -192,6 +248,70 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     );
   }
 
+  InputDecoration _decoration(FormFieldModel f) {
+    return InputDecoration(
+      labelText: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+      border: const OutlineInputBorder(),
+      errorText: _fieldErrors[f.name],
+      errorBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.red)),
+    );
+  }
+
+  Future<void> _pickDate(FormFieldModel f) async {
+    final initial = _values[f.name] != null
+        ? DateTime.tryParse(_values[f.name].toString())
+        : null;
+    final d = await showDatePicker(
+      context: context,
+      initialDate: initial ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+    );
+    if (d != null) {
+      setState(() => _values[f.name] = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}');
+    }
+  }
+
+  Future<void> _pickTime(FormFieldModel f) async {
+    final s = _values[f.name]?.toString() ?? '';
+    TimeOfDay initial = TimeOfDay.now();
+    if (s.isNotEmpty) {
+      final parts = s.split(':');
+      if (parts.length >= 2) {
+        final h = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        if (h != null && m != null) initial = TimeOfDay(hour: h, minute: m);
+      }
+    }
+    final t = await showTimePicker(context: context, initialTime: initial);
+    if (t != null) {
+      setState(() => _values[f.name] = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+    }
+  }
+
+  Future<void> _pickDateTime(FormFieldModel f) async {
+    final initial = _values[f.name] != null
+        ? DateTime.tryParse(_values[f.name].toString())
+        : null;
+    final d = await showDatePicker(
+      context: context,
+      initialDate: initial ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+    );
+    if (d == null) return;
+    final t = await showTimePicker(
+      context: context,
+      initialTime: initial != null
+          ? TimeOfDay(hour: initial.hour, minute: initial.minute)
+          : TimeOfDay.now(),
+    );
+    if (t != null) {
+      final dt = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+      setState(() => _values[f.name] = dt.toIso8601String().replaceFirst('T', ' ').substring(0, 19));
+    }
+  }
+
   Widget _buildField(FormFieldModel f) {
     final isFile = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
     if (isFile) {
@@ -201,6 +321,11 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+            if (_fieldErrors[f.name] != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ),
             const SizedBox(height: 4),
             OutlinedButton(
               onPressed: () => _pickFile(f),
@@ -218,14 +343,59 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
         padding: const EdgeInsets.only(bottom: 16),
         child: DropdownButtonFormField<String>(
           value: _values[f.name] as String?,
-          decoration: InputDecoration(
-            labelText: '${f.label ?? f.name}${f.required ? ' *' : ''}',
-            border: const OutlineInputBorder(),
-          ),
+          decoration: _decoration(f),
           items: f.options!
               .map((o) => DropdownMenuItem(value: o, child: Text(o)))
               .toList(),
-          onChanged: (v) => setState(() => _values[f.name] = v),
+          onChanged: (v) => setState(() {
+            _values[f.name] = v;
+            _fieldErrors.remove(f.name);
+          }),
+        ),
+      );
+    }
+    if (f.type == 'date') {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: InkWell(
+          onTap: () async {
+            await _pickDate(f);
+            if (mounted) setState(() => _fieldErrors.remove(f.name));
+          },
+          child: InputDecorator(
+            decoration: _decoration(f),
+            child: Text(_values[f.name]?.toString() ?? 'Tap to pick date'),
+          ),
+        ),
+      );
+    }
+    if (f.type == 'time') {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: InkWell(
+          onTap: () async {
+            await _pickTime(f);
+            if (mounted) setState(() => _fieldErrors.remove(f.name));
+          },
+          child: InputDecorator(
+            decoration: _decoration(f),
+            child: Text(_values[f.name]?.toString() ?? 'Tap to pick time'),
+          ),
+        ),
+      );
+    }
+    if (f.type == 'datetime') {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: InkWell(
+          onTap: () async {
+            await _pickDateTime(f);
+            if (mounted) setState(() => _fieldErrors.remove(f.name));
+          },
+          child: InputDecorator(
+            decoration: _decoration(f),
+            child: Text(_values[f.name]?.toString() ?? 'Tap to pick date & time'),
+          ),
         ),
       );
     }
@@ -233,26 +403,27 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: TextFormField(
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: '${f.label ?? f.name}${f.required ? ' *' : ''}',
-            border: const OutlineInputBorder(),
-          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: _decoration(f),
           initialValue: _values[f.name]?.toString(),
-          onChanged: (v) => setState(() => _values[f.name] = v.isEmpty ? null : num.tryParse(v)),
+          onChanged: (v) => setState(() {
+            _values[f.name] = v.isEmpty ? null : num.tryParse(v);
+            _fieldErrors.remove(f.name);
+          }),
         ),
       );
     }
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
-        decoration: InputDecoration(
-          labelText: '${f.label ?? f.name}${f.required ? ' *' : ''}',
-          border: const OutlineInputBorder(),
-        ),
+        decoration: _decoration(f),
         initialValue: _values[f.name]?.toString(),
         maxLines: f.type == 'textarea' ? 4 : 1,
-        onChanged: (v) => setState(() => _values[f.name] = v.isEmpty ? null : v),
+        keyboardType: f.type == 'email' ? TextInputType.emailAddress : null,
+        onChanged: (v) => setState(() {
+          _values[f.name] = v.isEmpty ? null : v;
+          _fieldErrors.remove(f.name);
+        }),
       ),
     );
   }

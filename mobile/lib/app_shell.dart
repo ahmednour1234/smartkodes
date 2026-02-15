@@ -88,23 +88,36 @@ class _SyncOnConnectivity extends ConsumerStatefulWidget {
   ConsumerState<_SyncOnConnectivity> createState() => _SyncOnConnectivityState();
 }
 
-class _SyncOnConnectivityState extends ConsumerState<_SyncOnConnectivity> {
+class _SyncOnConnectivityState extends ConsumerState<_SyncOnConnectivity>
+    with WidgetsBindingObserver {
   StreamSubscription<ConnectivityResult>? _sub;
+
+  Future<void> _runSync() async {
+    final n = await ref.read(syncServiceProvider).syncPending();
+    if (mounted && n > 0) {
+      ref.read(pendingListRefreshTriggerProvider.notifier).state++;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _sub = Connectivity().onConnectivityChanged.listen((result) {
-      if (result != ConnectivityResult.none) {
-        ref.read(syncServiceProvider).syncPending();
-      }
+    WidgetsBinding.instance.addObserver(this);
+    _sub = Connectivity().onConnectivityChanged.listen((result) async {
+      if (result != ConnectivityResult.none) await _runSync();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _runSync();
   }
 
   @override

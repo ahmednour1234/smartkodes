@@ -105,14 +105,41 @@ class WorkOrderRepository {
       }
     }
     final formData = FormData.fromMap(map);
-    final response = await _client.dio.post<Map<String, dynamic>>(
-      'work-orders/$workOrderId/submit-form',
-      data: formData,
-      options: Options(
-        headers: {'Content-Type': 'multipart/form-data'},
-      ),
-    );
-    final data = response.data;
-    return data != null && (data['success'] as bool? ?? false);
+    try {
+      final response = await _client.dio.post<Map<String, dynamic>>(
+        'work-orders/$workOrderId/submit-form',
+        data: formData,
+        options: Options(
+          headers: {'Content-Type': 'multipart/form-data'},
+        ),
+      );
+      final data = response.data;
+      return data != null && (data['success'] as bool? ?? false);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        final body = e.response?.data;
+        final errors = <String, String>{};
+        if (body is Map && body['errors'] is Map) {
+          for (final entry in (body['errors'] as Map).entries) {
+            final key = entry.key.toString();
+            final list = entry.value;
+            if (list is List && list.isNotEmpty) {
+              errors[key] = list.first.toString();
+            }
+          }
+        }
+        throw SubmitFormValidationException(
+          body is Map ? body['message']?.toString() ?? 'Validation failed' : 'Validation failed',
+          errors,
+        );
+      }
+      rethrow;
+    }
   }
+}
+
+class SubmitFormValidationException implements Exception {
+  SubmitFormValidationException(this.message, this.fieldErrors);
+  final String message;
+  final Map<String, String> fieldErrors;
 }

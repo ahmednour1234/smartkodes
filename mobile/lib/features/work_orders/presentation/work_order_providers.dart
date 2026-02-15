@@ -19,3 +19,5 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     ref.watch(pendingSubmissionsStoreProvider),
   );
 });
+
+final pendingListRefreshTriggerProvider = StateProvider<int>((ref) => 0);
