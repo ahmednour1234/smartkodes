@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_response.dart';
@@ -72,13 +73,28 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
       }
       return;
     }
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getDownloadsDirectory();
+    if (dir == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Downloads folder not available')),
+      );
+      return;
+    }
+    if (dir == null) return;
     final date = DateTime.now().toIso8601String().substring(0, 10);
     final file = File('${dir.path}/form_${record.id}_$date.pdf');
     await file.writeAsBytes(bytes);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF saved to ${file.path}')),
+        SnackBar(
+          content: const Text('PDF saved to Downloads'),
+          action: SnackBarAction(
+            label: 'Open',
+            onPressed: () async {
+              await OpenFilex.open(file.path, type: 'application/pdf');
+            },
+          ),
+        ),
       );
     }
   }

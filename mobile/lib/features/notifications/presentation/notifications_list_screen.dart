@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_response.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../../domain/models/notification_model.dart';
 import '../../forms/presentation/forms_list_screen.dart';
 import '../../work_orders/presentation/work_orders_list_screen.dart';
@@ -23,8 +24,12 @@ class _NotificationsListScreenState extends ConsumerState<NotificationsListScree
       drawer: Drawer(
         child: ListView(
           children: [
-            const DrawerHeader(
-              child: Text('SmartKodes', style: TextStyle(color: Colors.white, fontSize: 20)),
+            DrawerHeader(
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: AppLogo(size: 20, color: Theme.of(context).colorScheme.onPrimaryContainer),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.assignment),

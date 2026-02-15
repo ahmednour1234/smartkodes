@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app_logo.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/forms/presentation/forms_list_screen.dart';
 import '../../features/home/presentation/collected_data_screen.dart';
@@ -19,11 +20,11 @@ class AppDrawer extends ConsumerWidget {
         children: [
           DrawerHeader(
             decoration: BoxDecoration(color: theme.colorScheme.primaryContainer),
-            child: Text(
-              'SmartKodes',
-              style: theme.textTheme.titleLarge?.copyWith(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: AppLogo(
+                size: 22,
                 color: theme.colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ),
