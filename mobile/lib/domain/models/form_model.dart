@@ -80,7 +80,7 @@ class FormFieldModel {
       type: _str(json['type']) ?? 'text',
       label: _str(json['label']) ?? _str(json['name']),
       placeholder: _str(json['placeholder']),
-      required: json['required'] == true,
+      required: json['required'] == true || json['required'] == 1 || json['required'] == '1',
       order: _toInt(json['order']),
       defaultValue: json['default_value'],
       config: _toMap(json['config']),

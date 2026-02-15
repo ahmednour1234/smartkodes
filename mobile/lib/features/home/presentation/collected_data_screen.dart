@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_drawer.dart';
 import '../../../data/local/pending_submissions_store.dart';
 import '../../work_orders/presentation/work_order_providers.dart';
 import '../../work_orders/presentation/work_order_form_screen.dart';
@@ -64,6 +65,7 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
   Widget build(BuildContext context) {
     final refreshTrigger = ref.watch(pendingListRefreshTriggerProvider);
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Collected Data'),
         leading: IconButton(

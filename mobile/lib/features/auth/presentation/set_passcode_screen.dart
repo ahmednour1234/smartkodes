@@ -56,7 +56,7 @@ class _SetPasscodeScreenState extends ConsumerState<SetPasscodeScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 31),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

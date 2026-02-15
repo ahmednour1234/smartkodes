@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_drawer.dart';
 import '../../auth/presentation/auth_providers.dart';
 import '../../forms/presentation/forms_list_screen.dart';
 import '../../work_orders/presentation/work_orders_list_screen.dart';
@@ -15,6 +16,7 @@ class FieldWorkerHomeScreen extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('SmartKodes'),
         actions: [

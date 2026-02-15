@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_response.dart';
-import '../../../core/api/api_response.dart';
 import '../../../domain/models/form_model.dart';
+import '../../../domain/models/record_model.dart';
 
 class FormsRepository {
   FormsRepository(this._client);
@@ -22,6 +24,35 @@ class FormsRepository {
     );
   }
 
+  Future<PaginatedResponse<RecordModel>> listMyRecords({
+    int perPage = 20,
+    String? workOrderId,
+    String? projectId,
+  }) async {
+    final query = <String, dynamic>{
+      'per_page': perPage,
+      if (workOrderId != null && workOrderId.isNotEmpty) 'work_order_id': workOrderId,
+      if (projectId != null && projectId.isNotEmpty) 'project_id': projectId,
+    };
+    return _client.requestPaginated<RecordModel>(
+      'records',
+      queryParameters: query,
+      fromJsonT: (d) => RecordModel.fromJson(d as Map<String, dynamic>),
+    );
+  }
+
+  Future<Uint8List?> getRecordPdfBytes(String recordId) async {
+    try {
+      final response = await _client.dio.get<Uint8List>(
+        'records/$recordId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return response.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<FormModel?> get(String id) async {
     final response = await _client.request<Map<String, dynamic>>(
       'forms/$id',
@@ -31,13 +62,61 @@ class FormsRepository {
     return FormModel.fromJson(response.data!);
   }
 
-  Future<bool> updateRecord(String formId, String recordId, Map<String, dynamic> fields) async {
-    final response = await _client.request<dynamic>(
-      'forms/$formId/records/$recordId',
-      method: 'PUT',
-      data: fields,
-    );
-    return response.success;
+  Future<bool> updateRecord(
+    String formId,
+    String recordId,
+    Map<String, dynamic> fields, {
+    Map<String, ({Uint8List bytes, String filename})>? fileFields,
+  }) async {
+    try {
+      if (fileFields != null && fileFields.isNotEmpty) {
+        final map = <String, dynamic>{
+          '_method': 'PUT',
+          ...fields.map((k, v) => MapEntry(k, v?.toString() ?? '')),
+        };
+        for (final e in fileFields.entries) {
+          map[e.key] = MultipartFile.fromBytes(
+            e.value.bytes,
+            filename: e.value.filename,
+          );
+        }
+        final formData = FormData.fromMap(map);
+        final response = await _client.dio.post<Map<String, dynamic>>(
+          'forms/$formId/records/$recordId',
+          data: formData,
+          options: Options(
+            headers: {'Content-Type': 'multipart/form-data'},
+          ),
+        );
+        final data = response.data;
+        return data != null && (data['success'] as bool? ?? false);
+      }
+      final response = await _client.request<dynamic>(
+        'forms/$formId/records/$recordId',
+        method: 'PUT',
+        data: fields,
+      );
+      return response.success;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        final body = e.response?.data;
+        final errors = <String, String>{};
+        if (body is Map && body['errors'] is Map) {
+          for (final entry in (body['errors'] as Map).entries) {
+            final key = entry.key.toString();
+            final list = entry.value;
+            if (list is List && list.isNotEmpty) {
+              errors[key] = list.first.toString();
+            }
+          }
+        }
+        throw RecordUpdateValidationException(
+          body is Map ? body['message']?.toString() ?? 'Validation failed' : 'Validation failed',
+          errors,
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<bool> delete(String id) async {
@@ -95,4 +174,10 @@ class FormsRepository {
           }).toList(),
     };
   }
+}
+
+class RecordUpdateValidationException implements Exception {
+  RecordUpdateValidationException(this.message, this.fieldErrors);
+  final String message;
+  final Map<String, String> fieldErrors;
 }

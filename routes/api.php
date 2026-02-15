@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorkOrderController;
 use App\Http\Controllers\Api\FormController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\RecordController;
 use App\Services\ApiResponseService;
 use Illuminate\Support\Facades\Route;
 
@@ -45,8 +46,12 @@ Route::prefix('v1')->group(function () {
         Route::prefix('forms')->group(function () {
             Route::get('/', [FormController::class, 'index']);
             Route::get('/{id}', [FormController::class, 'show']);
-            Route::put('/{form}/records/{record}', [FormController::class, 'updateFormData']);
+            Route::match(['put', 'post'], '/{form}/records/{record}', [FormController::class, 'updateFormData']);
         });
+
+        // Records (submitted by current user)
+        Route::get('/records', [RecordController::class, 'index']);
+        Route::get('/records/{record}/pdf', [RecordController::class, 'pdf']);
 
         // Notifications
         Route::prefix('notifications')->group(function () {

@@ -5,10 +5,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/api/api_response.dart';
+import '../../../core/widgets/app_drawer.dart';
 import '../../../domain/models/work_order.dart';
-import '../../auth/presentation/auth_providers.dart';
-import '../../forms/presentation/forms_list_screen.dart';
-import '../../notifications/presentation/notifications_list_screen.dart';
 import '../data/work_order_repository.dart';
 import 'work_order_providers.dart';
 import 'work_order_detail_screen.dart';
@@ -105,49 +103,7 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
           ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            const DrawerHeader(
-              child: Text('SmartKodes', style: TextStyle(color: Colors.white, fontSize: 20)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.assignment),
-              title: const Text('Work Orders'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.description),
-              title: const Text('Forms'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const FormsListScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: const Text('Notifications'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Log out'),
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(authStateProvider.notifier).logout();
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const AppDrawer(),
       body: FutureBuilder<PaginatedResponse<WorkOrder>>(
         future: ref.read(workOrderRepositoryProvider).list(
               priority: _priorityFilter,
