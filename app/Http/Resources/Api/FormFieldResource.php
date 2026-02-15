@@ -28,7 +28,7 @@ class FormFieldResource extends BaseResource
                 'max_value' => $this->max_value,
                 'regex_pattern' => $this->regex_pattern,
             ],
-            'options' => $this->options,
+            'options' => $this->options ?? (is_array($this->config_json['options'] ?? null) ? $this->config_json['options'] : null),
             'is_sensitive' => $this->is_sensitive,
         ];
     }

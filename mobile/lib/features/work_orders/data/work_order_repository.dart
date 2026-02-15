@@ -94,8 +94,17 @@ class WorkOrderRepository {
       'work_order_id': workOrderId,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
-      ...fields.map((k, v) => MapEntry(k, v?.toString() ?? '')),
     };
+    for (final e in fields.entries) {
+      final v = e.value;
+      if (v is List) {
+        for (var i = 0; i < v.length; i++) {
+          map['${e.key}[$i]'] = v[i]?.toString() ?? '';
+        }
+      } else {
+        map[e.key] = v?.toString() ?? '';
+      }
+    }
     if (fileFields != null) {
       for (final e in fileFields.entries) {
         map[e.key] = MultipartFile.fromBytes(

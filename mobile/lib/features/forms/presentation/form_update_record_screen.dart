@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/env.dart';
+import '../../../core/widgets/gps_map_field.dart';
 import '../../../domain/models/form_model.dart';
 import '../data/forms_repository.dart';
 import 'forms_providers.dart';
@@ -123,9 +124,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   }
 
   String? _validateField(FormFieldModel f, dynamic value) {
-    if (f.required && (value == null || value.toString().trim().isEmpty)) {
+    final empty = value == null ||
+        (value is List && value.isEmpty) ||
+        (value is! bool && value is! List && value.toString().trim().isEmpty);
+    if (f.required && (empty || (f.type == 'checkbox' && value != true))) {
       return '${f.label ?? f.name} is required';
     }
+    if (empty && f.type != 'checkbox') return null;
     if (value == null || value.toString().trim().isEmpty) return null;
     final s = value.toString().trim();
     switch (f.type) {
@@ -357,6 +362,75 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
             _fieldErrors.remove(f.name);
           }),
         ),
+      );
+    }
+    if (f.isMultiSelectType && (f.options?.isNotEmpty ?? false)) {
+      final current = _values[f.name];
+      List<String> selected = [];
+      if (current is List) {
+        selected = current.map((e) => e.toString()).toList();
+      } else if (current is String && current.isNotEmpty) {
+        selected = current.contains(',') ? current.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() : [current];
+      }
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+            if (_fieldErrors[f.name] != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: f.options!.map((opt) {
+                final isSelected = selected.contains(opt);
+                return FilterChip(
+                  label: Text(opt),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    setState(() {
+                      final next = isSelected ? selected.where((e) => e != opt).toList() : [...selected, opt];
+                      _values[f.name] = next.isEmpty ? null : next;
+                      _fieldErrors.remove(f.name);
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      );
+    }
+    if (f.type == 'checkbox') {
+      final v = _values[f.name];
+      final checked = v == true || v == 'true' || v == '1' || v == 1;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: CheckboxListTile(
+          title: Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+          value: checked,
+          onChanged: (val) => setState(() {
+            _values[f.name] = val == true;
+            _fieldErrors.remove(f.name);
+          }),
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+      );
+    }
+    if (f.type == 'gps') {
+      return GpsMapField(
+        label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+        value: _values[f.name],
+        errorText: _fieldErrors[f.name],
+        onChanged: (v) => setState(() {
+          _values[f.name] = v;
+          _fieldErrors.remove(f.name);
+        }),
       );
     }
     if (f.type == 'date') {

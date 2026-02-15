@@ -55,6 +55,11 @@ class FormFieldModel {
   final Map<String, dynamic>? config;
   final List<String>? options;
 
+  bool get isMultiSelectType =>
+      type == 'multiselect' ||
+      type == 'multi_select' ||
+      type.replaceAll('-', '').replaceAll(' ', '') == 'multiselect';
+
   const FormFieldModel({
     required this.id,
     required this.name,
@@ -70,14 +75,16 @@ class FormFieldModel {
 
   factory FormFieldModel.fromJson(Map<String, dynamic> json) {
     List<String>? opts;
-    final o = json['options'];
+    final o = json['options'] ?? (json['config'] is Map ? (json['config'] as Map)['options'] : null);
     if (o is List) {
-      opts = o.map((e) => e.toString()).toList();
+      opts = o.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    } else if (o is String && o.trim().isNotEmpty) {
+      opts = o.split(RegExp(r'[\n,]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     }
     return FormFieldModel(
       id: _str(json['id']) ?? '',
       name: _str(json['name']) ?? '',
-      type: _str(json['type']) ?? 'text',
+      type: (_str(json['type']) ?? 'text').toLowerCase().trim(),
       label: _str(json['label']) ?? _str(json['name']),
       placeholder: _str(json['placeholder']),
       required: json['required'] == true || json['required'] == 1 || json['required'] == '1',

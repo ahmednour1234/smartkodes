@@ -70,10 +70,17 @@ class FormsRepository {
   }) async {
     try {
       if (fileFields != null && fileFields.isNotEmpty) {
-        final map = <String, dynamic>{
-          '_method': 'PUT',
-          ...fields.map((k, v) => MapEntry(k, v?.toString() ?? '')),
-        };
+        final map = <String, dynamic>{'_method': 'PUT'};
+        for (final entry in fields.entries) {
+          final v = entry.value;
+          if (v is List) {
+            for (var i = 0; i < v.length; i++) {
+              map['${entry.key}[$i]'] = v[i]?.toString() ?? '';
+            }
+          } else {
+            map[entry.key] = v?.toString() ?? '';
+          }
+        }
         for (final e in fileFields.entries) {
           map[e.key] = MultipartFile.fromBytes(
             e.value.bytes,
