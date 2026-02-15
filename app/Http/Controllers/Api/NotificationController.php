@@ -20,15 +20,15 @@ class NotificationController extends BaseApiController
             }
             $notifications = $query->paginate($perPage);
             $items = $notifications->getCollection()->map(fn ($n) => [
-                'id' => $n->id,
-                'type' => $n->type,
-                'title' => $n->title,
-                'message' => $n->message,
+                'id' => (string) $n->id,
+                'type' => (string) ($n->type ?? ''),
+                'title' => (string) ($n->title ?? ''),
+                'message' => (string) ($n->message ?? ''),
                 'data' => $n->data,
-                'action_url' => $n->action_url,
+                'action_url' => $n->action_url ? (string) $n->action_url : null,
                 'read_at' => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at->toIso8601String(),
-            ]);
+            ])->values();
             $notifications->setCollection($items);
             return $this->paginatedResponse($notifications, 'Notifications retrieved successfully');
         } catch (\Exception $e) {

@@ -21,6 +21,26 @@ Color _statusColor(String status) {
   return Colors.teal;
 }
 
+String _priorityLabel(int? p) {
+  if (p == null) return '—';
+  switch (p) {
+    case 1: return 'High';
+    case 2: return 'Medium';
+    case 3: return 'Low';
+    default: return '—';
+  }
+}
+
+Color _priorityColor(int? p) {
+  if (p == null) return Colors.grey;
+  switch (p) {
+    case 1: return Colors.red.shade700;
+    case 2: return Colors.orange.shade700;
+    case 3: return Colors.green.shade700;
+    default: return Colors.grey;
+  }
+}
+
 class WorkOrderDetailScreen extends ConsumerStatefulWidget {
   const WorkOrderDetailScreen({super.key, required this.workOrderId});
 
@@ -118,116 +138,75 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (wo.title?.isNotEmpty == true) ...[
-                        Text(
-                          wo.title!,
-                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          wo.id,
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: statusColor.withValues(alpha: 0.5)),
-                            ),
-                            child: Text(
-                              wo.status,
-                              style: TextStyle(
-                                color: statusColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                          if (wo.priorityValue != null) ...[
-                            Icon(Icons.flag_outlined, size: 18, color: theme.colorScheme.primary),
-                            const SizedBox(width: 4),
-                            Text('P${wo.priorityValue}', style: theme.textTheme.labelLarge),
-                          ],
-                        ],
+                      _DetailRow(
+                        label: 'Project',
+                        value: wo.project?.name ?? '—',
+                        icon: Icons.folder_rounded,
+                        color: theme.colorScheme.primary,
                       ),
-                      if (wo.project != null) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.folder_outlined, size: 20, color: theme.colorScheme.outline),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                wo.project!.name,
-                                style: theme.textTheme.titleMedium,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      if (wo.dueDate != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.event_outlined, size: 20, color: theme.colorScheme.outline),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Due ${wo.dueDate}',
-                                style: theme.textTheme.bodyMedium,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      if (wo.map != null && (wo.map!['distance'] != null || wo.map!['estimated_time'] != null)) ...[
-                        const SizedBox(height: 12),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Wrap(
-                              spacing: 12,
-                              runSpacing: 8,
-                              children: [
-                                if (wo.map!['distance'] != null)
-                                  _InfoChip(
-                                    icon: Icons.straighten,
-                                    label: '${wo.map!['distance']} km',
-                                    maxWidth: constraints.maxWidth,
-                                  ),
-                                if (wo.map!['estimated_time'] != null)
-                                  _InfoChip(
-                                    icon: Icons.schedule,
-                                    label: '${wo.map!['estimated_time']}',
-                                    maxWidth: constraints.maxWidth,
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
+                      const Divider(height: 24),
+                      _DetailRow(
+                        label: 'Due Date',
+                        value: wo.dueDate ?? '—',
+                        icon: Icons.calendar_today_rounded,
+                        color: Colors.orange.shade700,
+                      ),
+                      const Divider(height: 24),
+                      _DetailRow(
+                        label: 'SLA',
+                        value: '—',
+                        icon: Icons.schedule_rounded,
+                        color: Colors.indigo.shade600,
+                      ),
+                      const Divider(height: 24),
+                      _DetailRow(
+                        label: 'Priority',
+                        value: _priorityLabel(wo.priorityValue ?? wo.importanceLevel),
+                        icon: Icons.flag_rounded,
+                        color: _priorityColor(wo.priorityValue ?? wo.importanceLevel),
+                      ),
                     ],
                   ),
                 ),
               ),
+              if (wo.description != null && wo.description!.trim().isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.notes_rounded, size: 18, color: theme.colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Description',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          wo.description!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               if (_directionsUrl != null)
                 Card(
@@ -339,6 +318,63 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: value == '—' ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

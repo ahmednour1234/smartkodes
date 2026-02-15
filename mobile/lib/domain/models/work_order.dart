@@ -1,6 +1,7 @@
 class WorkOrder {
   final String id;
   final String? title;
+  final String? description;
   final WorkOrderProject? project;
   final String status;
   final int? importanceLevel;
@@ -19,6 +20,7 @@ class WorkOrder {
   const WorkOrder({
     required this.id,
     this.title,
+    this.description,
     this.project,
     required this.status,
     this.importanceLevel,
@@ -39,6 +41,7 @@ class WorkOrder {
     return WorkOrder(
       id: _toStr(json['id']) ?? '',
       title: _toStr(json['title']),
+      description: _toStr(json['description']),
       project: json['project'] != null
           ? WorkOrderProject.fromJson(json['project'] as Map<String, dynamic>)
           : null,

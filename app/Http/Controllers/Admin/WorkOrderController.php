@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\WorkOrder;
 use App\Models\Project;
 use App\Models\Form;
@@ -143,6 +144,19 @@ class WorkOrderController extends Controller
     }
     $workOrder->forms()->attach($formData);
 
+    if ($request->filled('assigned_to') && trim((string) $request->assigned_to) !== '') {
+        Notification::create([
+            'tenant_id' => $currentTenant->id,
+            'user_id' => $request->assigned_to,
+            'type' => 'work_order',
+            'title' => 'New work order assigned',
+            'message' => 'You have been assigned to work order: ' . $workOrder->title,
+            'data' => ['work_order_id' => $workOrder->id],
+            'action_url' => '/work-orders/' . $workOrder->id,
+            'created_by' => Auth::id(),
+        ]);
+    }
+
     $routePrefix = $this->getRoutePrefix();
 
     return redirect()
@@ -226,6 +240,8 @@ public function update(Request $request, string $id)
         'description' => ['nullable', 'string'],
     ]);
 
+    $previousAssignedTo = $workOrder->assigned_to;
+
     $workOrder->update([
         'title'          => $request->title,
         'project_id'     => $request->project_id,
@@ -250,6 +266,20 @@ public function update(Request $request, string $id)
         ];
     }
     $workOrder->forms()->sync($formData);
+
+    $newAssignedTo = $request->filled('assigned_to') ? trim((string) $request->assigned_to) : null;
+    if ($newAssignedTo !== null && $newAssignedTo !== '' && $newAssignedTo !== (string) $previousAssignedTo) {
+        Notification::create([
+            'tenant_id' => $currentTenant->id,
+            'user_id' => $newAssignedTo,
+            'type' => 'work_order',
+            'title' => 'Work order assigned to you',
+            'message' => 'You have been assigned to work order: ' . $workOrder->title,
+            'data' => ['work_order_id' => $workOrder->id],
+            'action_url' => '/work-orders/' . $workOrder->id,
+            'created_by' => Auth::id(),
+        ]);
+    }
 
     $routePrefix = $this->getRoutePrefix();
 

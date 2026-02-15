@@ -102,7 +102,7 @@ class WorkOrderRepository extends BaseRepository
             }
         }
 
-        // Eager load relationships
+        $query->withCount('records');
         $query->with(['project', 'assignedUser', 'forms.formFields']);
 
         if ($perPage > 0) {

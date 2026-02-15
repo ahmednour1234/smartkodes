@@ -20,6 +20,8 @@ class WorkOrdersListScreen extends ConsumerStatefulWidget {
 
 class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
   int? _priorityFilter;
+  String? _statusFilter;
+  String? _projectFilter;
   String _sortBy = 'distance';
   String _sortOrder = 'asc';
   double? _lat;
@@ -115,20 +117,32 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
           if (res == null || res.data.isEmpty) {
             return const Center(child: Text('No work orders'));
           }
+          final list = res.data.where((wo) {
+            if (_statusFilter != null && wo.status != _statusFilter) return false;
+            if (_projectFilter != null && wo.project?.id != _projectFilter) return false;
+            return true;
+          }).toList();
           if (_isListView) {
-            return _buildListView(context, res.data);
+            return _buildListView(context, res.data, list);
           }
-          return _buildMapView(context, res.data);
+          return _buildMapView(context, list);
         },
       ),
     );
   }
 
-  Widget _buildListView(BuildContext context, List<WorkOrder> list) {
+  Widget _buildListView(BuildContext context, List<WorkOrder> fullList, List<WorkOrder> list) {
     final highCount = list.where((wo) {
       final p = wo.priorityValue ?? wo.importanceLevel;
       return p == 1;
     }).length;
+    final statuses = fullList.map((wo) => wo.status).where((s) => s.isNotEmpty).toSet().toList()..sort();
+    final projects = <WorkOrderProject>[];
+    final seenIds = <String>{};
+    for (final wo in fullList) {
+      if (wo.project != null && seenIds.add(wo.project!.id)) projects.add(wo.project!);
+    }
+    projects.sort((a, b) => a.name.compareTo(b.name));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -165,18 +179,100 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.shadow.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.tune_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Filters',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FilterChipDropdown<String?>(
+                        value: _statusFilter,
+                        label: 'Status',
+                        hint: 'All statuses',
+                        icon: Icons.flag_rounded,
+                        items: [const DropdownMenuItem(value: null, child: Text('All'))]
+                          ..addAll(statuses.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))),
+                        onChanged: (v) => setState(() => _statusFilter = v),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _FilterChipDropdown<String?>(
+                        value: _projectFilter,
+                        label: 'Project',
+                        hint: 'All projects',
+                        icon: Icons.folder_rounded,
+                        items: [const DropdownMenuItem(value: null, child: Text('All'))]
+                          ..addAll(projects.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)))),
+                        onChanged: (v) => setState(() => _projectFilter = v),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            'Sort',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              FilterChip(
-                label: const Text('Sort By Distance'),
+              _SortChip(
+                label: 'Distance',
+                icon: Icons.near_me,
                 selected: _sortBy == 'distance',
-                onSelected: (_) => setState(() => _sortBy = 'distance'),
+                onTap: () => setState(() => _sortBy = 'distance'),
               ),
               const SizedBox(width: 8),
-              FilterChip(
-                label: const Text('Sort By Priority'),
+              _SortChip(
+                label: 'Priority',
+                icon: Icons.low_priority_rounded,
                 selected: _sortBy == 'priority',
-                onSelected: (_) => setState(() => _sortBy = 'priority'),
+                onTap: () => setState(() => _sortBy = 'priority'),
               ),
             ],
           ),
@@ -191,6 +287,9 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
               final priorityStr = _priorityLabel(wo);
               final dist = wo.distance != null ? '${wo.distance} ${wo.distanceUnit ?? 'km'}' : '—';
               final priorityColor = _priorityColor(wo);
+              final formTotal = wo.forms?.length ?? 0;
+              final submittedCount = wo.recordsCount ?? 0;
+              final allSubmitted = formTotal > 0 && submittedCount >= formTotal;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Material(
@@ -239,9 +338,49 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(Icons.description_outlined, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$submittedCount/${formTotal} forms',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (allSubmitted) ...[
+                                    const SizedBox(width: 8),
+                                    Icon(Icons.check_circle, size: 18, color: Colors.green.shade700),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Submitted',
+                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                               const SizedBox(height: 8),
                               Row(
                                 children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      wo.status,
+                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
@@ -538,6 +677,112 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _FilterChipDropdown<T> extends StatelessWidget {
+  const _FilterChipDropdown({
+    required this.value,
+    required this.label,
+    required this.hint,
+    required this.icon,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final T? value;
+  final String label;
+  final String hint;
+  final IconData icon;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.6)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              isDense: true,
+              hint: Text(hint, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              items: items,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SortChip extends StatelessWidget {
+  const _SortChip({required this.label, required this.icon, required this.selected, required this.onTap});
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: selected
+          ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+          : theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
