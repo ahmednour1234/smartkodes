@@ -4,15 +4,65 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../auth/presentation/auth_providers.dart';
+import '../../auth/presentation/set_passcode_screen.dart';
 import '../../forms/presentation/forms_list_screen.dart';
+import '../../notifications/presentation/notifications_list_screen.dart';
 import '../../work_orders/presentation/work_orders_list_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
+import '../../notifications/presentation/notifications_providers.dart';
 import 'collected_data_screen.dart';
 
-class FieldWorkerHomeScreen extends ConsumerWidget {
+class FieldWorkerHomeScreen extends ConsumerStatefulWidget {
   const FieldWorkerHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FieldWorkerHomeScreen> createState() => _FieldWorkerHomeScreenState();
+}
+
+class _FieldWorkerHomeScreenState extends ConsumerState<FieldWorkerHomeScreen> {
+  Future<int> _unreadCount() async {
+    final res = await ref.read(notificationsRepositoryProvider).list(perPage: 1, unreadOnly: true);
+    return res.pagination.total;
+  }
+
+  void _showSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.lock_reset),
+              title: const Text('Change password'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SetPasscodeScreen(
+                      onDone: () => Navigator.pop(context),
+                      onSkip: () => Navigator.pop(context),
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Log out'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await ref.read(authStateProvider.notifier).logout();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -21,12 +71,41 @@ class FieldWorkerHomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const AppLogo(size: 20, color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authStateProvider.notifier).logout();
+          FutureBuilder<int>(
+            future: _unreadCount(),
+            builder: (context, snapshot) {
+              final hasUnread = (snapshot.data ?? 0) > 0;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
+                    ),
+                    tooltip: 'Notifications',
+                  ),
+                  if (hasUnread)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
-            tooltip: 'Log out',
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _showSettingsSheet(context),
+            tooltip: 'Settings',
           ),
         ],
       ),

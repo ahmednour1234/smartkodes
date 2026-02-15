@@ -28,6 +28,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncValue.data(null);
+    ref.invalidate(authStateProvider);
   }
 
   void forceUnauthenticated() {
