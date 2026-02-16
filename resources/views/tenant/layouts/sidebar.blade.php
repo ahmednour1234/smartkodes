@@ -3,7 +3,7 @@
 {{-- ========================= --}}
 
 {{-- Top bar للموبايل --}}
-<div class="md:hidden fixed top-0 inset-x-0 z-40 bg-blue-800 text-white flex items-center justify-between px-4 py-3">
+<div class="md:hidden fixed top-0 inset-x-0 z-[100] bg-blue-800 text-white flex items-center justify-between px-4 py-3 shadow-lg">
     <div>
         <h1 class="text-lg font-bold">Smart Kodes</h1>
         <p class="text-xs text-blue-200">
@@ -25,11 +25,11 @@
 
 {{-- Overlay للموبايل --}}
 <div id="mobileSidebarOverlay"
-     class="fixed inset-0 z-30 bg-black/40 hidden md:hidden"></div>
+     class="fixed inset-0 z-[90] bg-black/40 hidden md:hidden"></div>
 
 {{-- Drawer للموبايل --}}
 <nav id="mobileSidebar"
-     class="fixed inset-y-0 left-0 z-40 w-64 bg-blue-800 text-white transform -translate-x-full transition-transform duration-200 ease-in-out md:hidden flex flex-col">
+     class="fixed inset-y-0 left-0 z-[95] w-64 bg-blue-800 text-white transform -translate-x-full transition-transform duration-200 ease-in-out md:hidden flex flex-col">
 
     <div class="p-4 flex items-start justify-between">
         <div>
@@ -131,7 +131,7 @@
 {{-- Desktop Sidebar (زي القديم) --}}
 {{-- ========================= --}}
 
-<nav class="hidden md:flex md:fixed md:top-0 md:left-0 md:h-full md:w-64 md:bg-blue-800 md:text-white md:flex-col md:overflow-y-auto z-40">
+<nav class="hidden md:flex md:fixed md:top-0 md:left-0 md:h-full md:w-64 md:bg-blue-800 md:text-white md:flex-col md:overflow-y-auto sidebar-scroll z-40">
 
     <div class="p-4">
         <h1 class="text-xl font-bold">Smart Kodes</h1>
@@ -228,6 +228,11 @@
 @push('styles')
 <style>
 #mobileSidebar details[open] .details-chevron { transform: rotate(180deg); }
+.sidebar-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: #1e3a8a; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 3px; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+.sidebar-scroll { scrollbar-width: thin; scrollbar-color: #2563eb #1e3a8a; }
 </style>
 @endpush
 @push('scripts')

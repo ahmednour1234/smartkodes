@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -30,12 +31,13 @@ class SettingController extends Controller
                 }
             }
             $user = Auth::user();
+            $prefs = $user->notification_preferences ?? [];
             $settings = [
-                'email_notifications' => $cached['email_notifications'] ?? true,
-                'work_order_notifications' => $cached['work_order_notifications'] ?? true,
-                'form_submission_notifications' => $cached['form_submission_notifications'] ?? true,
-                'project_notifications' => $cached['project_notifications'] ?? true,
-                'billing_notifications' => $cached['billing_notifications'] ?? true,
+                'email_notifications' => $prefs['email_notifications'] ?? true,
+                'work_order_notifications' => $prefs['work_order_notifications'] ?? true,
+                'form_submission_notifications' => $prefs['form_submission_notifications'] ?? true,
+                'project_notifications' => $prefs['project_notifications'] ?? true,
+                'billing_notifications' => $prefs['billing_notifications'] ?? true,
             ];
             return view('tenant.settings.index', compact('tenant', 'settings', 'user'));
         }
@@ -116,8 +118,7 @@ class SettingController extends Controller
             'billing_notifications' => $request->boolean('billing_notifications'),
         ];
 
-        $existing = Cache::get('tenant_settings_' . $currentTenant->id, []);
-        Cache::put('tenant_settings_' . $currentTenant->id, array_merge($existing, $settings), now()->addDays(30));
+        Auth::user()->update(['notification_preferences' => $settings]);
 
         return redirect()->route('tenant.settings.index')->withFragment('notifications')
             ->with('success', 'Notification preferences updated.');
@@ -158,6 +159,18 @@ class SettingController extends Controller
             return redirect()->route('tenant.settings.index')->with('error', 'Current password is incorrect.');
         }
         $request->user()->update(['password' => \Illuminate\Support\Facades\Hash::make($request->password)]);
+        $tenant = session('tenant_context.current_tenant');
+        if ($tenant) {
+            Notification::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => Auth::id(),
+                'type' => 'system',
+                'title' => 'Password updated',
+                'message' => 'Your account password was changed successfully.',
+                'data' => [],
+                'created_by' => Auth::id(),
+            ]);
+        }
         return redirect()->route('tenant.settings.index')->with('success', 'Password updated.');
     }
 

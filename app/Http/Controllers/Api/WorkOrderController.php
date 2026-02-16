@@ -14,6 +14,7 @@ use App\Services\ApiResponseService;
 use App\Services\WorkOrderService;
 use App\Constants\WorkOrderStatus;
 use App\Constants\RecordStatus;
+use App\Models\Notification;
 use App\Models\Record;
 use App\Models\RecordField;
 use Illuminate\Http\Request;
@@ -244,6 +245,27 @@ class WorkOrderController extends BaseApiController
             // Update work order status if needed
             if ($workOrder->status < WorkOrderStatus::IN_PROGRESS) {
                 $workOrder->update(['status' => WorkOrderStatus::IN_PROGRESS]);
+            }
+
+            $workOrder->load('project.managers');
+            $recordUrl = url('/tenant/records/' . $record->id);
+            if (\Illuminate\Support\Facades\Route::has('tenant.records.show')) {
+                $recordUrl = route('tenant.records.show', $record->id);
+            }
+            $formName = $form->name ?? 'Form';
+            foreach ($workOrder->project->managers ?? [] as $manager) {
+                if ($manager->id && $manager->id != $user->id) {
+                    Notification::create([
+                        'tenant_id' => $user->tenant_id,
+                        'user_id' => $manager->id,
+                        'type' => 'form',
+                        'title' => 'New form submission',
+                        'message' => "New submission for \"{$formName}\" in project: " . ($workOrder->project->name ?? ''),
+                        'data' => ['record_id' => $record->id],
+                        'action_url' => $recordUrl,
+                        'created_by' => $user->id,
+                    ]);
+                }
             }
 
             return $this->createdResponse(

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Record;
 use App\Models\WorkOrder;
 use App\Models\FormVersion;
@@ -121,6 +122,44 @@ class RecordController extends Controller
             'created_by' => Auth::id(),
             'updated_by' => Auth::id(),
         ]);
+
+        if ($request->status == 1) {
+            $record->load(['workOrder.project.managers', 'formVersion.form']);
+            $routePrefix = $this->getRoutePrefix();
+            $recordUrl = route("{$routePrefix}.records.show", $record->id);
+            $formName = $record->formVersion->form->name ?? 'Form';
+            $notifiedIds = [Auth::id()];
+            if ($record->workOrder && $record->workOrder->assigned_to && !in_array($record->workOrder->assigned_to, $notifiedIds)) {
+                Notification::create([
+                    'tenant_id' => $currentTenant->id,
+                    'user_id' => $record->workOrder->assigned_to,
+                    'type' => 'form',
+                    'title' => 'New form submission',
+                    'message' => "New submission for \"{$formName}\" in work order: " . ($record->workOrder->title ?? ''),
+                    'data' => ['record_id' => $record->id],
+                    'action_url' => $recordUrl,
+                    'created_by' => Auth::id(),
+                ]);
+                $notifiedIds[] = $record->workOrder->assigned_to;
+            }
+            if ($record->workOrder && $record->workOrder->project) {
+                foreach ($record->workOrder->project->managers as $manager) {
+                    if ($manager->id && !in_array($manager->id, $notifiedIds)) {
+                        Notification::create([
+                            'tenant_id' => $currentTenant->id,
+                            'user_id' => $manager->id,
+                            'type' => 'form',
+                            'title' => 'New form submission',
+                            'message' => "New submission for \"{$formName}\" in project: " . $record->workOrder->project->name,
+                            'data' => ['record_id' => $record->id],
+                            'action_url' => $recordUrl,
+                            'created_by' => Auth::id(),
+                        ]);
+                        $notifiedIds[] = $manager->id;
+                    }
+                }
+            }
+        }
 
         $routePrefix = $this->getRoutePrefix();
         return redirect()->route("{$routePrefix}.records.index")
@@ -284,12 +323,52 @@ class RecordController extends Controller
         // Validate the request
         $validatedData = $request->validate($validationRules);
 
-        // Update record metadata
+        $previousStatus = $record->status;
+        $newStatus = (int) ($request->status ?? $record->status);
         $record->update([
             'project_id' => $request->project_id,
-            'status' => $request->status ?? $record->status,
+            'status' => $newStatus,
+            'submitted_at' => $newStatus === 1 ? ($record->submitted_at ?? now()) : $record->submitted_at,
             'updated_by' => Auth::id(),
         ]);
+
+        if ($newStatus === 1 && $previousStatus !== 1) {
+            $record->load(['workOrder.project.managers', 'form', 'formVersion.form']);
+            $routePrefix = $this->getRoutePrefix();
+            $recordUrl = route("{$routePrefix}.records.show", $record->id);
+            $formName = $record->form->name ?? $record->formVersion->form->name ?? 'Form';
+            $notifiedIds = [Auth::id()];
+            if ($record->workOrder && $record->workOrder->assigned_to && !in_array($record->workOrder->assigned_to, $notifiedIds)) {
+                Notification::create([
+                    'tenant_id' => $currentTenant->id,
+                    'user_id' => $record->workOrder->assigned_to,
+                    'type' => 'form',
+                    'title' => 'New form submission',
+                    'message' => "New submission for \"{$formName}\" in work order: " . ($record->workOrder->title ?? ''),
+                    'data' => ['record_id' => $record->id],
+                    'action_url' => $recordUrl,
+                    'created_by' => Auth::id(),
+                ]);
+                $notifiedIds[] = $record->workOrder->assigned_to;
+            }
+            if ($record->workOrder && $record->workOrder->project) {
+                foreach ($record->workOrder->project->managers as $manager) {
+                    if ($manager->id && !in_array($manager->id, $notifiedIds)) {
+                        Notification::create([
+                            'tenant_id' => $currentTenant->id,
+                            'user_id' => $manager->id,
+                            'type' => 'form',
+                            'title' => 'New form submission',
+                            'message' => "New submission for \"{$formName}\" in project: " . $record->workOrder->project->name,
+                            'data' => ['record_id' => $record->id],
+                            'action_url' => $recordUrl,
+                            'created_by' => Auth::id(),
+                        ]);
+                        $notifiedIds[] = $manager->id;
+                    }
+                }
+            }
+        }
 
         // Update field values
         foreach ($record->form->formFields as $field) {

@@ -4,14 +4,14 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Header -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+            <div class="bg-white overflow-visible shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white overflow-visible">
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-2xl font-bold">Team Members</h2>
                             <p class="text-blue-100 mt-1">Manage your organization's users and permissions</p>
                         </div>
-                        <div class="flex space-x-3">
+                        <div class="flex flex-wrap gap-2 sm:gap-3 items-center">
                             <!-- Export Dropdown -->
                             <div class="relative inline-block text-left">
                                 <button type="button" onclick="toggleExportMenu()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-2 px-4 rounded-lg transition duration-200 inline-flex items-center">
@@ -23,7 +23,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </button>
-                                <div id="export-menu" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                <div id="export-menu" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                                     <div class="py-1" role="menu">
                                         <a href="{{ route('tenant.users.export', ['format' => 'xlsx']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
                                             <svg class="w-4 h-4 inline mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,8 +41,8 @@
                                 </div>
                             </div>
                             <a href="{{ route('tenant.users.create') }}"
-                               class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
-                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 inline-flex items-center whitespace-nowrap shrink-0">
+                                <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                 </svg>
                                 Add User

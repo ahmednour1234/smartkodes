@@ -14,6 +14,10 @@
         {{ $label }}
     </label>
 
+    @if($description)
+        <p class="text-sm text-gray-500">{{ $description }}</p>
+    @endif
+
     <div id="{{ $mapId }}" class="w-full h-64 rounded-lg border border-gray-300 overflow-hidden"></div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">

@@ -177,7 +177,7 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
     Route::put('/settings/password', [\App\Http\Controllers\Admin\SettingController::class, 'changePassword'])->name('settings.change-password');
     Route::delete('/settings/organization', [\App\Http\Controllers\Admin\SettingController::class, 'deleteOrganization'])->name('settings.delete-organization');
     Route::post('/onboarding/complete', function () {
-        session(['onboarding_done' => true]);
+        auth()->user()->update(['onboarding_completed_at' => now()]);
         return response()->json(['ok' => true]);
     })->name('onboarding.complete');
 });

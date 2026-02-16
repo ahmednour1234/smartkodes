@@ -54,7 +54,7 @@
             </div>
 
             <!-- Current Plan & Usage -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <!-- Current Plan -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -113,39 +113,6 @@
                                 </div>
                             </div> --}}
                         </div>
-                    </div>
-                </div>
-
-                <!-- Payment Method -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
-                        @if(isset($paymentMethod) && $paymentMethod)
-                            <div class="flex items-center mb-4">
-                                <div class="h-8 w-12 bg-gray-100 rounded flex items-center justify-center mr-3">
-                                    <svg class="h-6 w-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-medium">•••• •••• •••• {{ $paymentMethod['last4'] }}</div>
-                                    <div class="text-sm text-gray-600">{{ ucfirst($paymentMethod['brand']) }} • Expires {{ $paymentMethod['exp_month'] }}/{{ $paymentMethod['exp_year'] }}</div>
-                                </div>
-                            </div>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" disabled title="Coming soon">
-                                Update Payment Method
-                            </button>
-                        @else
-                            <div class="text-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                </svg>
-                                <p class="text-gray-500 mb-4">No payment method on file</p>
-                                <button class="bg-gray-400 cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg" disabled title="Coming soon">
-                                    Add Payment Method
-                                </button>
-                            </div>
-                        @endif
                     </div>
                 </div>
             </div>

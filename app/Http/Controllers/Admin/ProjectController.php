@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -138,6 +139,22 @@ class ProjectController extends Controller
         ]);
 
         $routePrefix = $this->getRoutePrefix();
+        $projectUrl = route("{$routePrefix}.projects.show", $project);
+        foreach (array_merge($request->managers ?? [], $request->field_users ?? []) as $userId) {
+            if ($userId && $userId != Auth::id()) {
+                Notification::create([
+                    'tenant_id' => $currentTenant->id,
+                    'user_id' => $userId,
+                    'type' => 'project',
+                    'title' => 'Project created',
+                    'message' => 'You have been assigned to project: ' . $project->name,
+                    'data' => ['project_id' => $project->id],
+                    'action_url' => $projectUrl,
+                    'created_by' => Auth::id(),
+                ]);
+            }
+        }
+
         return redirect()->route("{$routePrefix}.projects.show", $project)->with('success', 'Project created successfully.');
     }
 
@@ -281,6 +298,23 @@ class ProjectController extends Controller
         ]);
 
         $routePrefix = $this->getRoutePrefix();
+        $projectUrl = route("{$routePrefix}.projects.show", $project);
+        $allMemberIds = array_unique(array_merge($managerIds, $fieldUserIds));
+        foreach ($allMemberIds as $userId) {
+            if ($userId && $userId != Auth::id()) {
+                Notification::create([
+                    'tenant_id' => $project->tenant_id,
+                    'user_id' => $userId,
+                    'type' => 'project',
+                    'title' => 'Project updated',
+                    'message' => 'Project "' . $project->name . '" has been updated',
+                    'data' => ['project_id' => $project->id],
+                    'action_url' => $projectUrl,
+                    'created_by' => Auth::id(),
+                ]);
+            }
+        }
+
         return redirect()->route("{$routePrefix}.projects.show", $project)->with('success', 'Project updated successfully.');
     }
 

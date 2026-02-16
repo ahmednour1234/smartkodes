@@ -145,6 +145,7 @@ class WorkOrderController extends Controller
     $workOrder->forms()->attach($formData);
 
     if ($request->filled('assigned_to') && trim((string) $request->assigned_to) !== '') {
+        $routePrefix = $this->getRoutePrefix();
         Notification::create([
             'tenant_id' => $currentTenant->id,
             'user_id' => $request->assigned_to,
@@ -152,7 +153,7 @@ class WorkOrderController extends Controller
             'title' => 'New work order assigned',
             'message' => 'You have been assigned to work order: ' . $workOrder->title,
             'data' => ['work_order_id' => $workOrder->id],
-            'action_url' => '/work-orders/' . $workOrder->id,
+            'action_url' => route("{$routePrefix}.work-orders.show", $workOrder->id),
             'created_by' => Auth::id(),
         ]);
     }
@@ -241,6 +242,8 @@ public function update(Request $request, string $id)
     ]);
 
     $previousAssignedTo = $workOrder->assigned_to;
+    $previousStatus = $workOrder->status;
+    $previousDueDate = $workOrder->due_date?->format('Y-m-d');
 
     $workOrder->update([
         'title'          => $request->title,
@@ -268,6 +271,9 @@ public function update(Request $request, string $id)
     $workOrder->forms()->sync($formData);
 
     $newAssignedTo = $request->filled('assigned_to') ? trim((string) $request->assigned_to) : null;
+    $routePrefix = $this->getRoutePrefix();
+    $workOrderUrl = route("{$routePrefix}.work-orders.show", $workOrder->id);
+
     if ($newAssignedTo !== null && $newAssignedTo !== '' && $newAssignedTo !== (string) $previousAssignedTo) {
         Notification::create([
             'tenant_id' => $currentTenant->id,
@@ -276,12 +282,41 @@ public function update(Request $request, string $id)
             'title' => 'Work order assigned to you',
             'message' => 'You have been assigned to work order: ' . $workOrder->title,
             'data' => ['work_order_id' => $workOrder->id],
-            'action_url' => '/work-orders/' . $workOrder->id,
+            'action_url' => $workOrderUrl,
             'created_by' => Auth::id(),
         ]);
     }
 
-    $routePrefix = $this->getRoutePrefix();
+    $notifyUserId = $workOrder->assigned_to ?: $previousAssignedTo;
+    if ($notifyUserId && Auth::id() != $notifyUserId) {
+        if ((int) $request->status !== (int) $previousStatus) {
+            $statusLabels = [0 => 'Pending', 1 => 'In Progress', 2 => 'On Hold', 3 => 'Completed'];
+            $newStatus = $statusLabels[(int) $request->status] ?? 'Updated';
+            Notification::create([
+                'tenant_id' => $currentTenant->id,
+                'user_id' => $notifyUserId,
+                'type' => 'work_order',
+                'title' => 'Work order status changed',
+                'message' => 'Work order "' . $workOrder->title . '" is now ' . $newStatus,
+                'data' => ['work_order_id' => $workOrder->id],
+                'action_url' => $workOrderUrl,
+                'created_by' => Auth::id(),
+            ]);
+        }
+        $newDueDate = $request->filled('due_date') ? $request->due_date : null;
+        if ($newDueDate !== $previousDueDate) {
+            Notification::create([
+                'tenant_id' => $currentTenant->id,
+                'user_id' => $notifyUserId,
+                'type' => 'work_order',
+                'title' => 'Work order due date updated',
+                'message' => 'Due date for "' . $workOrder->title . '" has been updated',
+                'data' => ['work_order_id' => $workOrder->id],
+                'action_url' => $workOrderUrl,
+                'created_by' => Auth::id(),
+            ]);
+        }
+    }
 
     return redirect()
         ->route("{$routePrefix}.work-orders.index")

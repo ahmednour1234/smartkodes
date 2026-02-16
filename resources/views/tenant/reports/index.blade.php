@@ -12,7 +12,7 @@
                             <p class="text-blue-100 mt-1">Comprehensive insights into your operations</p>
                         </div>
                         <div class="flex space-x-3 items-center">
-                            <div id="export-message" class="text-sm hidden"></div>
+                            <div id="export-message" class="hidden"></div>
                             <button id="btn-export-pdf" type="button" onclick="exportReport('pdf', this)"
                                     class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <span class="btn-label"><svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export PDF</span>
@@ -294,7 +294,7 @@
             const msgEl = document.getElementById('export-message');
             const btns = [document.getElementById('btn-export-pdf'), document.getElementById('btn-export-excel')];
             msgEl.classList.add('hidden');
-            msgEl.textContent = '';
+            msgEl.innerHTML = '';
             btns.forEach(b => { b.disabled = true; });
             const label = btn.querySelector('.btn-label');
             const orig = label.innerHTML;
@@ -314,15 +314,14 @@
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(a.href);
-                    msgEl.textContent = 'Export completed successfully.';
+                    msgEl.innerHTML = '<div class="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur rounded-xl shadow-lg border border-emerald-200"><svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><div><p class="font-semibold text-gray-900">Export completed</p><p class="text-sm text-gray-600">Your file has been downloaded successfully.</p></div></div>';
                     msgEl.classList.remove('hidden');
-                    msgEl.className = msgEl.className.replace(/text-red-600|text-green-600/g, '') + ' text-green-600';
-                    setTimeout(() => { msgEl.classList.add('hidden'); }, 4000);
+                    setTimeout(() => { msgEl.classList.add('hidden'); }, 5000);
                 })
                 .catch(() => {
-                    msgEl.textContent = 'Export failed. Please try again.';
+                    msgEl.innerHTML = '<div class="flex items-center gap-3 px-4 py-3 bg-white/95 backdrop-blur rounded-xl shadow-lg border border-red-200"><svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><div><p class="font-semibold text-gray-900">Export failed</p><p class="text-sm text-gray-600">Please try again or contact support.</p></div></div>';
                     msgEl.classList.remove('hidden');
-                    msgEl.className = msgEl.className.replace(/text-green-600|text-red-600/g, '') + ' text-red-600';
+                    setTimeout(() => { msgEl.classList.add('hidden'); }, 5000);
                 })
                 .finally(() => {
                     label.innerHTML = orig;

@@ -37,18 +37,26 @@
                         <button onclick="filterNotifications('unread')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
                             Unread ({{ $notificationCounts['unread'] ?? 0 }})
                         </button>
-                        <button onclick="filterNotifications('work_orders')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
+                        @if(in_array('work_order', $allowedTypes ?? []))
+                        <button onclick="filterNotifications('work_order')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
                             Work Orders
                         </button>
-                        <button onclick="filterNotifications('forms')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
+                        @endif
+                        @if(in_array('form', $allowedTypes ?? []))
+                        <button onclick="filterNotifications('form')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
                             Forms
                         </button>
-                        <button onclick="filterNotifications('projects')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
+                        @endif
+                        @if(in_array('project', $allowedTypes ?? []))
+                        <button onclick="filterNotifications('project')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
                             Projects
                         </button>
+                        @endif
+                        @if(in_array('system', $allowedTypes ?? []))
                         <button onclick="filterNotifications('system')" class="filter-btn px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
                             System
                         </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -60,10 +68,18 @@
                     <a href="{{ route('tenant.settings.index') }}#notifications" class="text-sm text-blue-600 hover:text-blue-800">Manage preferences</a>
                 </div>
                 <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                    @if(in_array('project', $allowedTypes ?? []))
                     <div><span class="font-medium text-gray-800">Projects:</span> Created, updated, or when you are assigned.</div>
+                    @endif
+                    @if(in_array('form', $allowedTypes ?? []))
                     <div><span class="font-medium text-gray-800">Forms:</span> New submissions, form published, or when you are assigned.</div>
+                    @endif
+                    @if(in_array('work_order', $allowedTypes ?? []))
                     <div><span class="font-medium text-gray-800">Work orders:</span> Assigned to you, status changed, or due date updated.</div>
+                    @endif
+                    @if(in_array('system', $allowedTypes ?? []))
                     <div><span class="font-medium text-gray-800">System:</span> Account, billing, and security-related updates.</div>
+                    @endif
                 </div>
             </div>
 

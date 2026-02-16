@@ -119,7 +119,7 @@
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900">Email Notifications</h4>
-                                        <p class="text-sm text-gray-600">Receive email updates about your account and projects</p>
+                                        <p class="text-sm text-gray-600">Receive email delivery for the notification types below</p>
                                     </div>
                                     <input type="checkbox" name="email_notifications" value="1"
                                            {{ old('email_notifications', $settings['email_notifications'] ?? true) ? 'checked' : '' }}
@@ -128,8 +128,8 @@
 
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Work Order Assignments</h4>
-                                        <p class="text-sm text-gray-600">Get notified when work orders are assigned to you</p>
+                                        <h4 class="text-sm font-medium text-gray-900">Work Orders</h4>
+                                        <p class="text-sm text-gray-600">Assigned to you, status changed, or due date updated</p>
                                     </div>
                                     <input type="checkbox" name="work_order_notifications" value="1"
                                            {{ old('work_order_notifications', $settings['work_order_notifications'] ?? true) ? 'checked' : '' }}
@@ -138,8 +138,8 @@
 
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Form Submissions</h4>
-                                        <p class="text-sm text-gray-600">Receive notifications for new form submissions</p>
+                                        <h4 class="text-sm font-medium text-gray-900">Forms</h4>
+                                        <p class="text-sm text-gray-600">New submissions, form published, or when you are assigned</p>
                                     </div>
                                     <input type="checkbox" name="form_submission_notifications" value="1"
                                            {{ old('form_submission_notifications', $settings['form_submission_notifications'] ?? true) ? 'checked' : '' }}
@@ -148,8 +148,8 @@
 
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Project Updates</h4>
-                                        <p class="text-sm text-gray-600">Get notified about project status changes</p>
+                                        <h4 class="text-sm font-medium text-gray-900">Projects</h4>
+                                        <p class="text-sm text-gray-600">Created, updated, or when you are assigned</p>
                                     </div>
                                     <input type="checkbox" name="project_notifications" value="1"
                                            {{ old('project_notifications', $settings['project_notifications'] ?? true) ? 'checked' : '' }}
@@ -158,8 +158,8 @@
 
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Billing Alerts</h4>
-                                        <p class="text-sm text-gray-600">Receive billing and payment notifications</p>
+                                        <h4 class="text-sm font-medium text-gray-900">System</h4>
+                                        <p class="text-sm text-gray-600">Account, billing, and security-related updates</p>
                                     </div>
                                     <input type="checkbox" name="billing_notifications" value="1"
                                            {{ old('billing_notifications', $settings['billing_notifications'] ?? true) ? 'checked' : '' }}
@@ -223,29 +223,6 @@
                                     </button>
                                 </div>
                             </form>
-                        </div>
-
-                        <!-- Two-Factor Authentication -->
-                        <div class="border-t border-gray-200 pt-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h4 class="text-md font-medium text-gray-900">Two-Factor Authentication</h4>
-                                    <p class="text-sm text-gray-600">Add an extra layer of security to your account</p>
-                                </div>
-                                <div class="flex items-center">
-                                    @if($user->two_factor_enabled ?? false)
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 mr-3">Enabled</span>
-                                        <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
-                                            Disable 2FA
-                                        </button>
-                                    @else
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 mr-3">Disabled</span>
-                                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
-                                            Enable 2FA
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Form;
+use App\Models\Notification;
 use App\Models\FormField;
 use App\Models\FormVersion;
 use App\Models\Project;
@@ -288,6 +289,37 @@ class FormController extends Controller
         ]);
 
         $routePrefix = $this->getRoutePrefix();
+        $formUrl = route("{$routePrefix}.forms.show", $form->id);
+        $notifiedIds = [Auth::id()];
+        if ($form->created_by && !in_array($form->created_by, $notifiedIds)) {
+            Notification::create([
+                'tenant_id' => $currentTenant->id,
+                'user_id' => $form->created_by,
+                'type' => 'form',
+                'title' => 'Form published',
+                'message' => 'Form "' . $form->name . '" has been published',
+                'data' => ['form_id' => $form->id],
+                'action_url' => $formUrl,
+                'created_by' => Auth::id(),
+            ]);
+            $notifiedIds[] = $form->created_by;
+        }
+        $form->workOrders()->with('assignedUser')->get()->pluck('assignedUser')->filter()->unique('id')->each(function ($user) use ($currentTenant, $form, $formUrl, &$notifiedIds) {
+            if ($user && !in_array($user->id, $notifiedIds)) {
+                Notification::create([
+                    'tenant_id' => $currentTenant->id,
+                    'user_id' => $user->id,
+                    'type' => 'form',
+                    'title' => 'Form published',
+                    'message' => 'Form "' . $form->name . '" has been published and is available for your work orders',
+                    'data' => ['form_id' => $form->id],
+                    'action_url' => $formUrl,
+                    'created_by' => Auth::id(),
+                ]);
+                $notifiedIds[] = $user->id;
+            }
+        });
+
         return redirect()->route("{$routePrefix}.forms.index")->with('success', 'Form published successfully');
     }
 

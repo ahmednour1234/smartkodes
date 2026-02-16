@@ -46,6 +46,25 @@ class NotificationController extends Controller
             }
             $query = Notification::where('tenant_id', $currentTenant->id)
                 ->where('user_id', Auth::id());
+
+            $prefs = Auth::user()->notification_preferences ?? [];
+            $allowedTypes = [];
+            if ($prefs['work_order_notifications'] ?? true) {
+                $allowedTypes[] = 'work_order';
+            }
+            if ($prefs['form_submission_notifications'] ?? true) {
+                $allowedTypes[] = 'form';
+            }
+            if ($prefs['project_notifications'] ?? true) {
+                $allowedTypes[] = 'project';
+            }
+            if ($prefs['billing_notifications'] ?? true) {
+                $allowedTypes[] = 'system';
+            }
+            if (count($allowedTypes) < 4) {
+                $query->whereIn('type', $allowedTypes);
+            }
+
             $notificationCounts = [
                 'all' => (clone $query)->count(),
                 'unread' => (clone $query)->whereNull('read_at')->count(),
@@ -68,7 +87,10 @@ class NotificationController extends Controller
         if (!isset($notificationCounts)) {
             $notificationCounts = ['all' => 0, 'unread' => 0];
         }
-        return view("{$viewPrefix}.notifications.index", compact('notifications', 'notificationCounts'));
+        if (!isset($allowedTypes)) {
+            $allowedTypes = ['work_order', 'form', 'project', 'system'];
+        }
+        return view("{$viewPrefix}.notifications.index", compact('notifications', 'notificationCounts', 'allowedTypes'));
     }
 
     /**

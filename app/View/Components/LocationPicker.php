@@ -13,6 +13,7 @@ class LocationPicker extends Component
     public ?float $lngValue;
     public string $label;
     public ?string $hint;
+    public ?string $description;
 
     public function __construct(
         string $latName = 'latitude',
@@ -20,14 +21,16 @@ class LocationPicker extends Component
         ?float $latValue = null,
         ?float $lngValue = null,
         string $label = 'Location on Map',
-        ?string $hint = null
+        ?string $hint = null,
+        ?string $description = null
     ) {
-        $this->latName  = $latName;
-        $this->lngName  = $lngName;
-        $this->latValue = $latValue;
-        $this->lngValue = $lngValue;
-        $this->label    = $label;
-        $this->hint     = $hint;
+        $this->latName      = $latName;
+        $this->lngName      = $lngName;
+        $this->latValue     = $latValue;
+        $this->lngValue     = $lngValue;
+        $this->label        = $label;
+        $this->hint         = $hint;
+        $this->description  = $description;
     }
 
     public function render()

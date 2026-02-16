@@ -4,14 +4,14 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Header -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+            <div class="bg-white overflow-visible shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white overflow-visible">
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-2xl font-bold">Work Orders</h2>
                             <p class="text-blue-100 mt-1">Assign tasks and forms to your field teams</p>
                         </div>
-                        <div class="flex space-x-3">
+                        <div class="flex flex-wrap gap-2 sm:gap-3 items-center">
                             <!-- Export Dropdown with Filters -->
                             <div class="relative inline-block text-left">
                                 <button type="button"
@@ -28,7 +28,7 @@
                                     </svg>
                                 </button>
                                 <div id="work-order-export-menu"
-                                     class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                     class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                                     <div class="py-1" role="menu">
                                         <a href="{{ route('tenant.work-orders.export', array_merge(['format' => 'xlsx'], request()->only(['project_id', 'status', 'priority']))) }}"
                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -55,8 +55,8 @@
                             </div>
 
                             <a href="{{ route('tenant.work-orders.create') }}"
-                               class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
-                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor"
+                               class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 inline-flex items-center whitespace-nowrap shrink-0">
+                                <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor"
                                      viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>

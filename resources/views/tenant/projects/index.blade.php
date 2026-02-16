@@ -4,14 +4,14 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Header -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+            <div class="bg-white overflow-visible shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white overflow-visible">
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-2xl font-bold">Projects</h2>
                             <p class="text-blue-100 mt-1">Manage your organization's projects</p>
                         </div>
-                        <div class="flex space-x-3">
+                        <div class="flex flex-wrap gap-2 sm:gap-3 items-center">
                             <!-- Export Dropdown -->
                             <div class="relative inline-block text-left">
                                 <button type="button" onclick="toggleExportMenu()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-2 px-4 rounded-lg transition duration-200 inline-flex items-center">
@@ -40,8 +40,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{{ route('tenant.projects.create') }}" class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200">
-                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <a href="{{ route('tenant.projects.create') }}" class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 inline-flex items-center whitespace-nowrap shrink-0">
+                                <svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                                 Create Project

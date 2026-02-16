@@ -56,6 +56,8 @@ class User extends Authenticatable implements JWTSubject
         'passcode_set_at',
         'created_by',
         'updated_by',
+        'onboarding_completed_at',
+        'notification_preferences',
     ];
 
     /**
@@ -78,6 +80,8 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'email_verified_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
+            'notification_preferences' => 'array',
             'password' => 'hashed',
             'passcode' => 'hashed',
             'passcode_set_at' => 'datetime',

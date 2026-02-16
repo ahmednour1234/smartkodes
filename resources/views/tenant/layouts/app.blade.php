@@ -45,48 +45,59 @@
 @endisset
 
 <!-- Page Content -->
-<main class=" md:ml-64">
+<main class="pt-14 md:pt-0 md:ml-64">
     @yield('content')
 </main>
 
         </div>
 
-        @if(!session('onboarding_done'))
-        <div id="onboarding-backdrop" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div id="onboarding-modal" class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-                <div id="onboarding-step-1" class="onboarding-step p-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2">Welcome to Smart Kodes</h2>
-                    <p class="text-gray-600 text-sm mb-6">Your workspace for projects, forms, work orders, and team collaboration. This short tour highlights the main areas.</p>
-                    <button type="button" onclick="onboardingNext()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg">Next</button>
+        @if(auth()->user() && !auth()->user()->onboarding_completed_at)
+        <div id="onboarding-backdrop" class="fixed inset-0 bg-black/70 backdrop-blur-xl z-[60] flex items-center justify-center p-6">
+            <div id="onboarding-modal" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100 ring-1 ring-black/5">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 px-8 py-6 rounded-t-2xl">
+                    <div class="flex gap-2 mb-4">
+                        <span class="w-3 h-3 rounded-full bg-white/90" id="dot-1"></span>
+                        <span class="w-3 h-3 rounded-full bg-white/40 transition-colors" id="dot-2"></span>
+                        <span class="w-3 h-3 rounded-full bg-white/40 transition-colors" id="dot-3"></span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-1" id="onboarding-title">Welcome to Smart Kodes</h2>
+                    <p class="text-blue-100 text-sm" id="onboarding-subtitle">Your workspace for projects, forms, work orders, and team collaboration.</p>
                 </div>
-                <div id="onboarding-step-2" class="onboarding-step p-6 hidden">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2">Key sections</h2>
-                    <ul class="text-gray-600 text-sm space-y-2 mb-6">
-                        <li><strong>Dashboard</strong> — Overview and quick stats</li>
-                        <li><strong>Operations</strong> — Projects, Forms, Work Orders, Records</li>
-                        <li><strong>People</strong> — Team members and roles</li>
-                        <li><strong>System</strong> — Files, Billing, Notifications, Settings</li>
-                    </ul>
-                    <button type="button" onclick="onboardingNext()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg">Next</button>
+                <div id="onboarding-step-1" class="onboarding-step p-8">
+                    <p class="text-gray-600 text-base leading-relaxed mb-8">This short tour highlights the main areas so you can get started quickly.</p>
+                    <button type="button" onclick="onboardingNext()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-500/25 transition-all">Next</button>
                 </div>
-                <div id="onboarding-step-3" class="onboarding-step p-6 hidden">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2">Permissions</h2>
-                    <p class="text-gray-600 text-sm mb-4">We may ask for:</p>
-                    <ul class="text-gray-600 text-sm space-y-2 mb-6">
-                        <li><strong>Notifications</strong> — To alert you about new assignments and updates</li>
-                        <li><strong>Location</strong> — Only when a form or work order requires it (e.g. field checks)</li>
+                <div id="onboarding-step-2" class="onboarding-step p-8 hidden">
+                    <ul class="text-gray-600 text-base space-y-4 mb-8">
+                        <li class="flex items-start gap-3"><span class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-semibold text-sm">1</span><span><strong class="text-gray-900">Dashboard</strong> — Overview and quick stats</span></li>
+                        <li class="flex items-start gap-3"><span class="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-semibold text-sm">2</span><span><strong class="text-gray-900">Operations</strong> — Projects, Forms, Work Orders, Records</span></li>
+                        <li class="flex items-start gap-3"><span class="flex-shrink-0 w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center font-semibold text-sm">3</span><span><strong class="text-gray-900">People</strong> — Team members and roles</span></li>
+                        <li class="flex items-start gap-3"><span class="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center font-semibold text-sm">4</span><span><strong class="text-gray-900">System</strong> — Files, Billing, Notifications, Settings</span></li>
                     </ul>
-                    <p class="text-xs text-gray-500 mb-6">You can change these later in your device or browser settings.</p>
-                    <button type="button" onclick="onboardingComplete()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg">Get started</button>
+                    <button type="button" onclick="onboardingNext()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-500/25 transition-all">Next</button>
+                </div>
+                <div id="onboarding-step-3" class="onboarding-step p-8 hidden">
+                    <p class="text-gray-600 text-base mb-4">We may ask for:</p>
+                    <ul class="text-gray-600 text-base space-y-3 mb-6">
+                        <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-blue-500"></span><strong>Notifications</strong> — To alert you about new assignments and updates</li>
+                        <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-indigo-500"></span><strong>Location</strong> — Only when a form or work order requires it (e.g. field checks)</li>
+                    </ul>
+                    <p class="text-sm text-gray-500 mb-8">You can change these later in your device or browser settings.</p>
+                    <button type="button" onclick="onboardingComplete()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all">Get started</button>
                 </div>
             </div>
         </div>
         <script>
         var onboardingStep = 1;
+        var titles = ['Welcome to Smart Kodes', 'Key sections', 'Permissions'];
+        var subtitles = ['Your workspace for projects, forms, work orders, and team collaboration.', 'Navigate easily between main areas.', 'We may ask for these when needed.'];
         function onboardingNext() {
             document.getElementById('onboarding-step-' + onboardingStep).classList.add('hidden');
             onboardingStep++;
             document.getElementById('onboarding-step-' + onboardingStep).classList.remove('hidden');
+            document.getElementById('onboarding-title').textContent = titles[onboardingStep - 1];
+            document.getElementById('onboarding-subtitle').textContent = subtitles[onboardingStep - 1];
+            document.querySelectorAll('[id^="dot-"]').forEach(function(d, i) { d.className = 'w-3 h-3 rounded-full transition-colors ' + (i + 1 === onboardingStep ? 'bg-white/90' : 'bg-white/40'); });
         }
         function onboardingComplete() {
             fetch('{{ route("tenant.onboarding.complete") }}', {
