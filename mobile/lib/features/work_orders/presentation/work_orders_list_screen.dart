@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/no_connection_widget.dart';
 import '../../../domain/models/work_order.dart';
 import '../data/work_order_repository.dart';
 import 'work_order_providers.dart';
@@ -111,6 +112,9 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
+            if (isConnectionError(snapshot.error)) {
+              return NoConnectionWidget(onRetry: () => setState(() {}));
+            }
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final res = snapshot.data;
@@ -278,14 +282,16 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            itemCount: list.length,
+          child: RefreshIndicator(
+            onRefresh: () async => setState(() {}),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              itemCount: list.length,
             itemBuilder: (context, i) {
               final wo = list[i];
               final formName = wo.forms?.isNotEmpty == true ? wo.forms!.first.name : '—';
               final priorityStr = _priorityLabel(wo);
-              final dist = wo.distance != null ? '${wo.distance} ${wo.distanceUnit ?? 'km'}' : '—';
               final priorityColor = _priorityColor(wo);
               final formTotal = wo.forms?.length ?? 0;
               final submittedCount = wo.recordsCount ?? 0;
@@ -395,15 +401,6 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Icon(Icons.near_me, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    dist,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
                                 ],
                               ),
                             ],
@@ -417,6 +414,7 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
               ),
             );
             },
+            ),
           ),
         ),
       ],

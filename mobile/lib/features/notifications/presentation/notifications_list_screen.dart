@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/no_connection_widget.dart';
 import '../../../domain/models/notification_model.dart';
 import '../data/notifications_repository.dart';
 import 'notifications_providers.dart';
@@ -27,6 +28,9 @@ class _NotificationsListScreenState extends ConsumerState<NotificationsListScree
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
+            if (isConnectionError(snapshot.error)) {
+              return NoConnectionWidget(onRetry: () => setState(() {}));
+            }
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final res = snapshot.data;

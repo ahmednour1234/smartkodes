@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_response.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/no_connection_widget.dart';
 import '../../../domain/models/record_model.dart';
 import '../../../domain/models/work_order.dart';
 import '../../auth/presentation/auth_providers.dart';
@@ -124,6 +125,9 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
+            if (isConnectionError(snapshot.error)) {
+              return NoConnectionWidget(onRetry: () => setState(() {}));
+            }
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final records = snapshot.data?.data ?? [];

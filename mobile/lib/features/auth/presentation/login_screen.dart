@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/app_logo.dart';
+import '../../../core/widgets/no_connection_widget.dart';
 import 'auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -37,10 +38,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authStateProvider);
     ref.listen(authStateProvider, (prev, next) {
       next?.whenOrNull(
-        error: (e, _) =>
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        error: (e, _) => ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isConnectionError(e)
+                  ? 'No connection. Check your internet and try again.'
+                  : e.toString().replaceFirst('Exception: ', ''),
             ),
+          ),
+        ),
       );
     });
 

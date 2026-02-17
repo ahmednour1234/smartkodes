@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Record;
 use App\Models\WorkOrder;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
@@ -102,7 +103,12 @@ class WorkOrderRepository extends BaseRepository
             }
         }
 
-        $query->withCount('records');
+        $query->addSelect([
+            'records_count' => Record::query()
+                ->selectRaw('count(distinct form_id)')
+                ->whereColumn('records.work_order_id', 'work_orders.id')
+                ->where('records.submitted_by', $userId),
+        ]);
         $query->with(['project', 'assignedUser', 'forms.formFields']);
 
         if ($perPage > 0) {
