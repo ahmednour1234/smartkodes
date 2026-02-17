@@ -28,7 +28,7 @@ class AppLogo extends StatelessWidget {
         Icon(Icons.code, size: size + 2, color: c),
         const SizedBox(width: 8),
         Text(
-          'SMARTKODES',
+          'SMARTSITE',
           style: theme.textTheme.titleLarge?.copyWith(
             color: c,
             fontWeight: FontWeight.w800,

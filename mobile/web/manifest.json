@@ -1,6 +1,6 @@
 {
-    "name": "smartkodes_app",
-    "short_name": "smartkodes_app",
+    "name": "SmartSite",
+    "short_name": "SmartSite",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -9,16 +9,16 @@ import 'core/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FcmService.init();
-  runApp(const ProviderScope(child: SmartKodesApp()));
+  runApp(const ProviderScope(child: SmartSiteApp()));
 }
 
-class SmartKodesApp extends StatelessWidget {
-  const SmartKodesApp({super.key});
+class SmartSiteApp extends StatelessWidget {
+  const SmartSiteApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SmartKodes',
+      title: 'SmartSite',
       theme: AppTheme.light,
       home: const SplashScreen(),
     );
