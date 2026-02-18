@@ -61,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const AppLogo(size: 28, lightBackground: true),
+                  const AppLogo(bigLogo: true, lightBackground: true),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _emailController,

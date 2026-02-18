@@ -18,14 +18,14 @@ class AppDrawer extends ConsumerWidget {
     return Drawer(
       child: ListView(
         children: [
-          DrawerHeader(
+          Container(
+            height: 224,
             decoration: BoxDecoration(color: theme.colorScheme.primaryContainer),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: AppLogo(
-                size: 22,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+            alignment: Alignment.centerLeft,
+            child: AppLogo(
+              bigLogo: true,
+              color: theme.colorScheme.onPrimaryContainer,
             ),
           ),
           ListTile(

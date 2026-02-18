@@ -24,6 +24,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   equatable: ^2.0.5
   json_annotation: ^4.8.1
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -38,10 +39,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon.png
+    - assets/NewIcon.png
 
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: assets/icon.png
+  image_path: assets/NewIcon.png
   adaptive_icon_background: "#03045E"
-  adaptive_icon_foreground: assets/icon.png
+  adaptive_icon_foreground: assets/NewIcon.png

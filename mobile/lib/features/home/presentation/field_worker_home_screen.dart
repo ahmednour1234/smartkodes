@@ -69,7 +69,7 @@ class _FieldWorkerHomeScreenState extends ConsumerState<FieldWorkerHomeScreen> {
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const AppLogo(size: 20, color: Colors.white),
+        title: const AppLogo(showImage: false, size: 20, color: Colors.white),
         actions: [
           FutureBuilder<int>(
             future: _unreadCount(),
