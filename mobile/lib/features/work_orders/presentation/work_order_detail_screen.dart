@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/widgets/no_connection_widget.dart';
 import '../../../domain/models/record_model.dart';
 import '../../../domain/models/work_order.dart';
 import '../../forms/data/forms_repository.dart';
@@ -110,7 +111,13 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
     if (_error != null || _wo == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Work Order')),
-        body: Center(child: Text(_error ?? 'Not found')),
+        body: isConnectionError(_error)
+            ? NoConnectionWidget(onRetry: () {
+                setState(() => _loading = true);
+                _error = null;
+                _load();
+              })
+            : Center(child: Text(_error ?? 'Not found')),
       );
     }
     final wo = _wo!;
