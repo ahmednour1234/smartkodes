@@ -42,6 +42,14 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     _load();
   }
 
+  static dynamic _toJsonSafeValue(dynamic v) {
+    if (v == null) return null;
+    if (v is String || v is num || v is bool) return v;
+    if (v is List) return v.map((e) => _toJsonSafeValue(e)).toList();
+    if (v is Map) return v.map((k, v2) => MapEntry(k.toString(), _toJsonSafeValue(v2)));
+    return v.toString();
+  }
+
   Future<void> _load() async {
     final repo = ref.read(workOrderRepositoryProvider);
     try {
@@ -144,16 +152,26 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     final syncService = ref.read(syncServiceProvider);
     final isOnline = await syncService.isOnline;
     if (!isOnline) {
-      final store = ref.read(pendingSubmissionsStoreProvider);
-      await store.add(PendingSubmission(
+      final offlineFields = <String, dynamic>{};
+      for (final entry in _values.entries) {
+        offlineFields[entry.key] = _toJsonSafeValue(entry.value);
+      }
+      final createdAt = DateTime.now();
+      final s = PendingSubmission(
         workOrderId: widget.workOrderId,
         formId: widget.formId,
-        fields: Map<String, dynamic>.from(_values),
+        fields: offlineFields,
         filePaths: null,
         latitude: lat,
         longitude: lon,
-        createdAt: DateTime.now(),
-      ));
+        createdAt: createdAt,
+      );
+      final store = ref.read(pendingSubmissionsStoreProvider);
+      if (_fileData.isNotEmpty) {
+        await store.addWithFiles(s, _fileData);
+      } else {
+        await store.add(s);
+      }
       setState(() => _submitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

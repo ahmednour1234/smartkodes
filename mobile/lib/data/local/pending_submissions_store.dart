@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'pending_submissions_store_impl_io.dart'
     if (dart.library.html) 'pending_submissions_store_impl_web.dart' as impl;
 
@@ -57,6 +59,24 @@ class PendingSubmissionsStore {
     final list = await load();
     list.add(s);
     await _save(list);
+  }
+
+  Future<void> addWithFiles(
+    PendingSubmission s,
+    Map<String, ({Uint8List bytes, String filename})> fileData,
+  ) async {
+    final id = '${s.createdAt.millisecondsSinceEpoch}';
+    final paths = await impl.writeFilesForSubmission(id, fileData);
+    final withPaths = PendingSubmission(
+      workOrderId: s.workOrderId,
+      formId: s.formId,
+      fields: s.fields,
+      filePaths: paths.isEmpty ? null : paths,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      createdAt: s.createdAt,
+    );
+    await add(withPaths);
   }
 
   Future<void> removeAt(int index) async {

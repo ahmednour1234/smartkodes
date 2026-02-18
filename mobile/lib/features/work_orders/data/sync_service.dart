@@ -62,6 +62,19 @@ class SyncService {
           longitude: p.longitude,
         );
         if (ok) {
+          if (p.filePaths != null && !kIsWeb) {
+            for (final path in p.filePaths!.values) {
+              try {
+                await io.File(path).delete();
+              } catch (_) {}
+            }
+            try {
+              if (p.filePaths!.isNotEmpty) {
+                final dirPath = io.File(p.filePaths!.values.first).parent.path;
+                await io.Directory(dirPath).delete(recursive: true);
+              }
+            } catch (_) {}
+          }
           await _store.removeFirst();
           synced++;
         } else {
@@ -77,12 +90,38 @@ class SyncService {
         if (list.isEmpty) break;
         final u = list.first;
         try {
+          Map<String, ({Uint8List bytes, String filename})>? fileFields;
+          if (u.hasFiles && u.filePaths != null && !kIsWeb) {
+            fileFields = <String, ({Uint8List bytes, String filename})>{};
+            for (final e in u.filePaths!.entries) {
+              final f = io.File(e.value);
+              if (await f.exists()) {
+                final bytes = await f.readAsBytes();
+                final filename = e.value.split(RegExp(r'[/\\]')).last;
+                final name = filename.contains('_') ? filename.substring(filename.indexOf('_') + 1) : filename;
+                fileFields[e.key] = (bytes: bytes, filename: name);
+              }
+            }
+            if (fileFields!.isEmpty) fileFields = null;
+          }
           final ok = await _formsRepo!.updateRecord(
             u.formId,
             u.recordId,
             u.fields,
+            fileFields: fileFields,
           );
           if (ok) {
+            if (u.filePaths != null && !kIsWeb) {
+              for (final path in u.filePaths!.values) {
+                try {
+                  await io.File(path).delete();
+                } catch (_) {}
+              }
+              try {
+                final dirPath = io.File(u.filePaths!.values.first).parent.path;
+                await io.Directory(dirPath).delete(recursive: true);
+              } catch (_) {}
+            }
             await _recordUpdatesStore!.removeFirst();
             synced++;
           } else {

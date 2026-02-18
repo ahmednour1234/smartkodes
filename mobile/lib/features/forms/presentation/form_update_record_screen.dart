@@ -60,6 +60,14 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     super.dispose();
   }
 
+  static dynamic _toJsonSafeValue(dynamic v) {
+    if (v == null) return null;
+    if (v is String || v is num || v is bool) return v;
+    if (v is List) return v.map((e) => _toJsonSafeValue(e)).toList();
+    if (v is Map) return v.map((k, v2) => MapEntry(k.toString(), _toJsonSafeValue(v2)));
+    return v.toString();
+  }
+
   String? _existingFileLabel(dynamic value) {
     if (value == null) return null;
     if (value is String && value.trim().isNotEmpty) {
@@ -207,22 +215,22 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     if (!isOnline) {
       final offlineFields = <String, dynamic>{};
       for (final entry in fieldsToSend.entries) {
-        final v = entry.value;
-        if (v == null) {
-          offlineFields[entry.key] = '';
-        } else if (v is String) {
-          offlineFields[entry.key] = v;
-        } else {
-          offlineFields[entry.key] = v.toString();
-        }
+        if (fileFieldNames.contains(entry.key) && _fileData[entry.key] != null) continue;
+        offlineFields[entry.key] = _toJsonSafeValue(entry.value);
       }
-      final store = ref.read(pendingRecordUpdatesStoreProvider);
-      await store.add(PendingRecordUpdate(
+      final createdAt = DateTime.now();
+      final u = PendingRecordUpdate(
         formId: widget.formId,
         recordId: recordId,
         fields: offlineFields,
-        createdAt: DateTime.now(),
-      ));
+        createdAt: createdAt,
+      );
+      final store = ref.read(pendingRecordUpdatesStoreProvider);
+      if (_fileData.isNotEmpty) {
+        await store.addWithFiles(u, _fileData);
+      } else {
+        await store.add(u);
+      }
       setState(() => _submitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
