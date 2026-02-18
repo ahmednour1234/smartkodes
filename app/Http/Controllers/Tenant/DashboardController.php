@@ -8,6 +8,7 @@ use App\Models\Form;
 use App\Models\WorkOrder;
 use App\Models\User;
 use App\Models\FormSubmission;
+use App\Models\RecordActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -107,29 +108,19 @@ class DashboardController extends Controller
 
     private function getRecentActivities($tenantId)
     {
-        // This would typically come from an activity log table
-        // For now, return some mock recent activities
-        return [
-            [
-                'description' => 'New project "Office Renovation" was created',
-                'timestamp' => '2 hours ago'
-            ],
-            [
-                'description' => 'Form "Safety Inspection" was submitted by John Doe',
-                'timestamp' => '4 hours ago'
-            ],
-            [
-                'description' => 'Work order #123 was completed',
-                'timestamp' => '1 day ago'
-            ],
-            [
-                'description' => 'New user "Jane Smith" joined the team',
-                'timestamp' => '2 days ago'
-            ],
-            [
-                'description' => 'Project "Warehouse Audit" was marked as completed',
-                'timestamp' => '3 days ago'
-            ]
-        ];
+        return RecordActivity::where('tenant_id', $tenantId)
+            ->with('user:id,name')
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get()
+            ->map(function (RecordActivity $a) {
+                $by = $a->user?->name ?? 'Someone';
+                $desc = $a->description ?: ($a->action_name . ' by ' . $by);
+                return [
+                    'description' => $desc,
+                    'timestamp' => $a->created_at->diffForHumans(),
+                ];
+            })
+            ->toArray();
     }
 }
