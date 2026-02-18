@@ -5,7 +5,7 @@
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 class="text-xl font-semibold text-gray-900">Notifications (Global)</h2>
                     <a href="{{ route('admin.notifications.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg">Send Notification</a>
                 </div>
@@ -44,23 +44,6 @@
                 <div class="mt-4">
                     {{ $notifications->links() }}
                 </div>
-            </div>
-        </div>
-    </div>
-    </div>
-@endsection
-@extends('admin.layouts.app')
-
-@section('content')
-<div class="py-8">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Notifications (Global)</h2>
-                    <a href="{{ route('admin.notifications.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg">Send Notification</a>
-                </div>
-                <p class="text-gray-600">This page is a stub. Define global notifications logic if needed.</p>
             </div>
         </div>
     </div>

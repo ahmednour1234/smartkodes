@@ -5,9 +5,9 @@
     <div class="bg-gradient-to-r from-blue-600 to-purple-700 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div class="text-center">
-                <h1 class="text-4xl font-bold mb-4">Welcome to Smart Kodes</h1>
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">Welcome to Smart Kodes</h1>
                 <p class="text-xl opacity-90 mb-8">Manage your organization's projects, forms, and field operations with ease.</p>
-                <div class="flex justify-center space-x-4">
+                <div class="flex flex-wrap justify-center gap-2 sm:gap-4">
                     <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2">
                         <span class="text-sm font-medium">User: {{ Auth::user()->name }}</span>
                     </div>
