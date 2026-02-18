@@ -68,17 +68,6 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Collected Data'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home_outlined),
-            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
-            tooltip: 'Home',
-          ),
-        ],
       ),
       body: FutureBuilder<List<PendingSubmission>>(
         key: ValueKey('$refreshTrigger-$_refreshKey'),
