@@ -108,8 +108,8 @@ class _GpsMapFieldState extends State<GpsMapField> {
                     onPanUpdate: (d) {
                       if (_controller == null) return;
                       final scale = 360 / (256 * math.pow(2, _cameraZoom));
-                      double lat = _cameraCenter.latitude - d.delta.dy * (180 / (256 * math.pow(2, _cameraZoom)));
-                      double lng = _cameraCenter.longitude + d.delta.dx * scale;
+                      double lat = _cameraCenter.latitude + d.delta.dy * (180 / (256 * math.pow(2, _cameraZoom)));
+                      double lng = _cameraCenter.longitude - d.delta.dx * scale;
                       lat = lat.clamp(_lebanonSw.latitude, _lebanonNe.latitude);
                       lng = lng.clamp(_lebanonSw.longitude, _lebanonNe.longitude);
                       _cameraCenter = LatLng(lat, lng);
