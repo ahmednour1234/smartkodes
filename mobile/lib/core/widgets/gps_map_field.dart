@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -47,6 +49,9 @@ class GpsMapField extends StatefulWidget {
 class _GpsMapFieldState extends State<GpsMapField> {
   LatLng? _markerPosition;
   bool _parsed = false;
+  GoogleMapController? _controller;
+  LatLng _cameraCenter = _lebanonCenter;
+  double _cameraZoom = 8;
 
   @override
   void didUpdateWidget(GpsMapField oldWidget) {
@@ -99,25 +104,44 @@ class _GpsMapFieldState extends State<GpsMapField> {
               height: 220,
               child: Stack(
                 children: [
-                  GoogleMap(
-                    initialCameraPosition: CameraPosition(target: initialPosition, zoom: _markerPosition != null ? 12 : 8),
-                    markers: markers,
-                    mapType: MapType.normal,
-                    zoomControlsEnabled: true,
-                    zoomGesturesEnabled: true,
-                    scrollGesturesEnabled: true,
-                    liteModeEnabled: false,
-                    minMaxZoomPreference: const MinMaxZoomPreference(6, 18),
-                    cameraTargetBounds: CameraTargetBounds(LatLngBounds(southwest: _lebanonSw, northeast: _lebanonNe)),
-                    onTap: (pos) {
-                      setState(() => _markerPosition = pos);
-                      widget.onChanged('${pos.latitude},${pos.longitude}');
+                  GestureDetector(
+                    onPanUpdate: (d) {
+                      if (_controller == null) return;
+                      final scale = 360 / (256 * math.pow(2, _cameraZoom));
+                      double lat = _cameraCenter.latitude - d.delta.dy * (180 / (256 * math.pow(2, _cameraZoom)));
+                      double lng = _cameraCenter.longitude + d.delta.dx * scale;
+                      lat = lat.clamp(_lebanonSw.latitude, _lebanonNe.latitude);
+                      lng = lng.clamp(_lebanonSw.longitude, _lebanonNe.longitude);
+                      _cameraCenter = LatLng(lat, lng);
+                      _controller!.moveCamera(CameraUpdate.newLatLng(_cameraCenter));
                     },
-                    onMapCreated: (c) {
-                      if (_markerPosition != null) {
-                        c.animateCamera(CameraUpdate.newLatLngZoom(_markerPosition!, 12));
-                      }
-                    },
+                    child: GoogleMap(
+                      initialCameraPosition: CameraPosition(target: initialPosition, zoom: _markerPosition != null ? 12 : 8),
+                      markers: markers,
+                      mapType: MapType.normal,
+                      zoomControlsEnabled: true,
+                      zoomGesturesEnabled: true,
+                      scrollGesturesEnabled: false,
+                      liteModeEnabled: false,
+                      minMaxZoomPreference: const MinMaxZoomPreference(6, 18),
+                      cameraTargetBounds: CameraTargetBounds(LatLngBounds(southwest: _lebanonSw, northeast: _lebanonNe)),
+                      onTap: (pos) {
+                        setState(() => _markerPosition = pos);
+                        widget.onChanged('${pos.latitude},${pos.longitude}');
+                      },
+                      onMapCreated: (c) {
+                        _controller = c;
+                        _cameraCenter = initialPosition;
+                        _cameraZoom = _markerPosition != null ? 12 : 8;
+                        if (_markerPosition != null) {
+                          c.animateCamera(CameraUpdate.newLatLngZoom(_markerPosition!, 12));
+                        }
+                      },
+                      onCameraMove: (pos) {
+                        _cameraCenter = pos.target;
+                        _cameraZoom = pos.zoom;
+                      },
+                    ),
                   ),
                   Positioned(
                     left: 12,
