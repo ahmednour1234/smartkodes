@@ -1,9 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-/// Lebanon approximate bounds (restrict map to Lebanon only).
 final LatLng _lebanonSw = const LatLng(33.05, 35.1);
 final LatLng _lebanonNe = const LatLng(34.69, 36.6);
 final LatLng _lebanonCenter = const LatLng(33.9, 35.9);
@@ -49,9 +46,6 @@ class GpsMapField extends StatefulWidget {
 class _GpsMapFieldState extends State<GpsMapField> {
   LatLng? _markerPosition;
   bool _parsed = false;
-  GoogleMapController? _controller;
-  LatLng _cameraCenter = _lebanonCenter;
-  double _cameraZoom = 8;
 
   @override
   void didUpdateWidget(GpsMapField oldWidget) {
@@ -67,24 +61,27 @@ class _GpsMapFieldState extends State<GpsMapField> {
     });
   }
 
+  Future<void> _openMapFocus() async {
+    _ensureParsed();
+    final initial = _markerPosition ?? _lebanonCenter;
+    final result = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (ctx) => _GpsMapFocusScreen(
+          initialPosition: initial,
+          initialMarker: _markerPosition,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _markerPosition = result);
+      widget.onChanged('${result.latitude},${result.longitude}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureParsed();
-    final initialPosition = _markerPosition ?? _lebanonCenter;
-    final markers = <Marker>{};
-    if (_markerPosition != null) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('gps'),
-          position: _markerPosition!,
-          draggable: true,
-          onDragEnd: (pos) {
-            widget.onChanged('${pos.latitude},${pos.longitude}');
-            setState(() => _markerPosition = pos);
-          },
-        ),
-      );
-    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -100,68 +97,145 @@ class _GpsMapFieldState extends State<GpsMapField> {
           Card(
             clipBehavior: Clip.antiAlias,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: SizedBox(
-              height: 220,
-              child: Stack(
-                children: [
-                  GestureDetector(
-                    onPanUpdate: (d) {
-                      if (_controller == null) return;
-                      final scale = 360 / (256 * math.pow(2, _cameraZoom));
-                      double lat = _cameraCenter.latitude + d.delta.dy * (180 / (256 * math.pow(2, _cameraZoom)));
-                      double lng = _cameraCenter.longitude - d.delta.dx * scale;
-                      lat = lat.clamp(_lebanonSw.latitude, _lebanonNe.latitude);
-                      lng = lng.clamp(_lebanonSw.longitude, _lebanonNe.longitude);
-                      _cameraCenter = LatLng(lat, lng);
-                      _controller!.moveCamera(CameraUpdate.newLatLng(_cameraCenter));
-                    },
-                    child: GoogleMap(
-                      initialCameraPosition: CameraPosition(target: initialPosition, zoom: _markerPosition != null ? 12 : 8),
-                      markers: markers,
-                      mapType: MapType.normal,
-                      zoomControlsEnabled: true,
-                      zoomGesturesEnabled: true,
-                      scrollGesturesEnabled: false,
-                      liteModeEnabled: false,
-                      minMaxZoomPreference: const MinMaxZoomPreference(6, 18),
-                      cameraTargetBounds: CameraTargetBounds(LatLngBounds(southwest: _lebanonSw, northeast: _lebanonNe)),
-                      onTap: (pos) {
-                        setState(() => _markerPosition = pos);
-                        widget.onChanged('${pos.latitude},${pos.longitude}');
-                      },
-                      onMapCreated: (c) {
-                        _controller = c;
-                        _cameraCenter = initialPosition;
-                        _cameraZoom = _markerPosition != null ? 12 : 8;
-                        if (_markerPosition != null) {
-                          c.animateCamera(CameraUpdate.newLatLngZoom(_markerPosition!, 12));
-                        }
-                      },
-                      onCameraMove: (pos) {
-                        _cameraCenter = pos.target;
-                        _cameraZoom = pos.zoom;
-                      },
-                    ),
-                  ),
-                  Positioned(
-                    left: 12,
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: InkWell(
+              onTap: _openMapFocus,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        _markerPosition != null
-                            ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
-                            : 'Tap map to set location',
-                        style: Theme.of(context).textTheme.bodySmall,
+                      child: Icon(Icons.map_outlined, size: 32, color: Theme.of(context).colorScheme.primary),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _markerPosition != null
+                                ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
+                                : 'Tap to set location',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap to open map',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                    Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GpsMapFocusScreen extends StatefulWidget {
+  const _GpsMapFocusScreen({
+    required this.initialPosition,
+    this.initialMarker,
+  });
+
+  final LatLng initialPosition;
+  final LatLng? initialMarker;
+
+  @override
+  State<_GpsMapFocusScreen> createState() => _GpsMapFocusScreenState();
+}
+
+class _GpsMapFocusScreenState extends State<_GpsMapFocusScreen> {
+  LatLng? _markerPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _markerPosition = widget.initialMarker;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final markers = <Marker>{};
+    if (_markerPosition != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('gps'),
+          position: _markerPosition!,
+          draggable: true,
+          onDragEnd: (pos) {
+            setState(() => _markerPosition = pos);
+          },
+        ),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Select location'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(_markerPosition ?? widget.initialPosition),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: widget.initialPosition,
+              zoom: _markerPosition != null ? 14 : 10,
+            ),
+            markers: markers,
+            mapType: MapType.normal,
+            zoomControlsEnabled: true,
+            zoomGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            rotateGesturesEnabled: true,
+            tiltGesturesEnabled: true,
+            liteModeEnabled: false,
+            minMaxZoomPreference: const MinMaxZoomPreference(6, 18),
+            cameraTargetBounds: CameraTargetBounds(LatLngBounds(southwest: _lebanonSw, northeast: _lebanonNe)),
+            onTap: (pos) {
+              setState(() => _markerPosition = pos);
+            },
+            onMapCreated: (c) {
+              if (_markerPosition != null) {
+                c.animateCamera(CameraUpdate.newLatLngZoom(_markerPosition!, 14));
+              }
+            },
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  _markerPosition != null
+                      ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
+                      : 'Tap map to set marker • Drag to pan • Pinch to zoom',
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
