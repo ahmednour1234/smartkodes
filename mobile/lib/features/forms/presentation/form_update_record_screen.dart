@@ -6,7 +6,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/widgets/gps_map_field.dart';
+import '../../../data/local/pending_record_updates_store.dart';
 import '../../../domain/models/form_model.dart';
+import '../../work_orders/presentation/work_order_providers.dart';
 import '../data/forms_repository.dart';
 import 'forms_providers.dart';
 
@@ -199,6 +201,36 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
         continue;
       }
       fieldsToSend[entry.key] = entry.value;
+    }
+    final syncService = ref.read(syncServiceProvider);
+    final isOnline = await syncService.isOnline;
+    if (!isOnline) {
+      final offlineFields = <String, dynamic>{};
+      for (final entry in fieldsToSend.entries) {
+        final v = entry.value;
+        if (v == null) {
+          offlineFields[entry.key] = '';
+        } else if (v is String) {
+          offlineFields[entry.key] = v;
+        } else {
+          offlineFields[entry.key] = v.toString();
+        }
+      }
+      final store = ref.read(pendingRecordUpdatesStoreProvider);
+      await store.add(PendingRecordUpdate(
+        formId: widget.formId,
+        recordId: recordId,
+        fields: offlineFields,
+        createdAt: DateTime.now(),
+      ));
+      setState(() => _submitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Saved offline. Will sync when connected.')),
+        );
+        Navigator.of(context).pop();
+      }
+      return;
     }
     final repo = ref.read(formsRepositoryProvider);
     try {

@@ -5,14 +5,24 @@ import 'dart:typed_data';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../data/local/pending_record_updates_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
+import '../../forms/data/forms_repository.dart';
 import 'work_order_repository.dart';
 
 class SyncService {
-  SyncService(this._repo, this._store);
+  SyncService(
+    this._repo,
+    this._store, {
+    FormsRepository? formsRepo,
+    PendingRecordUpdatesStore? recordUpdatesStore,
+  })  : _formsRepo = formsRepo,
+        _recordUpdatesStore = recordUpdatesStore;
 
   final WorkOrderRepository _repo;
   final PendingSubmissionsStore _store;
+  final FormsRepository? _formsRepo;
+  final PendingRecordUpdatesStore? _recordUpdatesStore;
 
   Future<bool> get isOnline async {
     final result = await Connectivity().checkConnectivity();
@@ -59,6 +69,28 @@ class SyncService {
         }
       } catch (_) {
         break;
+      }
+    }
+    if (_formsRepo != null && _recordUpdatesStore != null) {
+      while (true) {
+        final list = await _recordUpdatesStore!.load();
+        if (list.isEmpty) break;
+        final u = list.first;
+        try {
+          final ok = await _formsRepo!.updateRecord(
+            u.formId,
+            u.recordId,
+            u.fields,
+          );
+          if (ok) {
+            await _recordUpdatesStore!.removeFirst();
+            synced++;
+          } else {
+            break;
+          }
+        } catch (_) {
+          break;
+        }
       }
     }
     return synced;

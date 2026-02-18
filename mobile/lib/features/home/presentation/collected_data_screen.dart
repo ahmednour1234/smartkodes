@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/app_drawer.dart';
+import '../../../data/local/pending_record_updates_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
 import '../../work_orders/presentation/work_order_providers.dart';
 import '../../work_orders/presentation/work_order_form_screen.dart';
@@ -64,22 +65,30 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
   @override
   Widget build(BuildContext context) {
     final refreshTrigger = ref.watch(pendingListRefreshTriggerProvider);
+    final submissionsFuture = ref.read(pendingSubmissionsStoreProvider).load();
+    final updatesFuture = ref.read(pendingRecordUpdatesStoreProvider).load();
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Collected Data'),
       ),
-      body: FutureBuilder<List<PendingSubmission>>(
+      body: FutureBuilder<List<Object>>(
         key: ValueKey('$refreshTrigger-$_refreshKey'),
-        future: ref.read(pendingSubmissionsStoreProvider).load(),
+        future: Future.wait([submissionsFuture, updatesFuture]),
         builder: (context, snapshot) {
-          final list = snapshot.data ?? [];
+          if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final result = snapshot.data;
+          final submissions = (result != null && result.isNotEmpty ? result[0] as List<PendingSubmission> : <PendingSubmission>[]);
+          final updates = (result != null && result.length > 1 ? result[1] as List<PendingRecordUpdate> : <PendingRecordUpdate>[]);
+          final isEmpty = submissions.isEmpty && updates.isEmpty;
           return RefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                if (list.isEmpty)
+                if (isEmpty)
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 48),
@@ -97,7 +106,7 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Data you submit offline appears here. Pull to refresh or tap Sync when online.',
+                            'Data you submit or update offline appears here. Pull to refresh or tap Sync when online.',
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -107,17 +116,33 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
                       ),
                     ),
                   )
-                else
-                  ...list.asMap().entries.map((e) {
-                    final p = e.value as PendingSubmission;
+                else ...[
+                  ...submissions.asMap().entries.map((e) {
+                    final p = e.value;
                     final idx = e.key;
                     return _PendingCard(
-                      key: ValueKey('${p.workOrderId}-${p.formId}-${p.createdAt.millisecondsSinceEpoch}'),
+                      key: ValueKey('sub-${p.workOrderId}-${p.formId}-${p.createdAt.millisecondsSinceEpoch}'),
                       pending: p,
                       index: idx,
                       onOpenForm: _openFormWithPending,
                     );
                   }),
+                  if (updates.isNotEmpty) ...[
+                    if (submissions.isNotEmpty) const SizedBox(height: 16),
+                    Text(
+                      'Pending record updates',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...updates.map((u) => _PendingUpdateCard(
+                      key: ValueKey('upd-${u.formId}-${u.recordId}-${u.createdAt.millisecondsSinceEpoch}'),
+                      update: u,
+                    )),
+                  ],
+                ],
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: _syncing ? null : _sync,
@@ -211,6 +236,24 @@ class _PendingCardState extends State<_PendingCard> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PendingUpdateCard extends StatelessWidget {
+  const _PendingUpdateCard({super.key, required this.update});
+
+  final PendingRecordUpdate update;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(Icons.edit_note, color: Theme.of(context).colorScheme.primary),
+        title: Text('Form: ${update.formId}'),
+        subtitle: Text('Record: ${update.recordId} • Will sync when you tap Sync now'),
       ),
     );
   }
