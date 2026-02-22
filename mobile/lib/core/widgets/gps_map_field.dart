@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 final LatLng _lebanonSw = const LatLng(33.05, 35.1);
@@ -79,6 +80,44 @@ class _GpsMapFieldState extends State<GpsMapField> {
     }
   }
 
+  Future<void> _setCurrentLocation() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled')),
+        );
+      }
+      return;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission denied')),
+        );
+      }
+      return;
+    }
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      if (mounted) {
+        setState(() => _markerPosition = latLng);
+        widget.onChanged('${latLng.latitude},${latLng.longitude}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not get location: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureParsed();
@@ -97,45 +136,57 @@ class _GpsMapFieldState extends State<GpsMapField> {
           Card(
             clipBehavior: Clip.antiAlias,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: InkWell(
-              onTap: _openMapFocus,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.map_outlined, size: 32, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _markerPosition != null
-                                ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
-                                : 'Tap to set location',
-                            style: Theme.of(context).textTheme.bodyMedium,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InkWell(
+                    onTap: _openMapFocus,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap to open map',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          child: Icon(Icons.map_outlined, size: 32, color: Theme.of(context).colorScheme.primary),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _markerPosition != null
+                                    ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
+                                    : 'Tap to set location',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap to open map',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ],
                     ),
-                    Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _setCurrentLocation,
+                    icon: const Icon(Icons.my_location, size: 20),
+                    label: const Text('Get current location'),
+                  ),
+                ],
               ),
             ),
           ),
@@ -160,11 +211,50 @@ class _GpsMapFocusScreen extends StatefulWidget {
 
 class _GpsMapFocusScreenState extends State<_GpsMapFocusScreen> {
   LatLng? _markerPosition;
+  GoogleMapController? _mapController;
 
   @override
   void initState() {
     super.initState();
     _markerPosition = widget.initialMarker;
+  }
+
+  Future<void> _goToCurrentLocation() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled')),
+        );
+      }
+      return;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission denied')),
+        );
+      }
+      return;
+    }
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      if (mounted) {
+        setState(() => _markerPosition = latLng);
+        _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 14));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not get location: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -190,6 +280,11 @@ class _GpsMapFocusScreenState extends State<_GpsMapFocusScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.my_location),
+            onPressed: _goToCurrentLocation,
+            tooltip: 'Get current location',
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(_markerPosition ?? widget.initialPosition),
             child: const Text('Done'),
@@ -217,6 +312,7 @@ class _GpsMapFocusScreenState extends State<_GpsMapFocusScreen> {
               setState(() => _markerPosition = pos);
             },
             onMapCreated: (c) {
+              _mapController = c;
               if (_markerPosition != null) {
                 c.animateCamera(CameraUpdate.newLatLngZoom(_markerPosition!, 14));
               }
@@ -226,17 +322,31 @@ class _GpsMapFocusScreenState extends State<_GpsMapFocusScreen> {
             left: 16,
             right: 16,
             bottom: 16,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  _markerPosition != null
-                      ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
-                      : 'Tap map to set marker • Drag to pan • Pinch to zoom',
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _goToCurrentLocation,
+                  icon: const Icon(Icons.my_location, size: 20),
+                  label: const Text('Get current location'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      _markerPosition != null
+                          ? '${_markerPosition!.latitude.toStringAsFixed(5)}, ${_markerPosition!.longitude.toStringAsFixed(5)}'
+                          : 'Tap map to set marker • Drag to pan • Pinch to zoom',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

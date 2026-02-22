@@ -44,8 +44,8 @@
                                 @endphp
 
                                 <div class="border-b border-gray-200 pb-4 last:border-b-0">
-                                    <dt class="text-sm font-medium text-gray-500 mb-2 flex items-center">
-                                        {{ $field->label }}
+                                    <dt class="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                        {{ $field->label ?? $field->name }}
                                         @if($field->is_required)
                                             <span class="ml-1 text-red-500">*</span>
                                         @endif
@@ -161,7 +161,7 @@
 
                                                 @case('signature')
                                                     @if($value)
-                                                        <img src="{{ $value }}" alt="Signature" class="border border-gray-300 rounded max-w-md">
+                                                        <span class="text-gray-900">{{ is_string($value) && str_starts_with($value, 'data:') ? 'Signature provided' : $value }}</span>
                                                     @else
                                                         <span class="text-gray-400 italic">No signature provided</span>
                                                     @endif

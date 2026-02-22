@@ -125,10 +125,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   Future<void> _pickFile(FormFieldModel field) async {
     final picker = ImagePicker();
-    final x = await picker.pickImage(source: ImageSource.gallery);
+    final x = field.type == 'video'
+        ? await picker.pickVideo(source: ImageSource.gallery)
+        : await picker.pickImage(source: ImageSource.gallery);
     if (x != null) {
       final bytes = await x.readAsBytes();
-      final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
+      final defaultName = field.type == 'video' ? 'video.mp4' : 'image.jpg';
+      final filename = x.name.isNotEmpty ? x.name : defaultName;
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
     }
   }
@@ -343,6 +346,22 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       final existingUrl = _existingImageUrl(existingFile);
       final hasNewFile = _fileData[f.name] != null;
       final title = f.label ?? f.name;
+      final isImageType = f.type == 'photo' || f.type == 'image';
+      final showImagePreview = isImageType && (hasNewFile || existingUrl != null);
+      final pickButtonLabel = f.type == 'video'
+          ? (hasNewFile ? 'Change video' : (existingLabel != null ? 'Replace video' : 'Pick video'))
+          : (hasNewFile ? 'Change file' : (existingLabel != null ? 'Replace file' : 'Pick file'));
+      Widget preview;
+      if (showImagePreview && hasNewFile)
+        preview = Image.memory(_fileData[f.name]!.bytes, height: 180, fit: BoxFit.cover);
+      else if (showImagePreview && existingUrl != null)
+        preview = Image.network(existingUrl, height: 180, fit: BoxFit.cover, headers: const {'ngrok-skip-browser-warning': 'true'}, errorBuilder: (_, __, ___) => _filePlaceholder(context, existingLabel));
+      else if (hasNewFile)
+        preview = _filePlaceholder(context, _fileData[f.name]!.filename);
+      else if (existingLabel != null)
+        preview = _filePlaceholder(context, existingLabel);
+      else
+        preview = _filePlaceholder(context, f.type == 'video' ? 'No video' : 'No file');
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Column(
@@ -366,19 +385,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
                     child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                   ),
-                  if (hasNewFile)
-                    Image.memory(_fileData[f.name]!.bytes, height: 180, fit: BoxFit.cover)
-                  else if (existingUrl != null)
-                    Image.network(existingUrl, height: 180, fit: BoxFit.cover, headers: const {'ngrok-skip-browser-warning': 'true'}, errorBuilder: (_, __, ___) => _filePlaceholder(context, existingLabel))
-                  else if (existingLabel != null)
-                    _filePlaceholder(context, existingLabel)
-                  else
-                    _filePlaceholder(context, 'No file'),
+                  preview,
                   Padding(
                     padding: const EdgeInsets.all(10),
                     child: OutlinedButton(
                       onPressed: () => _pickFile(f),
-                      child: Text(hasNewFile ? 'Change file' : (existingLabel != null ? 'Replace file' : 'Pick file')),
+                      child: Text(pickButtonLabel),
                     ),
                   ),
                 ],
@@ -401,6 +413,32 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
             _values[f.name] = v;
             _fieldErrors.remove(f.name);
           }),
+        ),
+      );
+    }
+    if (f.type == 'radio' && (f.options?.isNotEmpty ?? false)) {
+      final current = _values[f.name]?.toString();
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+            if (_fieldErrors[f.name] != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ),
+            ...f.options!.map((opt) => RadioListTile<String>(
+              title: Text(opt),
+              value: opt,
+              groupValue: current,
+              onChanged: (v) => setState(() {
+                _values[f.name] = v;
+                _fieldErrors.remove(f.name);
+              }),
+            )),
+          ],
         ),
       );
     }

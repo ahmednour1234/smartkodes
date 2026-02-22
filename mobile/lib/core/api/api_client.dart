@@ -59,7 +59,9 @@ class ApiClient {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401 && !err.requestOptions.path.contains('refresh')) {
+    if (err.response?.statusCode == 401 &&
+        !err.requestOptions.path.contains('refresh') &&
+        !err.requestOptions.path.contains('set-passcode')) {
       final token = await getToken();
       if (token != null && token.isNotEmpty) {
         try {

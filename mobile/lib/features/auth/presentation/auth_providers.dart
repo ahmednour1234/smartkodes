@@ -11,8 +11,7 @@ final skipPasscodeSetupProvider = StateProvider<bool>((ref) => false);
 
 final hasPasscodeProvider = FutureProvider<bool>((ref) async {
   final storage = ref.watch(secureStorageProvider);
-  final p = await storage.getPasscode();
-  return p != null && p.isNotEmpty;
+  return storage.hasPasscodeConfigured();
 });
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

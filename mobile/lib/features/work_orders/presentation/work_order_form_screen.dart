@@ -78,10 +78,16 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
 
   Future<void> _pickFile(FormFieldModel field) async {
     final picker = ImagePicker();
-    final x = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? x;
+    if (field.type == 'video') {
+      x = await picker.pickVideo(source: ImageSource.gallery);
+    } else {
+      x = await picker.pickImage(source: ImageSource.gallery);
+    }
     if (x != null) {
       final bytes = await x.readAsBytes();
-      final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
+      final defaultName = field.type == 'video' ? 'video.mp4' : 'image.jpg';
+      final filename = x.name.isNotEmpty ? x.name : defaultName;
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
     }
   }
@@ -338,6 +344,9 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
   Widget _buildField(FormFieldModel f) {
     final isFile = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
     if (isFile) {
+      final buttonLabel = f.type == 'video'
+          ? (_fileData[f.name] != null ? 'Change video' : 'Pick video')
+          : (_fileData[f.name] != null ? 'Change file' : 'Pick file');
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Column(
@@ -352,7 +361,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
             const SizedBox(height: 4),
             OutlinedButton(
               onPressed: () => _pickFile(f),
-              child: Text(_fileData[f.name] != null ? 'Change file' : 'Pick file'),
+              child: Text(buttonLabel),
             ),
             if (_fileData[f.name] != null)
               Text(_fileData[f.name]!.filename,
@@ -374,6 +383,32 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
             _values[f.name] = v;
             _fieldErrors.remove(f.name);
           }),
+        ),
+      );
+    }
+    if (f.type == 'radio' && (f.options?.isNotEmpty ?? false)) {
+      final current = _values[f.name]?.toString();
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+            if (_fieldErrors[f.name] != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ),
+            ...f.options!.map((opt) => RadioListTile<String>(
+              title: Text(opt),
+              value: opt,
+              groupValue: current,
+              onChanged: (v) => setState(() {
+                _values[f.name] = v;
+                _fieldErrors.remove(f.name);
+              }),
+            )),
+          ],
         ),
       );
     }
