@@ -139,14 +139,14 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Managers</label>
                 <p class="text-xs text-gray-500 mb-2">Oversees the project and assigns work orders to field users.</p>
                 <div class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50">
-                  @forelse($users as $user)
+                  @forelse($managers as $user)
                     <label class="flex items-center py-2 px-2 hover:bg-white rounded cursor-pointer">
                       <input type="checkbox" name="managers[]" value="{{ $user->id }}" {{ in_array($user->id, old('managers', [])) ? 'checked' : '' }}
                              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                       <span class="ml-2 text-sm text-gray-900">{{ $user->name }}</span>
                     </label>
                   @empty
-                    <p class="text-sm text-gray-500 text-center py-4">No users available</p>
+                    <p class="text-sm text-gray-500 text-center py-4">No managers available</p>
                   @endforelse
                 </div>
               </div>
@@ -154,14 +154,14 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Field Users</label>
                 <p class="text-xs text-gray-500 mb-2">Completes assigned work orders and submits records in the field.</p>
                 <div class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50">
-                  @forelse($users as $user)
+                  @forelse($fieldWorkers as $user)
                     <label class="flex items-center py-2 px-2 hover:bg-white rounded cursor-pointer">
                       <input type="checkbox" name="field_users[]" value="{{ $user->id }}" {{ in_array($user->id, old('field_users', [])) ? 'checked' : '' }}
                              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                       <span class="ml-2 text-sm text-gray-900">{{ $user->name }}</span>
                     </label>
                   @empty
-                    <p class="text-sm text-gray-500 text-center py-4">No users available</p>
+                    <p class="text-sm text-gray-500 text-center py-4">No field workers available</p>
                   @endforelse
                 </div>
               </div>

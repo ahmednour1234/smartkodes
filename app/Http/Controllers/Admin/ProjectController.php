@@ -56,13 +56,17 @@ class ProjectController extends Controller
             abort(403, 'No tenant context available.');
         }
 
-        // Get available users for assignment (only users in current tenant)
-        $users = \App\Models\User::where('tenant_id', $currentTenant->id)
-                    ->orderBy('name')
-                    ->get();
+        $managers = \App\Models\User::where('tenant_id', $currentTenant->id)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'Manager'))
+            ->orderBy('name')
+            ->get();
+        $fieldWorkers = \App\Models\User::where('tenant_id', $currentTenant->id)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'Field Worker'))
+            ->orderBy('name')
+            ->get();
 
         $viewPrefix = $this->getViewPrefix();
-        return view("{$viewPrefix}.projects.create", compact('users'));
+        return view("{$viewPrefix}.projects.create", compact('managers', 'fieldWorkers'));
     }
 
     /**
@@ -215,18 +219,21 @@ class ProjectController extends Controller
 
         $currentTenant = session('tenant_context.current_tenant');
 
-        // Get available users for assignment
-        $users = \App\Models\User::where('tenant_id', $currentTenant->id)
-                    ->orderBy('name')
-                    ->get();
+        $availableManagers = \App\Models\User::where('tenant_id', $currentTenant->id)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'Manager'))
+            ->orderBy('name')
+            ->get();
+        $availableFieldWorkers = \App\Models\User::where('tenant_id', $currentTenant->id)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'Field Worker'))
+            ->orderBy('name')
+            ->get();
 
-        // Load current members
         $project->load(['managers', 'fieldUsers']);
         $managers = $project->managers;
         $fieldUsers = $project->fieldUsers;
 
         $viewPrefix = $this->getViewPrefix();
-        return view("{$viewPrefix}.projects.edit", compact('project', 'users', 'managers', 'fieldUsers'));
+        return view("{$viewPrefix}.projects.edit", compact('project', 'availableManagers', 'availableFieldWorkers', 'managers', 'fieldUsers'));
     }
 
     /**

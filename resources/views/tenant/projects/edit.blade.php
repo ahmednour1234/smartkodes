@@ -165,7 +165,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Managers</label>
                                     <div class="border border-gray-300 rounded-md p-3 max-h-48 overflow-y-auto bg-white">
-                                        @forelse($users as $user)
+                                        @forelse($availableManagers as $user)
                                             <label class="flex items-center py-1 hover:bg-gray-50">
                                                 <input type="checkbox" name="managers[]" value="{{ $user->id }}"
                                                     {{ in_array($user->id, old('managers', $managers->pluck('id')->toArray())) ? 'checked' : '' }}
@@ -173,7 +173,7 @@
                                                 <span class="ml-2 text-sm">{{ $user->name }}</span>
                                             </label>
                                         @empty
-                                            <p class="text-sm text-gray-500">No users available</p>
+                                            <p class="text-sm text-gray-500">No managers available</p>
                                         @endforelse
                                     </div>
                                 </div>
@@ -181,7 +181,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Field Users</label>
                                     <div class="border border-gray-300 rounded-md p-3 max-h-48 overflow-y-auto bg-white">
-                                        @forelse($users as $user)
+                                        @forelse($availableFieldWorkers as $user)
                                             <label class="flex items-center py-1 hover:bg-gray-50">
                                                 <input type="checkbox" name="field_users[]" value="{{ $user->id }}"
                                                     {{ in_array($user->id, old('field_users', $fieldUsers->pluck('id')->toArray())) ? 'checked' : '' }}
@@ -189,7 +189,7 @@
                                                 <span class="ml-2 text-sm">{{ $user->name }}</span>
                                             </label>
                                         @empty
-                                            <p class="text-sm text-gray-500">No users available</p>
+                                            <p class="text-sm text-gray-500">No field workers available</p>
                                         @endforelse
                                     </div>
                                 </div>
