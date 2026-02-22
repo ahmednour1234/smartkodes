@@ -25,7 +25,7 @@ class RecordsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     {
         $query = Record::query()
             ->where('tenant_id', $this->tenantId)
-            ->with(['workOrder', 'form', 'user']);
+            ->with(['workOrder', 'form', 'submittedBy']);
 
         if (!empty($this->filters['work_order_id'])) {
             $query->where('work_order_id', $this->filters['work_order_id']);
@@ -36,7 +36,7 @@ class RecordsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
         }
 
         if (!empty($this->filters['user_id'])) {
-            $query->where('user_id', $this->filters['user_id']);
+            $query->where('submitted_by', $this->filters['user_id']);
         }
 
         return $query->latest();
@@ -68,7 +68,7 @@ class RecordsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
             $record->id,
             $record->workOrder ? $record->workOrder->title : '',
             $record->form ? $record->form->name : '',
-            $record->user ? $record->user->name : '',
+            $record->submittedBy?->name ?? '',
             $this->getStatusLabel($record->status),
             count($data ?? []),
             $mediaCount['images'],
