@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/gps_map_field.dart';
+import '../../../data/local/form_draft_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
 import '../../../domain/models/form_model.dart';
 import '../data/work_order_repository.dart';
@@ -27,7 +30,8 @@ class WorkOrderFormScreen extends ConsumerStatefulWidget {
   ConsumerState<WorkOrderFormScreen> createState() => _WorkOrderFormScreenState();
 }
 
-class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
+class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
+    with WidgetsBindingObserver {
   FormModel? _form;
   final _values = <String, dynamic>{};
   final _fileData = <String, ({Uint8List bytes, String filename})>{};
@@ -35,11 +39,78 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
   bool _loading = true;
   bool _submitting = false;
   String? _error;
+  Timer? _draftTimer;
+  final _initialValues = <String, dynamic>{};
+  bool _hasDraft = false;
+  String get _draftKey => 'submission_${widget.workOrderId}_${widget.formId}';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _draftTimer?.cancel();
+    _saveDraft();
+    super.dispose();
+  }
+
+  void _scheduleDraftSave() {
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 1500), () {
+      _saveDraft();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _saveDraft();
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    if (_form == null || _loading) return;
+    final store = ref.read(formDraftStoreProvider);
+    final values = <String, dynamic>{};
+    for (final e in _values.entries) {
+      values[e.key] = _toJsonSafeValue(e.value);
+    }
+    await store.saveDraft(_draftKey, values, _fileData.isEmpty ? null : _fileData);
+  }
+
+  Future<void> _loadDraft() async {
+    final store = ref.read(formDraftStoreProvider);
+    final draft = await store.loadDraftWithFiles(_draftKey);
+    if (draft == null || !mounted) return;
+    setState(() {
+      _hasDraft = true;
+      for (final e in draft.values.entries) {
+        _values[e.key] = e.value;
+      }
+      if (draft.fileData != null) {
+        _fileData.addAll(draft.fileData!);
+      }
+    });
+  }
+
+  Future<void> _clearDraft() async {
+    final store = ref.read(formDraftStoreProvider);
+    await store.removeDraft(_draftKey);
+    ref.invalidate(draftKeysProvider);
+    if (!mounted) return;
+    setState(() {
+      _hasDraft = false;
+      _fileData.clear();
+      _values.clear();
+      for (final e in _initialValues.entries) {
+        _values[e.key] = e.value;
+      }
+    });
   }
 
   static dynamic _toJsonSafeValue(dynamic v) {
@@ -56,7 +127,6 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       final form = await repo.getForm(widget.workOrderId, widget.formId);
       setState(() {
         _form = form;
-        _loading = false;
         if (form != null) {
           for (final f in form.fields ?? []) {
             if (f.defaultValue != null) _values[f.name] = f.defaultValue;
@@ -66,8 +136,20 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
               _values[e.key] = e.value;
             }
           }
+          _initialValues.clear();
+          for (final e in _values.entries) {
+            _initialValues[e.key] = _toJsonSafeValue(e.value);
+          }
         }
       });
+      if (form != null) {
+        await _loadDraft();
+        if (mounted) {
+          setState(() => _loading = false);
+        }
+      } else if (mounted) {
+        setState(() => _loading = false);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -89,6 +171,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       final defaultName = field.type == 'video' ? 'video.mp4' : 'image.jpg';
       final filename = x.name.isNotEmpty ? x.name : defaultName;
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
+      _scheduleDraftSave();
     }
   }
 
@@ -178,6 +261,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       } else {
         await store.add(s);
       }
+      await ref.read(formDraftStoreProvider).removeDraft(_draftKey);
       setState(() => _submitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +285,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       );
       setState(() => _submitting = false);
       if (ok && mounted) {
+        await ref.read(formDraftStoreProvider).removeDraft(_draftKey);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Form submitted')),
         );
@@ -225,8 +310,18 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading form...'),
+            ],
+          ),
+        ),
       );
     }
     if (_error != null && _form == null) {
@@ -240,7 +335,18 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     fields.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
 
     return Scaffold(
-      appBar: AppBar(title: Text(form.name)),
+      appBar: AppBar(
+        title: Text(form.name),
+        actions: [
+          if (_hasDraft)
+            TextButton(
+              onPressed: () async {
+                await _clearDraft();
+              },
+              child: const Text('Clear draft'),
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -277,12 +383,35 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     );
   }
 
+  bool _isUpdated(FormFieldModel f) {
+    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type) && _fileData[f.name] != null) return true;
+    final a = _initialValues[f.name];
+    final b = _toJsonSafeValue(_values[f.name]);
+    if (a == b) return false;
+    return jsonEncode(a) != jsonEncode(b);
+  }
+
   InputDecoration _decoration(FormFieldModel f) {
+    final updated = _isUpdated(f);
     return InputDecoration(
       labelText: '${f.label ?? f.name}${f.required ? ' *' : ''}',
-      border: const OutlineInputBorder(),
+      border: OutlineInputBorder(borderSide: BorderSide(color: updated ? Colors.orange : const Color(0xFFE0E0E0), width: updated ? 2 : 1)),
+      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: updated ? Colors.orange : const Color(0xFFE0E0E0), width: updated ? 2 : 1)),
+      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: updated ? Colors.orange : Theme.of(context).colorScheme.primary, width: updated ? 2 : 1)),
       errorText: _fieldErrors[f.name],
       errorBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.red)),
+    );
+  }
+
+  Widget _wrapIfUpdated(Widget child, FormFieldModel f) {
+    if (!_isUpdated(f)) return child;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.orange, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(8),
+      child: child,
     );
   }
 
@@ -298,6 +427,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     );
     if (d != null) {
       setState(() => _values[f.name] = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}');
+      _scheduleDraftSave();
     }
   }
 
@@ -315,6 +445,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     final t = await showTimePicker(context: context, initialTime: initial);
     if (t != null) {
       setState(() => _values[f.name] = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+      _scheduleDraftSave();
     }
   }
 
@@ -338,6 +469,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
     if (t != null) {
       final dt = DateTime(d.year, d.month, d.day, t.hour, t.minute);
       setState(() => _values[f.name] = dt.toIso8601String().replaceFirst('T', ' ').substring(0, 19));
+      _scheduleDraftSave();
     }
   }
 
@@ -349,24 +481,27 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
           : (_fileData[f.name] != null ? 'Change file' : 'Pick file');
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
-            if (_fieldErrors[f.name] != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+        child: _wrapIfUpdated(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+              if (_fieldErrors[f.name] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ),
+              const SizedBox(height: 4),
+              OutlinedButton(
+                onPressed: () => _pickFile(f),
+                child: Text(buttonLabel),
               ),
-            const SizedBox(height: 4),
-            OutlinedButton(
-              onPressed: () => _pickFile(f),
-              child: Text(buttonLabel),
-            ),
-            if (_fileData[f.name] != null)
-              Text(_fileData[f.name]!.filename,
-                  style: Theme.of(context).textTheme.bodySmall),
-          ],
+              if (_fileData[f.name] != null)
+                Text(_fileData[f.name]!.filename,
+                    style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+          f,
         ),
       );
     }
@@ -379,10 +514,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
           items: f.options!
               .map((o) => DropdownMenuItem(value: o, child: Text(o)))
               .toList(),
-          onChanged: (v) => setState(() {
-            _values[f.name] = v;
-            _fieldErrors.remove(f.name);
-          }),
+          onChanged: (v) {
+            setState(() {
+              _values[f.name] = v;
+              _fieldErrors.remove(f.name);
+            });
+            _scheduleDraftSave();
+          },
         ),
       );
     }
@@ -390,25 +528,31 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       final current = _values[f.name]?.toString();
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
-            if (_fieldErrors[f.name] != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-              ),
-            ...f.options!.map((opt) => RadioListTile<String>(
-              title: Text(opt),
-              value: opt,
-              groupValue: current,
-              onChanged: (v) => setState(() {
-                _values[f.name] = v;
-                _fieldErrors.remove(f.name);
-              }),
-            )),
-          ],
+        child: _wrapIfUpdated(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+              if (_fieldErrors[f.name] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ),
+              ...f.options!.map((opt) => RadioListTile<String>(
+                title: Text(opt),
+                value: opt,
+                groupValue: current,
+                onChanged: (v) {
+                  setState(() {
+                    _values[f.name] = v;
+                    _fieldErrors.remove(f.name);
+                  });
+                  _scheduleDraftSave();
+                },
+              )),
+            ],
+          ),
+          f,
         ),
       );
     }
@@ -422,35 +566,39 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       }
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
-            if (_fieldErrors[f.name] != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+        child: _wrapIfUpdated(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+              if (_fieldErrors[f.name] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: f.options!.map((opt) {
+                  final isSelected = selected.contains(opt);
+                  return FilterChip(
+                    label: Text(opt),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() {
+                        final next = isSelected ? selected.where((e) => e != opt).toList() : [...selected, opt];
+                        _values[f.name] = next.isEmpty ? null : next;
+                        _fieldErrors.remove(f.name);
+                      });
+                      _scheduleDraftSave();
+                    },
+                  );
+                }).toList(),
               ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: f.options!.map((opt) {
-                final isSelected = selected.contains(opt);
-                return FilterChip(
-                  label: Text(opt),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() {
-                      final next = isSelected ? selected.where((e) => e != opt).toList() : [...selected, opt];
-                      _values[f.name] = next.isEmpty ? null : next;
-                      _fieldErrors.remove(f.name);
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ],
+            ],
+          ),
+          f,
         ),
       );
     }
@@ -459,26 +607,41 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
       final checked = v == true || v == 'true' || v == '1' || v == 1;
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: CheckboxListTile(
-          title: Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
-          value: checked,
-          onChanged: (val) => setState(() {
-            _values[f.name] = val == true;
-            _fieldErrors.remove(f.name);
-          }),
-          controlAffinity: ListTileControlAffinity.leading,
+        child: _wrapIfUpdated(
+          CheckboxListTile(
+            title: Text('${f.label ?? f.name}${f.required ? ' *' : ''}'),
+            value: checked,
+            onChanged: (val) {
+              setState(() {
+                _values[f.name] = val == true;
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          f,
         ),
       );
     }
     if (f.type == 'gps') {
-      return GpsMapField(
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          GpsMapField(
         label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
         value: _values[f.name],
         errorText: _fieldErrors[f.name],
-        onChanged: (v) => setState(() {
-          _values[f.name] = v;
-          _fieldErrors.remove(f.name);
-        }),
+        onChanged: (v) {
+          setState(() {
+            _values[f.name] = v;
+            _fieldErrors.remove(f.name);
+          });
+          _scheduleDraftSave();
+        },
+          ),
+          f,
+        ),
       );
     }
     if (f.type == 'date') {
@@ -533,10 +696,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: _decoration(f),
           initialValue: _values[f.name]?.toString(),
-          onChanged: (v) => setState(() {
-            _values[f.name] = v.isEmpty ? null : num.tryParse(v);
-            _fieldErrors.remove(f.name);
-          }),
+          onChanged: (v) {
+            setState(() {
+              _values[f.name] = v.isEmpty ? null : num.tryParse(v);
+              _fieldErrors.remove(f.name);
+            });
+            _scheduleDraftSave();
+          },
         ),
       );
     }
@@ -547,10 +713,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen> {
         initialValue: _values[f.name]?.toString(),
         maxLines: f.type == 'textarea' ? 4 : 1,
         keyboardType: f.type == 'email' ? TextInputType.emailAddress : null,
-        onChanged: (v) => setState(() {
-          _values[f.name] = v.isEmpty ? null : v;
-          _fieldErrors.remove(f.name);
-        }),
+        onChanged: (v) {
+          setState(() {
+            _values[f.name] = v.isEmpty ? null : v;
+            _fieldErrors.remove(f.name);
+          });
+          _scheduleDraftSave();
+        },
       ),
     );
   }

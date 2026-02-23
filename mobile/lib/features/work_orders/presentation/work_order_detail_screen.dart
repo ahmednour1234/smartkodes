@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/no_connection_widget.dart';
+import '../../../data/local/form_draft_store.dart';
 import '../../../domain/models/record_model.dart';
 import '../../../domain/models/work_order.dart';
 import '../../forms/data/forms_repository.dart';
@@ -286,11 +287,17 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                       }
                     }
                   }
+                  final submissionKey = 'submission_${widget.workOrderId}_${f.id}';
+                  final updateKey = record != null ? 'update_${f.id}_${record.id}' : null;
+                  final draftKeys = ref.watch(draftKeysProvider).valueOrNull ?? [];
+                  final hasDraft = draftKeys.contains(FormDraftStore.sanitizeKey(submissionKey)) ||
+                      (updateKey != null && draftKeys.contains(FormDraftStore.sanitizeKey(updateKey)));
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _FormCard(
                       form: f,
                       isSubmitted: record != null,
+                      hasDraft: hasDraft,
                       onTap: () async {
                         final rec = record;
                         if (rec != null && rec.form != null) {
@@ -305,7 +312,10 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                                 initialFields: rec.fields,
                               ),
                             ),
-                          ).then((_) => _load());
+                          ).then((_) {
+                            ref.invalidate(draftKeysProvider);
+                            _load();
+                          });
                         } else {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -314,7 +324,10 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                                 formId: f.id,
                               ),
                             ),
-                          ).then((_) => _load());
+                          ).then((_) {
+                            ref.invalidate(draftKeysProvider);
+                            _load();
+                          });
                         }
                       },
                     ),
@@ -420,11 +433,17 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _FormCard extends StatelessWidget {
-  const _FormCard({required this.form, required this.onTap, this.isSubmitted = false});
+  const _FormCard({
+    required this.form,
+    required this.onTap,
+    this.isSubmitted = false,
+    this.hasDraft = false,
+  });
 
   final WorkOrderFormRef form;
   final VoidCallback onTap;
   final bool isSubmitted;
+  final bool hasDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +471,23 @@ class _FormCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(form.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(form.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                        ),
+                        if (hasDraft)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text('Drafted', style: theme.textTheme.labelSmall?.copyWith(color: Colors.amber.shade900, fontWeight: FontWeight.w600)),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       isSubmitted ? 'Submitted' : 'Version ${form.version ?? '—'}',

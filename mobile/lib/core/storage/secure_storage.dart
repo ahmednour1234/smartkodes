@@ -45,6 +45,23 @@ class SecureStorage {
     return s.trim().isNotEmpty;
   }
 
+  Future<File> _passcodeSkippedFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/.passcode_skipped');
+  }
+
+  Future<void> setPasscodeSkipped() async {
+    final file = await _passcodeSkippedFile();
+    await file.writeAsString('1');
+  }
+
+  Future<bool> hasPasscodeSkipped() async {
+    final file = await _passcodeSkippedFile();
+    if (!await file.exists()) return false;
+    final s = await file.readAsString();
+    return s.trim().isNotEmpty;
+  }
+
   Future<void> clearAuth() async {
     await deleteToken();
     await deleteUser();

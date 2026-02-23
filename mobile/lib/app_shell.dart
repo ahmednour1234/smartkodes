@@ -52,6 +52,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         final verified = ref.watch(passcodeVerifiedForSessionProvider);
         final skipped = ref.watch(skipPasscodeSetupProvider);
 
+        final skippedPersisted = ref.watch(hasPasscodeSkippedProvider).valueOrNull ?? false;
+        final skipPasscode = skipped || skippedPersisted;
+
         return hasPasscode.when(
           loading: () => const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -65,13 +68,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                 },
               );
             }
-            if (!has && !skipped) {
+            if (!has && !skipPasscode) {
               return SetPasscodeScreen(
                 onDone: () {
                   ref.read(passcodeVerifiedForSessionProvider.notifier).state = true;
                   ref.invalidate(hasPasscodeProvider);
                 },
-                onSkip: () {
+                onSkip: () async {
+                  await ref.read(secureStorageProvider).setPasscodeSkipped();
+                  ref.invalidate(hasPasscodeSkippedProvider);
                   ref.read(skipPasscodeSetupProvider.notifier).state = true;
                 },
               );

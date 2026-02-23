@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client_provider.dart';
+import '../../../data/local/form_draft_store.dart';
 import '../../../data/local/pending_record_updates_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
 import '../../forms/presentation/forms_providers.dart';
@@ -13,6 +14,12 @@ final workOrderRepositoryProvider = Provider<WorkOrderRepository>((ref) {
 
 final pendingSubmissionsStoreProvider = Provider<PendingSubmissionsStore>((ref) {
   return PendingSubmissionsStore();
+});
+
+final formDraftStoreProvider = Provider<FormDraftStore>((ref) => FormDraftStore());
+
+final draftKeysProvider = FutureProvider<List<String>>((ref) async {
+  return ref.read(formDraftStoreProvider).listDraftKeys();
 });
 
 final pendingRecordUpdatesStoreProvider = Provider<PendingRecordUpdatesStore>((ref) {

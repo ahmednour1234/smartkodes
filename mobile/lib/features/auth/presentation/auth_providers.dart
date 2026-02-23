@@ -14,6 +14,11 @@ final hasPasscodeProvider = FutureProvider<bool>((ref) async {
   return storage.hasPasscodeConfigured();
 });
 
+final hasPasscodeSkippedProvider = FutureProvider<bool>((ref) async {
+  final storage = ref.watch(secureStorageProvider);
+  return storage.hasPasscodeSkipped();
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
     ref.watch(apiClientProvider),
