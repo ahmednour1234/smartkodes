@@ -6,6 +6,19 @@ final LatLng _lebanonSw = const LatLng(33.05, 35.1);
 final LatLng _lebanonNe = const LatLng(34.69, 36.6);
 final LatLng _lebanonCenter = const LatLng(33.9, 35.9);
 
+LatLngBounds _boundsFor(LatLng? marker) {
+  if (marker == null) return LatLngBounds(southwest: _lebanonSw, northeast: _lebanonNe);
+  final sw = LatLng(
+    _lebanonSw.latitude < marker.latitude ? _lebanonSw.latitude : marker.latitude,
+    _lebanonSw.longitude < marker.longitude ? _lebanonSw.longitude : marker.longitude,
+  );
+  final ne = LatLng(
+    _lebanonNe.latitude > marker.latitude ? _lebanonNe.latitude : marker.latitude,
+    _lebanonNe.longitude > marker.longitude ? _lebanonNe.longitude : marker.longitude,
+  );
+  return LatLngBounds(southwest: sw, northeast: ne);
+}
+
 void parseGpsValue(dynamic value, void Function(double lat, double lng)? onParsed) {
   if (value == null || onParsed == null) return;
   double? lat, lng;
@@ -307,7 +320,7 @@ class _GpsMapFocusScreenState extends State<_GpsMapFocusScreen> {
             tiltGesturesEnabled: true,
             liteModeEnabled: false,
             minMaxZoomPreference: const MinMaxZoomPreference(6, 18),
-            cameraTargetBounds: CameraTargetBounds(LatLngBounds(southwest: _lebanonSw, northeast: _lebanonNe)),
+            cameraTargetBounds: CameraTargetBounds(_boundsFor(_markerPosition)),
             onTap: (pos) {
               setState(() => _markerPosition = pos);
             },
