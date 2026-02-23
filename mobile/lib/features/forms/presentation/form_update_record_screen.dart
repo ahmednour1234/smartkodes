@@ -45,6 +45,8 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   final _initialValues = <String, dynamic>{};
   bool _draftLoaded = false;
   bool _hasDraft = false;
+  bool _draftWasCleared = false;
+  bool _hasUserEdited = false;
 
   String get _draftKey => 'update_${widget.formId}_${widget.recordId ?? (_recordIdController.text.trim().isEmpty ? "new" : _recordIdController.text.trim())}';
 
@@ -74,11 +76,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     WidgetsBinding.instance.removeObserver(this);
     _draftTimer?.cancel();
     _recordIdController.dispose();
-    _saveDraft();
+    if (_hasUserEdited) _saveDraft();
     super.dispose();
   }
 
   void _scheduleDraftSave() {
+    _hasUserEdited = true;
     _draftTimer?.cancel();
     _draftTimer = Timer(const Duration(milliseconds: 1500), () {
       _saveDraft();
@@ -87,12 +90,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive) && _hasUserEdited) {
       _saveDraft();
     }
   }
 
   Future<void> _saveDraft() async {
+    if (!_hasUserEdited) return;
     final store = ref.read(formDraftStoreProvider);
     final values = <String, dynamic>{};
     for (final e in _values.entries) {
@@ -124,9 +128,11 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     final store = ref.read(formDraftStoreProvider);
     await store.removeDraft(_draftKey);
     ref.invalidate(draftKeysProvider);
+    ref.read(draftKeysRefreshTriggerProvider.notifier).update((s) => s + 1);
     if (!mounted) return;
     setState(() {
       _hasDraft = false;
+      _draftWasCleared = true;
       _fileData.clear();
       _values.clear();
       for (final e in _initialValues.entries) {
@@ -730,24 +736,25 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         _draftTimer?.cancel();
-        await _saveDraft();
-        if (context.mounted) Navigator.of(context).pop();
+        if (!_draftWasCleared && _hasUserEdited) await _saveDraft();
+        if (context.mounted) Navigator.of(context).pop({'draftKey': _draftKey, 'cleared': _draftWasCleared});
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text('${widget.form.name} – Update'),
           actions: [
             if (_hasDraft)
-              TextButton(
-                onPressed: () async {
-                  await _clearDraft();
-                },
-                child: const Text('Clear draft'),
+              IconButton(
+                onPressed: () async { await _clearDraft(); },
+                icon: const Icon(Icons.delete_outline, color: Colors.orange),
+                tooltip: 'Clear draft',
               ),
           ],
         ),
         body: _draftLoaded
-            ? Column(
+            ? KeyedSubtree(
+        key: ValueKey('form_$_hasDraft'),
+        child: Column(
         children: [
           Expanded(
             child: ListView(
@@ -790,6 +797,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
             ),
           ),
         ],
+        ),
         )
             : const Center(
                 child: Column(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_shell.dart';
 import 'core/fcm/fcm_service.dart';
+import 'core/navigation/route_observer.dart';
 import 'core/presentation/splash_screen.dart';
 import 'core/theme/app_theme.dart';
 
@@ -20,6 +21,7 @@ class SmartSiteApp extends StatelessWidget {
     return MaterialApp(
       title: 'SmartSite',
       theme: AppTheme.light,
+      navigatorObservers: [appRouteObserver],
       home: const SplashScreen(),
     );
   }

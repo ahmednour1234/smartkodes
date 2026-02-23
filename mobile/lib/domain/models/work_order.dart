@@ -8,6 +8,7 @@ class WorkOrder {
   final int? priorityValue;
   final String? priorityUnit;
   final String? dueDate;
+  final String? sla;
   final WorkOrderLocation? location;
   final List<WorkOrderFormRef>? forms;
   final int? recordsCount;
@@ -27,6 +28,7 @@ class WorkOrder {
     this.priorityValue,
     this.priorityUnit,
     this.dueDate,
+    this.sla,
     this.location,
     this.forms,
     this.recordsCount,
@@ -50,6 +52,7 @@ class WorkOrder {
       priorityValue: _toInt(json['priority_value']),
       priorityUnit: _toStr(json['priority_unit']),
       dueDate: _toStr(json['due_date']),
+      sla: _toStr(json['sla']) ?? _toStr(json['sla_hours']) ?? _toStr(json['sla_duration']),
       location: json['location'] != null
           ? WorkOrderLocation.fromJson(json['location'] as Map<String, dynamic>)
           : null,

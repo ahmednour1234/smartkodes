@@ -18,7 +18,10 @@ final pendingSubmissionsStoreProvider = Provider<PendingSubmissionsStore>((ref) 
 
 final formDraftStoreProvider = Provider<FormDraftStore>((ref) => FormDraftStore());
 
+final draftKeysRefreshTriggerProvider = StateProvider<int>((ref) => 0);
+
 final draftKeysProvider = FutureProvider<List<String>>((ref) async {
+  ref.watch(draftKeysRefreshTriggerProvider);
   return ref.read(formDraftStoreProvider).listDraftKeys();
 });
 

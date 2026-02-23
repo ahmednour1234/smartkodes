@@ -42,6 +42,8 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   Timer? _draftTimer;
   final _initialValues = <String, dynamic>{};
   bool _hasDraft = false;
+  bool _draftWasCleared = false;
+  bool _hasUserEdited = false;
   String get _draftKey => 'submission_${widget.workOrderId}_${widget.formId}';
 
   @override
@@ -55,11 +57,12 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _draftTimer?.cancel();
-    _saveDraft();
+    if (_hasUserEdited) _saveDraft();
     super.dispose();
   }
 
   void _scheduleDraftSave() {
+    _hasUserEdited = true;
     _draftTimer?.cancel();
     _draftTimer = Timer(const Duration(milliseconds: 1500), () {
       _saveDraft();
@@ -68,19 +71,20 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive) && _hasUserEdited) {
       _saveDraft();
     }
   }
 
   Future<void> _saveDraft() async {
-    if (_form == null || _loading) return;
+    if (!_hasUserEdited || _form == null || _loading) return;
     final store = ref.read(formDraftStoreProvider);
     final values = <String, dynamic>{};
     for (final e in _values.entries) {
       values[e.key] = _toJsonSafeValue(e.value);
     }
     await store.saveDraft(_draftKey, values, _fileData.isEmpty ? null : _fileData);
+    if (mounted) setState(() => _hasDraft = true);
   }
 
   Future<void> _loadDraft() async {
@@ -102,9 +106,11 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     final store = ref.read(formDraftStoreProvider);
     await store.removeDraft(_draftKey);
     ref.invalidate(draftKeysProvider);
+    ref.read(draftKeysRefreshTriggerProvider.notifier).update((s) => s + 1);
     if (!mounted) return;
     setState(() {
       _hasDraft = false;
+      _draftWasCleared = true;
       _fileData.clear();
       _values.clear();
       for (final e in _initialValues.entries) {
@@ -334,20 +340,27 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     final fields = form.fields ?? [];
     fields.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(form.name),
-        actions: [
-          if (_hasDraft)
-            TextButton(
-              onPressed: () async {
-                await _clearDraft();
-              },
-              child: const Text('Clear draft'),
-            ),
-        ],
-      ),
-      body: Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        _draftTimer?.cancel();
+        if (!_draftWasCleared && _hasUserEdited) await _saveDraft();
+        if (mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(form.name),
+          actions: [
+            if (_hasDraft)
+              IconButton(
+                onPressed: () async { await _clearDraft(); },
+                icon: const Icon(Icons.delete_outline, color: Colors.orange),
+                tooltip: 'Clear draft',
+              ),
+          ],
+        ),
+        body: Column(
         children: [
           Expanded(
             child: ListView(
@@ -379,6 +392,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }

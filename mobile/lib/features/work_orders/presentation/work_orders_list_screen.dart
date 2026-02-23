@@ -140,7 +140,11 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
       final p = wo.priorityValue ?? wo.importanceLevel;
       return p == 1;
     }).length;
-    final statuses = fullList.map((wo) => wo.status).where((s) => s.isNotEmpty).toSet().toList()..sort();
+    final statusSet = <String>{'Assigned', 'In Progress'};
+    for (final wo in fullList) {
+      if (wo.status.isNotEmpty) statusSet.add(wo.status);
+    }
+    final statuses = statusSet.toList()..sort();
     final projects = <WorkOrderProject>[];
     final seenIds = <String>{};
     for (final wo in fullList) {

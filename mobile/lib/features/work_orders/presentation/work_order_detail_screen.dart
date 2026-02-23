@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/navigation/route_observer.dart';
 import '../../../core/widgets/no_connection_widget.dart';
 import '../../../data/local/form_draft_store.dart';
 import '../../../domain/models/record_model.dart';
@@ -43,6 +44,16 @@ Color _priorityColor(int? p) {
   }
 }
 
+String _slaLabel(WorkOrder wo) {
+  if (wo.sla != null && wo.sla!.isNotEmpty) return wo.sla!;
+  final v = wo.priorityValue;
+  final u = wo.priorityUnit?.trim();
+  if (v == null || u == null || u.isEmpty) return '—';
+  final cap = u.length > 1 ? '${u[0].toUpperCase()}${u.substring(1).toLowerCase()}' : u.toUpperCase();
+  final plural = (v != 1 && cap.isNotEmpty) ? '${cap}s' : cap;
+  return '$v $plural';
+}
+
 class WorkOrderDetailScreen extends ConsumerStatefulWidget {
   const WorkOrderDetailScreen({super.key, required this.workOrderId});
 
@@ -52,16 +63,39 @@ class WorkOrderDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<WorkOrderDetailScreen> createState() => _WorkOrderDetailState();
 }
 
-class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
+class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> with RouteAware {
   WorkOrder? _wo;
   List<RecordModel>? _myRecords;
   String? _directionsUrl;
   bool _loading = true;
   String? _error;
+  String? _openingFormId;
+  final Set<String> _clearedDraftKeys = {};
+  List<String>? _draftKeys;
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && route.isCurrent) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
     _load();
   }
 
@@ -79,13 +113,17 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
       final wo = await repo.get(widget.workOrderId, currentLatitude: lat, currentLongitude: lon);
       final url = await repo.getDirectionsUrl(widget.workOrderId, latitude: lat, longitude: lon);
       final recordsRes = await formsRepo.listMyRecords(workOrderId: widget.workOrderId, perPage: 100);
+      final draftKeys = await ref.read(formDraftStoreProvider).listDraftKeys();
+      if (!mounted) return;
       setState(() {
         _wo = wo;
         _myRecords = recordsRes.data;
         _directionsUrl = url;
+        _draftKeys = draftKeys;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -164,7 +202,7 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                       const Divider(height: 24),
                       _DetailRow(
                         label: 'SLA',
-                        value: '—',
+                        value: _slaLabel(wo),
                         icon: Icons.schedule_rounded,
                         color: Colors.indigo.shade600,
                       ),
@@ -289,45 +327,70 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> {
                   }
                   final submissionKey = 'submission_${widget.workOrderId}_${f.id}';
                   final updateKey = record != null ? 'update_${f.id}_${record.id}' : null;
-                  final draftKeys = ref.watch(draftKeysProvider).valueOrNull ?? [];
-                  final hasDraft = draftKeys.contains(FormDraftStore.sanitizeKey(submissionKey)) ||
-                      (updateKey != null && draftKeys.contains(FormDraftStore.sanitizeKey(updateKey)));
+                  final draftKeys = _draftKeys ?? [];
+                  final subKeySanitized = FormDraftStore.sanitizeKey(submissionKey);
+                  final updKeySanitized = updateKey != null ? FormDraftStore.sanitizeKey(updateKey!) : null;
+                  final hasDraft = !_clearedDraftKeys.contains(subKeySanitized) && !(updKeySanitized != null && _clearedDraftKeys.contains(updKeySanitized)) &&
+                      (draftKeys.contains(subKeySanitized) || (updateKey != null && draftKeys.contains(updKeySanitized)));
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _FormCard(
                       form: f,
                       isSubmitted: record != null,
                       hasDraft: hasDraft,
+                      isLoading: _openingFormId == f.id,
                       onTap: () async {
+                        if (_openingFormId != null) return;
+                        setState(() => _openingFormId = f.id);
                         final rec = record;
-                        if (rec != null && rec.form != null) {
-                          final formModel = await ref.read(formsRepositoryProvider).get(f.id);
-                          if (!mounted || formModel == null) return;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => FormUpdateRecordScreen(
-                                formId: f.id,
-                                recordId: rec.id,
-                                form: formModel,
-                                initialFields: rec.fields,
+                        try {
+                          if (rec != null && rec.form != null) {
+                            final formModel = await ref.read(formsRepositoryProvider).get(f.id);
+                            if (!mounted) return;
+                            setState(() => _openingFormId = null);
+                            if (formModel == null) return;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => FormUpdateRecordScreen(
+                                  formId: f.id,
+                                  recordId: rec.id,
+                                  form: formModel,
+                                  initialFields: rec.fields,
+                                ),
                               ),
-                            ),
-                          ).then((_) {
-                            ref.invalidate(draftKeysProvider);
-                            _load();
-                          });
-                        } else {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => WorkOrderFormScreen(
-                                workOrderId: widget.workOrderId,
-                                formId: f.id,
+                            ).then((result) async {
+                              if (result != null && result is Map) {
+                                final key = result['draftKey'] as String?;
+                                if (key != null) {
+                                  final sk = FormDraftStore.sanitizeKey(key);
+                                  setState(() => result['cleared'] == true ? _clearedDraftKeys.add(sk) : _clearedDraftKeys.remove(sk));
+                                }
+                              }
+                              ref.invalidate(draftKeysProvider);
+                              ref.read(draftKeysRefreshTriggerProvider.notifier).update((s) => s + 1);
+                              _draftKeys = await ref.read(formDraftStoreProvider).listDraftKeys();
+                              if (mounted) setState(() {});
+                              _load();
+                            });
+                          } else {
+                            setState(() => _openingFormId = null);
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => WorkOrderFormScreen(
+                                  workOrderId: widget.workOrderId,
+                                  formId: f.id,
+                                ),
                               ),
-                            ),
-                          ).then((_) {
-                            ref.invalidate(draftKeysProvider);
-                            _load();
-                          });
+                            ).then((_) async {
+                              ref.invalidate(draftKeysProvider);
+                              ref.read(draftKeysRefreshTriggerProvider.notifier).update((s) => s + 1);
+                              _draftKeys = await ref.read(formDraftStoreProvider).listDraftKeys();
+                              if (mounted) setState(() {});
+                              _load();
+                            });
+                          }
+                        } catch (_) {
+                          if (mounted) setState(() => _openingFormId = null);
                         }
                       },
                     ),
@@ -438,12 +501,14 @@ class _FormCard extends StatelessWidget {
     required this.onTap,
     this.isSubmitted = false,
     this.hasDraft = false,
+    this.isLoading = false,
   });
 
   final WorkOrderFormRef form;
   final VoidCallback onTap;
   final bool isSubmitted;
   final bool hasDraft;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +517,7 @@ class _FormCard extends StatelessWidget {
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -464,30 +529,16 @@ class _FormCard extends StatelessWidget {
                   color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.edit_note, color: theme.colorScheme.onPrimaryContainer, size: 26),
+                child: isLoading
+                    ? SizedBox(width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.onPrimaryContainer))
+                    : Icon(Icons.edit_note, color: theme.colorScheme.onPrimaryContainer, size: 26),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(form.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                        ),
-                        if (hasDraft)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text('Drafted', style: theme.textTheme.labelSmall?.copyWith(color: Colors.amber.shade900, fontWeight: FontWeight.w600)),
-                          ),
-                      ],
-                    ),
+                    Text(form.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text(
                       isSubmitted ? 'Submitted' : 'Version ${form.version ?? '—'}',
@@ -496,6 +547,25 @@ class _FormCard extends StatelessWidget {
                         fontWeight: isSubmitted ? FontWeight.w600 : null,
                       ),
                     ),
+                    if (hasDraft) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.edit_note_outlined, size: 14, color: theme.colorScheme.onTertiaryContainer),
+                            const SizedBox(width: 4),
+                            Text('Draft', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onTertiaryContainer, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
