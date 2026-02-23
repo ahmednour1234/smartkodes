@@ -28,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.smartkodes.app"
+        applicationId = "com.example.smartkodes_app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
