@@ -448,7 +448,7 @@ class RecordController extends Controller
     }
 
     /**
-     * Bulk export records to CSV
+     * Bulk export selected records to XLSX
      */
     public function bulkExport(Request $request)
     {
@@ -462,86 +462,28 @@ class RecordController extends Controller
             'record_ids.*' => 'required|string',
         ]);
 
-        $records = Record::where('tenant_id', $currentTenant->id)
+        $first = Record::where('tenant_id', $currentTenant->id)
             ->whereIn('id', $request->record_ids)
-            ->with(['form.formFields', 'recordFields.formField', 'project', 'submittedBy'])
-            ->get();
+            ->first();
 
-        if ($records->isEmpty()) {
+        if (!$first) {
             $routePrefix = $this->getRoutePrefix();
-        return redirect()->route("{$routePrefix}.records.index")
-                           ->with('error', 'No records found to export.');
+            return redirect()->route("{$routePrefix}.records.index")
+                ->with('error', 'No records found to export.');
         }
 
-        // Create CSV content
-        $filename = 'records_export_' . date('Y-m-d_His') . '.csv';
-        $handle = fopen('php://temp', 'r+');
+        $filters = [
+            'record_ids' => $request->record_ids,
+            'form_id' => $first->form_id,
+        ];
 
-        // Get all unique field names across all records
-        $allFields = collect();
-        foreach ($records as $record) {
-            foreach ($record->form->formFields as $field) {
-                if (!$allFields->contains('name', $field->name)) {
-                    $allFields->push($field);
-                }
-            }
-        }
+        $filename = 'records_export_' . date('Y-m-d_His') . '.xlsx';
 
-        // Write CSV header
-        $headers = array_merge(
-            ['Record ID', 'Form', 'Project', 'Status', 'Submitted By', 'Submitted At', 'Location'],
-            $allFields->pluck('label')->toArray()
+        return Excel::download(
+            new RecordsExport($currentTenant->id, $filters),
+            $filename,
+            \Maatwebsite\Excel\Excel::XLSX
         );
-        fputcsv($handle, $headers);
-
-        // Write data rows
-        foreach ($records as $record) {
-            $row = [
-                $record->id,
-                $record->form->name ?? 'N/A',
-                $record->project->name ?? 'N/A',
-                ucfirst($record->status ?? 'N/A'),
-                $record->submittedBy->name ?? 'N/A',
-                $record->submitted_at?->format('Y-m-d H:i:s') ?? 'N/A',
-                isset($record->location['latitude']) && isset($record->location['longitude'])
-                    ? $record->location['latitude'] . ', ' . $record->location['longitude']
-                    : 'N/A',
-            ];
-
-            // Add field values
-            foreach ($allFields as $field) {
-                $recordField = $record->recordFields->firstWhere('form_field_id', $field->id);
-
-                if ($recordField && $recordField->value_json) {
-                    $value = $recordField->value_json;
-
-                    // Handle different field types
-                    if (is_array($value)) {
-                        if (isset($value['value'])) {
-                            $row[] = $value['value'];
-                        } elseif ($field->field_type === 'checkbox') {
-                            $row[] = implode(', ', $value);
-                        } else {
-                            $row[] = json_encode($value);
-                        }
-                    } else {
-                        $row[] = $value;
-                    }
-                } else {
-                    $row[] = '';
-                }
-            }
-
-            fputcsv($handle, $row);
-        }
-
-        rewind($handle);
-        $csvContent = stream_get_contents($handle);
-        fclose($handle);
-
-        return response($csvContent)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     /**
