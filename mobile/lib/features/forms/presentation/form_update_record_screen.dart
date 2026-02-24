@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -205,6 +206,21 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   }
 
   Future<void> _pickFile(FormFieldModel field) async {
+    if (field.type == 'file') {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'ogg', 'm4a'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final f = result.files.single;
+      final bytes = f.bytes;
+      if (bytes == null || bytes.isEmpty) return;
+      final filename = f.name.isNotEmpty ? f.name : 'file';
+      setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
+      _scheduleDraftSave();
+      return;
+    }
     final picker = ImagePicker();
     final x = field.type == 'video'
         ? await picker.pickVideo(source: ImageSource.gallery)

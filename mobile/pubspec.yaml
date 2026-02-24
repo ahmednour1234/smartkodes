@@ -21,6 +21,7 @@ dependencies:
   url_launcher: ^6.2.2
   open_filex: ^4.7.0
   image_picker: ^1.0.7
+  file_picker: ^8.1.6
   connectivity_plus: ^5.0.2
   equatable: ^2.0.5
   json_annotation: ^4.8.1
