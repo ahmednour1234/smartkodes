@@ -306,6 +306,10 @@ class RecordController extends Controller
                 case 'url':
                     $rules[] = 'url';
                     break;
+                case 'multiselect':
+                    $rules[] = 'array';
+                    if ($field->is_required) $rules[] = 'min:1';
+                    break;
                 case 'file':
                 case 'photo':
                 case 'video':

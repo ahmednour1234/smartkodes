@@ -83,6 +83,13 @@
                             $label = $field->label ?? $field->name;
                             $placeholder = $field->placeholder ?? '';
                             $currentValue = $currentValues[$field->name] ?? null;
+                            $rawVal = old($field->name, $currentValue);
+                            $inputValue = is_array($rawVal) ? implode(', ', $rawVal) : (string) ($rawVal ?? '');
+                            $fieldOptions = $config['options'] ?? $field->options ?? [];
+                            if (is_string($fieldOptions)) {
+                                $fieldOptions = array_filter(array_map('trim', explode("\n", $fieldOptions)));
+                            }
+                            $multiselectVal = is_array($rawVal) ? $rawVal : (array) $rawVal;
                         @endphp
 
                         @if($field->type === 'section')
@@ -113,7 +120,7 @@
                                         <input type="{{ $field->type === 'email' ? 'email' : ($field->type === 'url' ? 'url' : 'text') }}"
                                                id="{{ $field->name }}"
                                                name="{{ $field->name }}"
-                                               value="{{ old($field->name, $currentValue) }}"
+                                               value="{{ $inputValue }}"
                                                placeholder="{{ $placeholder }}"
                                                {{ $required ? 'required' : '' }}
                                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
@@ -125,7 +132,7 @@
                                                   rows="4"
                                                   placeholder="{{ $placeholder }}"
                                                   {{ $required ? 'required' : '' }}
-                                                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">{{ old($field->name, $currentValue) }}</textarea>
+                                                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">{{ $inputValue }}</textarea>
                                         @break
 
                                     @case('number')
@@ -138,7 +145,7 @@
                                             <input type="number"
                                                    id="{{ $field->name }}"
                                                    name="{{ $field->name }}"
-                                                   value="{{ old($field->name, $currentValue) }}"
+                                                   value="{{ $inputValue }}"
                                                    step="{{ $field->type === 'currency' ? '0.01' : 'any' }}"
                                                    min="{{ $field->min_value }}"
                                                    max="{{ $field->max_value }}"
@@ -154,7 +161,7 @@
                                         <input type="date"
                                                id="{{ $field->name }}"
                                                name="{{ $field->name }}"
-                                               value="{{ old($field->name, $currentValue) }}"
+                                               value="{{ $inputValue }}"
                                                {{ $required ? 'required' : '' }}
                                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                                         @break
@@ -163,7 +170,7 @@
                                         <input type="time"
                                                id="{{ $field->name }}"
                                                name="{{ $field->name }}"
-                                               value="{{ old($field->name, $currentValue) }}"
+                                               value="{{ $inputValue }}"
                                                {{ $required ? 'required' : '' }}
                                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                                         @break
@@ -172,7 +179,7 @@
                                         <input type="datetime-local"
                                                id="{{ $field->name }}"
                                                name="{{ $field->name }}"
-                                               value="{{ old($field->name, $currentValue) }}"
+                                               value="{{ $inputValue }}"
                                                {{ $required ? 'required' : '' }}
                                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                                         @break
@@ -184,31 +191,42 @@
                                                 {{ $required ? 'required' : '' }}
                                                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                                             <option value="">Select an option</option>
-                                            @if(isset($field->options) && is_array($field->options))
-                                                @foreach($field->options as $option)
-                                                    <option value="{{ $option }}" {{ old($field->name, $currentValue) == $option ? 'selected' : '' }}>
-                                                        {{ $option }}
-                                                    </option>
-                                                @endforeach
-                                            @endif
+                                            @foreach($fieldOptions as $option)
+                                                <option value="{{ $option }}" {{ $inputValue === (string)$option ? 'selected' : '' }}>{{ $option }}</option>
+                                            @endforeach
                                         </select>
+                                        @break
+
+                                    @case('multiselect')
+                                        <div class="space-y-2 border border-gray-300 rounded-md p-3 bg-gray-50 max-h-48 overflow-y-auto">
+                                            @foreach($fieldOptions as $option)
+                                                <label class="flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                                    <input type="checkbox"
+                                                           name="{{ $field->name }}[]"
+                                                           value="{{ $option }}"
+                                                           {{ in_array($option, $multiselectVal) ? 'checked' : '' }}
+                                                           {{ $required ? 'required' : '' }}
+                                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                    <span class="ml-2 text-sm text-gray-700">{{ $option }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">Select one or more options</p>
                                         @break
 
                                     @case('radio')
                                         <div class="space-y-2">
-                                            @if(isset($field->options) && is_array($field->options))
-                                                @foreach($field->options as $option)
-                                                    <label class="flex items-center">
-                                                        <input type="radio"
-                                                               name="{{ $field->name }}"
-                                                               value="{{ $option }}"
-                                                               {{ old($field->name, $currentValue) == $option ? 'checked' : '' }}
-                                                               {{ $required ? 'required' : '' }}
-                                                               class="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                        <span class="ml-2 text-sm text-gray-700">{{ $option }}</span>
-                                                    </label>
-                                                @endforeach
-                                            @endif
+                                            @foreach($fieldOptions as $option)
+                                                <label class="flex items-center">
+                                                    <input type="radio"
+                                                           name="{{ $field->name }}"
+                                                           value="{{ $option }}"
+                                                           {{ $inputValue === (string)$option ? 'checked' : '' }}
+                                                           {{ $required ? 'required' : '' }}
+                                                           class="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                    <span class="ml-2 text-sm text-gray-700">{{ $option }}</span>
+                                                </label>
+                                            @endforeach
                                         </div>
                                         @break
 
@@ -225,41 +243,37 @@
                                         @break
 
                                     @case('signature')
+                                        @php
+                                            $signatureValue = is_array($currentValue) && isset($currentValue['value']) ? (string)$currentValue['value'] : (string)($currentValue ?? '');
+                                        @endphp
                                         <div class="border-2 border-dashed border-gray-300 rounded-md p-4">
-                                            @if($currentValue)
-                                                <div class="mb-2">
-                                                    <p class="text-sm text-gray-600 mb-2">Current Signature:</p>
-                                                    <img src="{{ $currentValue }}" alt="Current Signature" class="border border-gray-300 rounded max-w-md mb-2">
-                                                    <p class="text-xs text-gray-500">Draw a new signature below to replace the current one.</p>
-                                                </div>
-                                            @endif
-                                            <canvas id="signature-{{ $field->name }}"
-                                                    class="w-full h-40 border border-gray-200 rounded cursor-crosshair bg-white"
-                                                    data-field="{{ $field->name }}"></canvas>
-                                            <input type="hidden" name="{{ $field->name }}" id="{{ $field->name }}-data" value="{{ $currentValue }}">
-                                            <div class="mt-2 flex gap-2">
-                                                <button type="button"
-                                                        onclick="clearSignature('{{ $field->name }}')"
-                                                        class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded">
-                                                    Clear
-                                                </button>
-                                            </div>
+                                            <label class="text-sm text-gray-600 mb-2 block">Current Signature:</label>
+                                            <input type="text"
+                                                   name="{{ $field->name }}"
+                                                   id="{{ $field->name }}-data"
+                                                   value="{{ $signatureValue }}"
+                                                   placeholder="Signature (editable text)"
+                                                   {{ $required ? 'required' : '' }}
+                                                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                                         </div>
                                         @break
 
                                     @case('gps')
-                                        <div class="space-y-2">
-                                            @if(is_array($currentValue) && isset($currentValue['latitude']))
-                                                <p class="text-sm text-gray-600">
-                                                    Current: {{ number_format($currentValue['latitude'], 6) }}, {{ number_format($currentValue['longitude'], 6) }}
-                                                </p>
-                                            @endif
-                                            <button type="button"
-                                                    onclick="captureLocation('{{ $field->name }}')"
-                                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                                📍 Update Location
-                                            </button>
-                                            <input type="hidden" name="{{ $field->name }}" id="{{ $field->name }}-data" value="{{ json_encode($currentValue) }}">
+                                        @php
+                                            $gpsLat = is_array($currentValue) && isset($currentValue['latitude']) ? (float)$currentValue['latitude'] : null;
+                                            $gpsLng = is_array($currentValue) && isset($currentValue['longitude']) ? (float)$currentValue['longitude'] : null;
+                                        @endphp
+                                        <div class="space-y-2 gps-field" data-field-name="{{ $field->name }}" data-initial-lat="{{ $gpsLat }}" data-initial-lng="{{ $gpsLng }}">
+                                            <div id="map-{{ $field->name }}" class="w-full h-64 rounded-lg border border-gray-300 z-0" style="min-height: 256px;"></div>
+                                            <div class="flex gap-2 flex-wrap">
+                                                <button type="button" onclick="gpsUseMyLocation('{{ $field->name }}')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                                    📍 Use my location
+                                                </button>
+                                                <button type="button" onclick="gpsClearLocation('{{ $field->name }}')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">
+                                                    Clear
+                                                </button>
+                                            </div>
+                                            <input type="hidden" name="{{ $field->name }}" id="{{ $field->name }}-data" value="{{ is_array($currentValue) ? json_encode($currentValue) : (string)($currentValue ?? '') }}">
                                             <div id="{{ $field->name }}-display" class="text-sm text-gray-600"></div>
                                         </div>
                                         @break
@@ -275,7 +289,7 @@
                                             <input type="text"
                                                    id="{{ $field->name }}"
                                                    name="{{ $field->name }}"
-                                                   value="{{ old($field->name, $currentValue) }}"
+                                                   value="{{ $inputValue }}"
                                                    placeholder="Or enter code manually"
                                                    {{ $required ? 'required' : '' }}
                                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
@@ -315,7 +329,7 @@
                                         <input type="text"
                                                id="{{ $field->name }}"
                                                name="{{ $field->name }}"
-                                               value="{{ old($field->name, $currentValue) }}"
+                                               value="{{ $inputValue }}"
                                                placeholder="{{ $placeholder }}"
                                                {{ $required ? 'required' : '' }}
                                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
@@ -351,11 +365,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize signature pads
     initializeSignaturePads();
-
-    // Initialize conditional logic
     initializeConditionalLogic();
+    initializeGpsMaps();
 });
 
 // Signature pad functionality using SignaturePad library
@@ -408,27 +420,58 @@ function clearSignature(fieldName) {
     }
 }
 
-// GPS Location
-function captureLocation(fieldName) {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const location = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    accuracy: position.coords.accuracy
-                };
-                document.getElementById(fieldName + '-data').value = JSON.stringify(location);
-                document.getElementById(fieldName + '-display').innerHTML =
-                    `<span class="text-green-600">✓ Location captured: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)} (±${Math.round(location.accuracy)}m)</span>`;
-            },
-            (error) => {
-                alert('Unable to capture location: ' + error.message);
+window.gpsMaps = {};
+function initializeGpsMaps() {
+    document.querySelectorAll('.gps-field').forEach(el => {
+        const fieldName = el.dataset.fieldName;
+        const mapEl = document.getElementById('map-' + fieldName);
+        if (!mapEl || typeof L === 'undefined') return;
+        const lat = el.dataset.initialLat ? parseFloat(el.dataset.initialLat) : 30.0444;
+        const lng = el.dataset.initialLng ? parseFloat(el.dataset.initialLng) : 31.2357;
+        const map = L.map(mapEl).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        let marker = null;
+        if (el.dataset.initialLat && el.dataset.initialLng) {
+            marker = L.marker([lat, lng]).addTo(map);
+        }
+        map.on('click', function(e) {
+            if (marker) marker.remove();
+            marker = L.marker(e.latlng).addTo(map);
+            const loc = { latitude: e.latlng.lat, longitude: e.latlng.lng, accuracy: null };
+            document.getElementById(fieldName + '-data').value = JSON.stringify(loc);
+            document.getElementById(fieldName + '-display').innerHTML = '<span class="text-green-600">✓ ' + e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6) + '</span>';
+        });
+        window.gpsMaps[fieldName] = { map, marker };
+    });
+}
+function gpsUseMyLocation(fieldName) {
+    if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const data = window.gpsMaps[fieldName];
+            if (data && data.map) {
+                data.map.setView([lat, lng], 16);
+                if (data.marker) data.marker.remove();
+                data.marker = L.marker([lat, lng]).addTo(data.map);
+                window.gpsMaps[fieldName].marker = data.marker;
             }
-        );
-    } else {
-        alert('Geolocation is not supported by your browser');
-    }
+            const loc = { latitude: lat, longitude: lng, accuracy: position.coords.accuracy };
+            document.getElementById(fieldName + '-data').value = JSON.stringify(loc);
+            document.getElementById(fieldName + '-display').innerHTML = '<span class="text-green-600">✓ ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ' (±' + Math.round(position.coords.accuracy) + 'm)</span>';
+        },
+        function() { alert('Unable to get location'); }
+    );
+}
+function gpsClearLocation(fieldName) {
+    const data = window.gpsMaps[fieldName];
+    if (data && data.marker) { data.marker.remove(); window.gpsMaps[fieldName].marker = null; }
+    document.getElementById(fieldName + '-data').value = '';
+    document.getElementById(fieldName + '-display').innerHTML = '';
+}
+function captureLocation(fieldName) {
+    gpsUseMyLocation(fieldName);
 }
 
 // Conditional Logic
