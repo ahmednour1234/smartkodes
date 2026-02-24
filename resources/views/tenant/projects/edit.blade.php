@@ -11,11 +11,18 @@
                             <h2 class="text-2xl font-bold">Edit Project</h2>
                             <p class="text-blue-100 mt-1">{{ $project->name }}</p>
                         </div>
-                        <div class="flex space-x-3">
+                        <div class="flex flex-wrap gap-3 items-center">
                             <a href="{{ route('tenant.projects.show', $project) }}"
                                class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
                                 View Project
                             </a>
+                            <form action="{{ route('tenant.projects.destroy', $project) }}" method="POST" class="inline" onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                                    Delete Project
+                                </button>
+                            </form>
                             <a href="{{ route('tenant.projects.index') }}"
                                class="text-blue-100 hover:text-white transition duration-200">
                                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

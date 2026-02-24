@@ -92,13 +92,20 @@
                                 Created {{ $project->created_at->format('M d, Y') }}
                             </div>
 
-                            <div class="flex space-x-2">
+                            <div class="flex flex-wrap gap-2">
                                 <a href="{{ route('tenant.projects.show', $project) }}" class="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
                                     View Details
                                 </a>
                                 <a href="{{ route('tenant.projects.edit', $project) }}" class="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded text-sm font-medium text-center transition duration-200">
                                     Edit
                                 </a>
+                                <form action="{{ route('tenant.projects.destroy', $project) }}" method="POST" class="inline" onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="bg-red-50 text-red-700 hover:bg-red-100 px-3 py-2 rounded text-sm font-medium transition duration-200">
+                                        Delete
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
