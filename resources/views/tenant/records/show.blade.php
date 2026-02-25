@@ -132,25 +132,41 @@
                                                         $files = $record->files->where('form_field_id', $field->id);
                                                     @endphp
                                                     @if($files->count() > 0)
-                                                        <div class="space-y-2">
+                                                        <div class="space-y-4">
                                                             @foreach($files as $file)
-                                                                <div class="flex items-center p-3 bg-gray-50 rounded-md">
-                                                                    @if(str_starts_with($file->mime_type, 'image/'))
-                                                                        <img src="{{ Storage::url($file->file_path) }}" alt="{{ $file->original_filename }}" class="h-16 w-16 object-cover rounded mr-3">
+                                                                @php
+                                                                    $fileUrl = Storage::url($file->file_path);
+                                                                    $isImage = str_starts_with($file->mime_type ?? '', 'image/');
+                                                                    $isVideo = str_starts_with($file->mime_type ?? '', 'video/');
+                                                                @endphp
+                                                                <div class="p-3 bg-gray-50 rounded-md">
+                                                                    @if($isImage)
+                                                                        <a href="{{ $fileUrl }}" target="_blank" rel="noopener" class="block mb-2">
+                                                                            <img src="{{ $fileUrl }}" alt="{{ $file->original_filename }}" class="max-w-full max-h-80 w-auto object-contain rounded border border-gray-200 shadow-sm">
+                                                                        </a>
+                                                                    @elseif($isVideo)
+                                                                        <video src="{{ $fileUrl }}" controls class="max-w-full max-h-80 w-full rounded border border-gray-200 bg-black" preload="metadata">
+                                                                            Your browser does not support the video tag.
+                                                                        </video>
                                                                     @else
-                                                                        <svg class="h-8 w-8 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                        </svg>
+                                                                        <div class="flex items-center">
+                                                                            <svg class="h-8 w-8 text-gray-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                            </svg>
+                                                                        </div>
                                                                     @endif
-                                                                    <div class="flex-1 min-w-0">
-                                                                        <p class="text-sm font-medium text-gray-900 truncate">{{ $file->original_filename }}</p>
-                                                                        <p class="text-xs text-gray-500">{{ number_format($file->file_size / 1024, 2) }} KB</p>
+                                                                    <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
+                                                                        <div class="min-w-0">
+                                                                            <p class="text-sm font-medium text-gray-900 truncate">{{ $file->original_filename }}</p>
+                                                                            <p class="text-xs text-gray-500">{{ number_format($file->file_size / 1024, 2) }} KB</p>
+                                                                        </div>
+                                                                        <a href="{{ $fileUrl }}" download class="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm">
+                                                                            <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                            </svg>
+                                                                            Download
+                                                                        </a>
                                                                     </div>
-                                                                    <a href="{{ Storage::url($file->file_path) }}" download class="ml-3 text-indigo-600 hover:text-indigo-800">
-                                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                                        </svg>
-                                                                    </a>
                                                                 </div>
                                                             @endforeach
                                                         </div>
