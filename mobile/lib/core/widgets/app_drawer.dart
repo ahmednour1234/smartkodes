@@ -45,7 +45,7 @@ class AppDrawer extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.description_outlined),
-            title: const Text('Manage Forms'),
+            title: const Text('My Forms'),
             onTap: () => _nav(context, const FormsListScreen()),
           ),
           ListTile(

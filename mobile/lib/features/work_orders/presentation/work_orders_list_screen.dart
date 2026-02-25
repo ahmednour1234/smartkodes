@@ -20,7 +20,9 @@ class WorkOrdersListScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
-  int? _priorityFilter;
+  String? _priorityFilter;
+  bool _submittedOnlyFilter = false;
+  bool _filtersExpanded = false;
   String? _statusFilter;
   String? _projectFilter;
   String _sortBy = 'distance';
@@ -60,28 +62,30 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
   }
 
   static String _priorityLabel(WorkOrder wo) {
-    final p = wo.priorityValue ?? wo.importanceLevel;
-    if (p == null) return '—';
+    final p = wo.importanceLevel?.trim().toLowerCase();
+    if (p == null || p.isEmpty) return 'No Priority';
     switch (p) {
-      case 1: return 'High';
-      case 2: return 'Medium';
-      case 3: return 'Low';
-      default: return '—';
+      case 'critical': return 'Critical';
+      case 'high': return 'High';
+      case 'medium': return 'Medium';
+      case 'low': return 'Low';
+      default: return p;
     }
   }
 
   static double _priorityHue(WorkOrder wo) {
-    final p = wo.priorityValue ?? wo.importanceLevel;
-    if (p == null || p == 3) return BitmapDescriptor.hueGreen;
-    if (p == 1) return BitmapDescriptor.hueRed;
+    final p = wo.importanceLevel?.trim().toLowerCase();
+    if (p == null || p.isEmpty || p == 'low') return BitmapDescriptor.hueGreen;
+    if (p == 'critical' || p == 'high') return BitmapDescriptor.hueRed;
     return BitmapDescriptor.hueOrange;
   }
 
   static Color _priorityColor(WorkOrder wo) {
-    final p = wo.priorityValue ?? wo.importanceLevel;
-    if (p == 1) return Colors.red.shade700;
-    if (p == 2) return Colors.orange.shade700;
-    return Colors.green.shade700;
+    final p = wo.importanceLevel?.trim().toLowerCase();
+    if (p == 'critical' || p == 'high') return Colors.red.shade700;
+    if (p == 'medium') return Colors.orange.shade700;
+    if (p == 'low') return Colors.green.shade700;
+    return Colors.grey;
   }
 
   @override
@@ -100,7 +104,8 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
       drawer: const AppDrawer(),
       body: FutureBuilder<PaginatedResponse<WorkOrder>>(
         future: ref.read(workOrderRepositoryProvider).list(
-              priority: _priorityFilter,
+              importanceLevel: _priorityFilter,
+              submittedOnly: _submittedOnlyFilter ? true : null,
               sortBy: _sortBy,
               sortOrder: _sortOrder,
               latitude: _useNearby ? _lat : null,
@@ -137,8 +142,8 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
 
   Widget _buildListView(BuildContext context, List<WorkOrder> fullList, List<WorkOrder> list) {
     final highCount = list.where((wo) {
-      final p = wo.priorityValue ?? wo.importanceLevel;
-      return p == 1;
+      final p = wo.importanceLevel?.trim().toLowerCase();
+      return p == 'critical' || p == 'high';
     }).length;
     final statusSet = <String>{'Assigned', 'In Progress'};
     for (final wo in fullList) {
@@ -208,48 +213,75 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.tune_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Filters',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                InkWell(
+                  onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Filters',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        _filtersExpanded ? Icons.expand_less : Icons.expand_more,
                         color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FilterChipDropdown<String?>(
-                        value: _statusFilter,
-                        label: 'Status',
-                        hint: 'All statuses',
-                        icon: Icons.flag_rounded,
-                        items: [const DropdownMenuItem(value: null, child: Text('All'))]
-                          ..addAll(statuses.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))),
-                        onChanged: (v) => setState(() => _statusFilter = v),
+                if (_filtersExpanded) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FilterChipDropdown<String?>(
+                          value: _statusFilter,
+                          label: 'Status',
+                          hint: 'All statuses',
+                          icon: Icons.flag_rounded,
+                          items: [const DropdownMenuItem(value: null, child: Text('All'))]
+                            ..addAll(statuses.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))),
+                          onChanged: (v) => setState(() => _statusFilter = v),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _FilterChipDropdown<String?>(
-                        value: _projectFilter,
-                        label: 'Project',
-                        hint: 'All projects',
-                        icon: Icons.folder_rounded,
-                        items: [const DropdownMenuItem(value: null, child: Text('All'))]
-                          ..addAll(projects.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)))),
-                        onChanged: (v) => setState(() => _projectFilter = v),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _FilterChipDropdown<String?>(
+                          value: _projectFilter,
+                          label: 'Project',
+                          hint: 'All projects',
+                          icon: Icons.folder_rounded,
+                          items: [const DropdownMenuItem(value: null, child: Text('All'))]
+                            ..addAll(projects.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)))),
+                          onChanged: (v) => setState(() => _projectFilter = v),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _FilterChipDropdown<String?>(
+                    value: _priorityFilter,
+                    label: 'Priority',
+                    hint: 'Any priority',
+                    icon: Icons.low_priority_rounded,
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Any')),
+                      DropdownMenuItem(value: '', child: Text('No Priority')),
+                      DropdownMenuItem(value: 'low', child: Text('Low')),
+                      DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                      DropdownMenuItem(value: 'high', child: Text('High')),
+                      DropdownMenuItem(value: 'critical', child: Text('Critical')),
+                    ],
+                    onChanged: (v) => setState(() => _priorityFilter = v),
+                  ),
+                ],
               ],
             ),
           ),
@@ -281,6 +313,13 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                 icon: Icons.low_priority_rounded,
                 selected: _sortBy == 'priority',
                 onTap: () => setState(() => _sortBy = 'priority'),
+              ),
+              const SizedBox(width: 8),
+              _SortChip(
+                label: 'Submitted',
+                icon: Icons.check_circle_outline,
+                selected: _submittedOnlyFilter,
+                onTap: () => setState(() => _submittedOnlyFilter = !_submittedOnlyFilter),
               ),
             ],
           ),
@@ -629,15 +668,17 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
               children: [
                 const Text('Filters', style: TextStyle(fontSize: 18)),
                 const SizedBox(height: 8),
-                DropdownButton<int?>(
+                DropdownButton<String?>(
                   value: _priorityFilter,
                   isExpanded: true,
                   hint: const Text('Priority'),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('Any')),
-                    const DropdownMenuItem(value: 1, child: Text('1')),
-                    const DropdownMenuItem(value: 2, child: Text('2')),
-                    const DropdownMenuItem(value: 3, child: Text('3')),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('Any')),
+                    DropdownMenuItem(value: '', child: Text('No Priority')),
+                    DropdownMenuItem(value: 'low', child: Text('Low')),
+                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                    DropdownMenuItem(value: 'high', child: Text('High')),
+                    DropdownMenuItem(value: 'critical', child: Text('Critical')),
                   ],
                   onChanged: (v) => setModalState(() => _priorityFilter = v),
                 ),

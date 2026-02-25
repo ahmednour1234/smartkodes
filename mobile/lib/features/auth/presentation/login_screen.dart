@@ -33,22 +33,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
+  void _showAuthError(Object error) {
+    final msg = isConnectionError(error)
+        ? 'No connection. Check your internet and try again.'
+        : error.toString().replaceFirst('Exception: ', '');
+    if (msg.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        duration: const Duration(seconds: 4),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     ref.listen(authStateProvider, (prev, next) {
       next?.whenOrNull(
-        error: (e, _) => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isConnectionError(e)
-                  ? 'No connection. Check your internet and try again.'
-                  : e.toString().replaceFirst('Exception: ', ''),
-            ),
-          ),
-        ),
+        error: (e, _) => _showAuthError(e),
       );
     });
+    if (authState.hasError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showAuthError(authState.error!);
+          ref.read(authStateProvider.notifier).forceUnauthenticated();
+        }
+      });
+    }
 
     return Scaffold(
       body: SafeArea(

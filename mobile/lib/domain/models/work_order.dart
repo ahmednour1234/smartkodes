@@ -4,7 +4,7 @@ class WorkOrder {
   final String? description;
   final WorkOrderProject? project;
   final String status;
-  final int? importanceLevel;
+  final String? importanceLevel;
   final int? priorityValue;
   final String? priorityUnit;
   final String? dueDate;
@@ -48,7 +48,7 @@ class WorkOrder {
           ? WorkOrderProject.fromJson(json['project'] as Map<String, dynamic>)
           : null,
       status: _toStr(json['status']) ?? '',
-      importanceLevel: _toInt(json['importance_level']),
+      importanceLevel: _toStr(json['importance_level'])?.toLowerCase(),
       priorityValue: _toInt(json['priority_value']),
       priorityUnit: _toStr(json['priority_unit']),
       dueDate: _toStr(json['due_date']),

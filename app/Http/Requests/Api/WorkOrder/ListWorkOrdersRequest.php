@@ -15,7 +15,8 @@ class ListWorkOrdersRequest extends BaseApiRequest
     {
         return [
             'status' => 'nullable|integer|in:0,1,2,3',
-            'priority' => 'nullable|integer',
+            'importance_level' => 'nullable|string',
+            'submitted_only' => 'nullable',
             'latitude' => 'nullable|numeric|between:-90,90|required_with:longitude',
             'longitude' => 'nullable|numeric|between:-180,180|required_with:latitude',
             'radius' => 'nullable|numeric|min:0.1|max:100',

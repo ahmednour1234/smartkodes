@@ -24,24 +24,25 @@ Color _statusColor(String status) {
   return Colors.teal;
 }
 
-String _priorityLabel(int? p) {
-  if (p == null) return '—';
-  switch (p) {
-    case 1: return 'High';
-    case 2: return 'Medium';
-    case 3: return 'Low';
-    default: return '—';
+String _priorityLabel(String? p) {
+  final s = p?.trim().toLowerCase();
+  if (s == null || s.isEmpty) return 'No Priority';
+  switch (s) {
+    case 'critical': return 'Critical';
+    case 'high': return 'High';
+    case 'medium': return 'Medium';
+    case 'low': return 'Low';
+    default: return p!;
   }
 }
 
-Color _priorityColor(int? p) {
-  if (p == null) return Colors.grey;
-  switch (p) {
-    case 1: return Colors.red.shade700;
-    case 2: return Colors.orange.shade700;
-    case 3: return Colors.green.shade700;
-    default: return Colors.grey;
-  }
+Color _priorityColor(String? p) {
+  final s = p?.trim().toLowerCase();
+  if (s == null || s.isEmpty) return Colors.grey;
+  if (s == 'critical' || s == 'high') return Colors.red.shade700;
+  if (s == 'medium') return Colors.orange.shade700;
+  if (s == 'low') return Colors.green.shade700;
+  return Colors.grey;
 }
 
 String _slaLabel(WorkOrder wo) {
@@ -209,9 +210,9 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> with Ro
                       const Divider(height: 24),
                       _DetailRow(
                         label: 'Priority',
-                        value: _priorityLabel(wo.priorityValue ?? wo.importanceLevel),
+                        value: _priorityLabel(wo.importanceLevel),
                         icon: Icons.flag_rounded,
-                        color: _priorityColor(wo.priorityValue ?? wo.importanceLevel),
+                        color: _priorityColor(wo.importanceLevel),
                       ),
                     ],
                   ),

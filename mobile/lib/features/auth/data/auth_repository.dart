@@ -14,25 +14,49 @@ class AuthRepository {
   final SecureStorage _storage;
 
   Future<LoginResult> login(String email, String password) async {
-    final response = await _client.request<Map<String, dynamic>>(
-      'login',
-      method: 'POST',
-      data: {'email': email, 'password': password},
-      fromJsonT: (d) => d as Map<String, dynamic>,
-    );
-    if (!response.success || response.data == null) {
-      return LoginResult.failure(response.message);
+    try {
+      final response = await _client.request<Map<String, dynamic>>(
+        'login',
+        method: 'POST',
+        data: {'email': email, 'password': password},
+        fromJsonT: (d) => d as Map<String, dynamic>,
+      );
+      if (!response.success || response.data == null) {
+        return LoginResult.failure(
+          response.message.isNotEmpty ? response.message : 'Invalid email or password',
+        );
+      }
+      final data = response.data!;
+      final token = data['token'] as String?;
+      final userMap = data['user'] as Map<String, dynamic>?;
+      if (token == null || userMap == null) {
+        return LoginResult.failure('Invalid response');
+      }
+      final user = User.fromJson(userMap);
+      await _storage.setToken(token);
+      await _storage.setUserJson(jsonEncode(user.toJson()));
+      return LoginResult.success(user, token);
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data as Map)['message'] as String?
+          : null;
+      if (msg != null && msg.toString().trim().isNotEmpty) {
+        return LoginResult.failure(msg.toString().trim());
+      }
+      if (e.response?.data is Map && (e.response!.data as Map)['errors'] != null) {
+        final errors = (e.response!.data as Map)['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first;
+          final text = first is List ? first.join(' ') : first.toString();
+          return LoginResult.failure(text);
+        }
+      }
+      return LoginResult.failure(
+        e.response?.statusCode == 401
+            ? 'Invalid email or password'
+            : 'Login failed. Please try again.',
+      );
     }
-    final data = response.data!;
-    final token = data['token'] as String?;
-    final userMap = data['user'] as Map<String, dynamic>?;
-    if (token == null || userMap == null) {
-      return LoginResult.failure('Invalid response');
-    }
-    final user = User.fromJson(userMap);
-    await _storage.setToken(token);
-    await _storage.setUserJson(jsonEncode(user.toJson()));
-    return LoginResult.success(user, token);
   }
 
   Future<void> logout() async {

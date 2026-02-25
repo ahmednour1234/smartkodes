@@ -105,7 +105,7 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Forms'),
+        title: const Text('My Forms'),
         actions: [
           IconButton(
             icon: const Icon(Icons.home_outlined),

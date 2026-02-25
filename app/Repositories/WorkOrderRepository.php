@@ -5,8 +5,9 @@ namespace App\Repositories;
 use App\Models\Record;
 use App\Models\WorkOrder;
 use App\Repositories\BaseRepository;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class WorkOrderRepository extends BaseRepository
 {
@@ -34,9 +35,12 @@ class WorkOrderRepository extends BaseRepository
             $query->where('status', $filters['status']);
         }
 
-        // Filter by priority
-        if (isset($filters['priority'])) {
-            $query->where('priority_value', $filters['priority']);
+        if (array_key_exists('importance_level', $filters)) {
+            if ($filters['importance_level'] === '' || $filters['importance_level'] === null) {
+                $query->whereNull('importance_level');
+            } else {
+                $query->where('importance_level', $filters['importance_level']);
+            }
         }
 
         // Filter by nearby location (requires current latitude and longitude)
@@ -68,7 +72,9 @@ class WorkOrderRepository extends BaseRepository
                 $sortOrder = $filters['sort_order'] ?? 'asc';
                 switch ($filters['sort_by']) {
                     case 'priority':
-                        $query->orderBy('priority_value', $sortOrder);
+                        $query->orderByRaw(
+                            "CASE COALESCE(importance_level, '') WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END " . ($sortOrder === 'desc' ? 'DESC' : 'ASC')
+                        );
                         break;
                     case 'due_date':
                         $query->orderBy('due_date', $sortOrder);
@@ -108,7 +114,13 @@ class WorkOrderRepository extends BaseRepository
                 ->selectRaw('count(distinct form_id)')
                 ->whereColumn('records.work_order_id', 'work_orders.id')
                 ->where('records.submitted_by', $userId),
+            'forms_count' => DB::table('form_work_order')
+                ->selectRaw('count(*)')
+                ->whereColumn('form_work_order.work_order_id', 'work_orders.id'),
         ]);
+        if (!empty($filters['submitted_only'])) {
+            $query->havingRaw('forms_count > 0 AND records_count >= forms_count');
+        }
         $query->with(['project', 'assignedUser', 'forms.formFields']);
 
         if ($perPage > 0) {

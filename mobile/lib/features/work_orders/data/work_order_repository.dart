@@ -13,7 +13,8 @@ class WorkOrderRepository {
   final ApiClient _client;
 
   Future<PaginatedResponse<WorkOrder>> list({
-    int? priority,
+    String? importanceLevel,
+    bool? submittedOnly,
     String? sortBy,
     String? sortOrder,
     double? latitude,
@@ -23,7 +24,8 @@ class WorkOrderRepository {
   }) async {
     final query = <String, dynamic>{
       'per_page': perPage,
-      if (priority != null) 'priority': priority,
+      if (importanceLevel != null) 'importance_level': importanceLevel,
+      if (submittedOnly == true) 'submitted_only': true,
       if (sortBy != null) 'sort_by': sortBy,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (latitude != null) 'latitude': latitude,
