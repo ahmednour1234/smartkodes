@@ -212,20 +212,38 @@ class WorkOrderController extends BaseApiController
                 'updated_by' => $user->id,
             ]);
 
+            $maxFileBytes = 5 * 1024 * 1024; // 5MB
+
             // Process form fields and store values
             foreach ($form->formFields as $formField) {
                 $fieldName = $formField->name;
+                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio'], true);
 
-                if (!$request->has($fieldName)) {
-                    continue;
-                }
-
-                $fieldValue = $request->input($fieldName);
-
-                // Handle file uploads
-                if (in_array($formField->type, ['file', 'photo', 'video', 'audio'], true) && $request->hasFile($fieldName)) {
-                    $file = $request->file($fieldName);
-                    $fieldValue = $this->workOrderService->handleFileUpload($file, $formField, $record, $user);
+                if ($isFileType) {
+                    if (!$request->hasFile($fieldName)) {
+                        continue;
+                    }
+                    $files = $request->file($fieldName);
+                    if (!is_array($files)) {
+                        $files = [$files];
+                    }
+                    $totalBytes = 0;
+                    foreach ($files as $file) {
+                        $totalBytes += $file->getSize();
+                    }
+                    if ($totalBytes > $maxFileBytes) {
+                        return $this->errorResponse('Total size of files for "' . ($formField->label ?? $fieldName) . '" must not exceed 5MB.', 422);
+                    }
+                    $paths = [];
+                    foreach ($files as $file) {
+                        $paths[] = $this->workOrderService->handleFileUpload($file, $formField, $record, $user);
+                    }
+                    $fieldValue = count($paths) === 1 ? $paths[0] : $paths;
+                } else {
+                    if (!$request->has($fieldName)) {
+                        continue;
+                    }
+                    $fieldValue = $request->input($fieldName);
                 }
 
                 // Handle calculated fields

@@ -85,7 +85,7 @@ class WorkOrderRepository {
     String workOrderId,
     String formId,
     Map<String, dynamic> fields, {
-    Map<String, ({Uint8List bytes, String filename})>? fileFields,
+    Map<String, dynamic>? fileFields,
     double? latitude,
     double? longitude,
   }) async {
@@ -107,10 +107,12 @@ class WorkOrderRepository {
     }
     if (fileFields != null) {
       for (final e in fileFields.entries) {
-        map[e.key] = MultipartFile.fromBytes(
-          e.value.bytes,
-          filename: e.value.filename,
-        );
+        final v = e.value;
+        final list = v is List ? v as List<({Uint8List bytes, String filename})> : [v as ({Uint8List bytes, String filename})];
+        for (var i = 0; i < list.length; i++) {
+          final f = list[i];
+          map['${e.key}[$i]'] = MultipartFile.fromBytes(f.bytes, filename: f.filename);
+        }
       }
     }
     final formData = FormData.fromMap(map);

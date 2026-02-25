@@ -16,6 +16,8 @@ import '../../work_orders/presentation/work_order_providers.dart';
 import '../data/forms_repository.dart';
 import 'forms_providers.dart';
 
+const int _maxFileBytes = 5 * 1024 * 1024; // 5MB
+
 class FormUpdateRecordScreen extends ConsumerStatefulWidget {
   const FormUpdateRecordScreen({
     super.key,
@@ -38,7 +40,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     with WidgetsBindingObserver {
   final _recordIdController = TextEditingController();
   final _values = <String, dynamic>{};
-  final _fileData = <String, ({Uint8List bytes, String filename})>{};
+  final _fileData = <String, dynamic>{};
   final _fieldErrors = <String, String>{};
   bool _submitting = false;
   String? _error;
@@ -69,7 +71,22 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     for (final e in _values.entries) {
       _initialValues[e.key] = _toJsonSafeValue(e.value);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDraft());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadDraft();
+      if (widget.recordId != null && mounted) await _fetchRecordFields();
+    });
+  }
+
+  Future<void> _fetchRecordFields() async {
+    if (widget.recordId == null) return;
+    final repo = ref.read(formsRepositoryProvider);
+    final record = await repo.getRecord(widget.recordId!);
+    if (!mounted || record?.fields == null) return;
+    setState(() {
+      for (final e in record!.fields!.entries) {
+        _values[e.key] = e.value;
+      }
+    });
   }
 
   @override
@@ -103,7 +120,20 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     for (final e in _values.entries) {
       values[e.key] = _toJsonSafeValue(e.value);
     }
-    await store.saveDraft(_draftKey, values, _fileData.isEmpty ? null : _fileData);
+    Map<String, ({Uint8List bytes, String filename})>? flatFiles;
+    if (_fileData.isNotEmpty) {
+      flatFiles = {};
+      for (final e in _fileData.entries) {
+        final v = e.value;
+        if (v is List && v.isNotEmpty) {
+          flatFiles[e.key] = v.first as ({Uint8List bytes, String filename});
+        } else if (v is ({Uint8List bytes, String filename})) {
+          flatFiles[e.key] = v;
+        }
+      }
+      if (flatFiles!.isEmpty) flatFiles = null;
+    }
+    await store.saveDraft(_draftKey, values, flatFiles);
   }
 
   Future<void> _loadDraft() async {
@@ -165,20 +195,45 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   }
 
   String? _existingImageUrl(dynamic value) {
+    final list = _existingImageUrls(value);
+    return list != null && list.isNotEmpty ? list.first : null;
+  }
+
+  List<String>? _existingImageUrls(dynamic value) {
     if (value == null) return null;
     final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
-    if (value is String && value.trim().isNotEmpty) {
-      final s = value.trim();
+    String? pathToUrl(String s) {
       if (s.startsWith('http')) return s;
       if (s.contains('/')) return '$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//');
       return null;
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      final u = pathToUrl(value.trim());
+      return u != null ? [u] : null;
+    }
+    if (value is List) {
+      final urls = <String>[];
+      for (final e in value) {
+        if (e is String && e.trim().isNotEmpty) {
+          final u = pathToUrl(e.trim());
+          if (u != null) urls.add(u);
+        } else if (e is Map) {
+          final u = e['url'] ?? e['path'];
+          if (u != null) {
+            final s = u.toString().trim();
+            if (s.startsWith('http')) urls.add(s);
+            else if (s.contains('/')) urls.add('$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//'));
+          }
+        }
+      }
+      return urls.isEmpty ? null : urls;
     }
     if (value is Map) {
       final u = value['url'] ?? value['path'];
       if (u != null) {
         final s = u.toString().trim();
-        if (s.startsWith('http')) return s;
-        if (s.contains('/')) return '$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//');
+        if (s.startsWith('http')) return [s];
+        if (s.contains('/')) return ['$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//')];
       }
     }
     return null;
@@ -205,6 +260,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     );
   }
 
+  List<({Uint8List bytes, String filename})> _getFileList(String fieldName) {
+    final v = _fileData[fieldName];
+    if (v == null) return [];
+    if (v is List) return List<({Uint8List bytes, String filename})>.from(v);
+    return [v as ({Uint8List bytes, String filename})];
+  }
+
   Future<void> _pickFile(FormFieldModel field) async {
     if (field.type == 'file') {
       final result = await FilePicker.platform.pickFiles(
@@ -216,17 +278,76 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       final f = result.files.single;
       final bytes = f.bytes;
       if (bytes == null || bytes.isEmpty) return;
+      if (bytes.length > _maxFileBytes) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File must be 5MB or less')));
+        return;
+      }
       final filename = f.name.isNotEmpty ? f.name : 'file';
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
       _scheduleDraftSave();
       return;
     }
+    if (field.type == 'photo' || field.type == 'image') {
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(leading: const Icon(Icons.camera_alt), title: const Text('Camera'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+              ListTile(leading: const Icon(Icons.photo_library), title: const Text('Gallery'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+            ],
+          ),
+        ),
+      );
+      if (source == null) return;
+      final picker = ImagePicker();
+      final x = await picker.pickImage(source: source);
+      if (x == null) return;
+      final bytes = await x.readAsBytes();
+      final list = _getFileList(field.name);
+      final totalBytes = list.fold<int>(0, (s, f) => s + f.bytes.length) + bytes.length;
+      if (totalBytes > _maxFileBytes) {
+        if (mounted) {
+          final totalMB = (totalBytes / (1024 * 1024)).toStringAsFixed(2);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Total would be ${totalMB}MB. Max 5MB for all photos in this field.')));
+        }
+        return;
+      }
+      final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
+      setState(() {
+        list.add((bytes: bytes, filename: filename));
+        _fileData[field.name] = list;
+      });
+      _scheduleDraftSave();
+      return;
+    }
     final picker = ImagePicker();
-    final x = field.type == 'video'
-        ? await picker.pickVideo(source: ImageSource.gallery)
-        : await picker.pickImage(source: ImageSource.gallery);
+    final XFile? x;
+    if (field.type == 'video') {
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(leading: const Icon(Icons.videocam), title: const Text('Camera'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+              ListTile(leading: const Icon(Icons.photo_library), title: const Text('Gallery'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+            ],
+          ),
+        ),
+      );
+      if (source == null) return;
+      x = await picker.pickVideo(source: source);
+    } else {
+      x = await picker.pickImage(source: ImageSource.gallery);
+    }
     if (x != null) {
       final bytes = await x.readAsBytes();
+      if (bytes.length > _maxFileBytes) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File must be 5MB or less')));
+        return;
+      }
       final defaultName = field.type == 'video' ? 'video.mp4' : 'image.jpg';
       final filename = x.name.isNotEmpty ? x.name : defaultName;
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
@@ -279,10 +400,15 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     for (final f in fields) {
       final v = _values[f.name];
       final isFileType = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
-      final hasFileValue = isFileType && (_fileData[f.name] != null || (v != null && v.toString().trim().isNotEmpty));
-      if (isFileType && hasFileValue) {
-        continue;
+      final hasFileValue = isFileType && (
+        (f.type == 'photo' || f.type == 'image') ? _getFileList(f.name).isNotEmpty
+            : _fileData[f.name] != null
+            || (v != null && v.toString().trim().isNotEmpty)
+      );
+      if (isFileType && f.required && !hasFileValue) {
+        errs[f.name] = '${f.label ?? f.name} is required';
       }
+      if (isFileType && hasFileValue) continue;
       final msg = _validateField(f, v);
       if (msg != null) errs[f.name] = msg;
     }
@@ -301,14 +427,16 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     });
     final fileTypes = ['file', 'photo', 'video', 'audio', 'image'];
     final fileFieldNames = <String>{};
+    final photoFieldNames = <String>{};
     for (final f in fields) {
-      if (fileTypes.contains(f.type)) fileFieldNames.add(f.name);
+      if (fileTypes.contains(f.type)) {
+        fileFieldNames.add(f.name);
+        if (f.type == 'photo' || f.type == 'image') photoFieldNames.add(f.name);
+      }
     }
     final fieldsToSend = <String, dynamic>{};
     for (final entry in _values.entries) {
-      if (fileFieldNames.contains(entry.key) && _fileData[entry.key] == null) {
-        continue;
-      }
+      if (fileFieldNames.contains(entry.key)) continue;
       fieldsToSend[entry.key] = entry.value;
     }
     final syncService = ref.read(syncServiceProvider);
@@ -316,7 +444,10 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     if (!isOnline) {
       final offlineFields = <String, dynamic>{};
       for (final entry in fieldsToSend.entries) {
-        if (fileFieldNames.contains(entry.key) && _fileData[entry.key] != null) continue;
+        final hasFile = fileFieldNames.contains(entry.key) && (
+          _getFileList(entry.key).isNotEmpty || _fileData[entry.key] != null
+        );
+        if (hasFile) continue;
         offlineFields[entry.key] = _toJsonSafeValue(entry.value);
       }
       final createdAt = DateTime.now();
@@ -327,8 +458,21 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
         createdAt: createdAt,
       );
       final store = ref.read(pendingRecordUpdatesStoreProvider);
+      Map<String, ({Uint8List bytes, String filename})>? filesForPending;
       if (_fileData.isNotEmpty) {
-        await store.addWithFiles(u, _fileData);
+        filesForPending = {};
+        for (final e in _fileData.entries) {
+          final v = e.value;
+          if (v is List && v.isNotEmpty) {
+            filesForPending![e.key] = v.first as ({Uint8List bytes, String filename});
+          } else if (v is ({Uint8List bytes, String filename})) {
+            filesForPending![e.key] = v;
+          }
+        }
+        if (filesForPending!.isEmpty) filesForPending = null;
+      }
+      if (filesForPending != null) {
+        await store.addWithFiles(u, filesForPending);
       } else {
         await store.add(u);
       }
@@ -375,7 +519,10 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   }
 
   bool _isUpdated(FormFieldModel f) {
-    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type) && _fileData[f.name] != null) return true;
+    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type)) {
+      if (f.type == 'photo' || f.type == 'image') return _getFileList(f.name).isNotEmpty;
+      return _fileData[f.name] != null;
+    }
     final a = _initialValues[f.name];
     final b = _toJsonSafeValue(_values[f.name]);
     if (a == b) return false;
@@ -470,20 +617,61 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       final existingFile = _values[f.name];
       final existingLabel = _existingFileLabel(existingFile);
       final existingUrl = _existingImageUrl(existingFile);
-      final hasNewFile = _fileData[f.name] != null;
+      final existingUrls = _existingImageUrls(existingFile);
+      final isMultiPhoto = f.type == 'photo' || f.type == 'image';
+      final fileList = isMultiPhoto ? _getFileList(f.name) : null;
+      final hasNewFile = isMultiPhoto ? (fileList?.isNotEmpty ?? false) : _fileData[f.name] != null;
+      final hasExisting = (existingUrls?.isNotEmpty ?? false) || existingUrl != null;
       final title = f.label ?? f.name;
-      final isImageType = f.type == 'photo' || f.type == 'image';
-      final showImagePreview = isImageType && (hasNewFile || existingUrl != null);
+      final isImageType = isMultiPhoto;
+      final showImagePreview = isImageType && (hasNewFile || hasExisting);
       final pickButtonLabel = f.type == 'video'
           ? (hasNewFile ? 'Change video' : (existingLabel != null ? 'Replace video' : 'Pick video'))
-          : (hasNewFile ? 'Change file' : (existingLabel != null ? 'Replace file' : 'Pick file'));
+          : (isMultiPhoto ? 'Add photo' : (hasNewFile ? 'Change file' : (existingLabel != null ? 'Replace file' : 'Pick file')));
       Widget preview;
-      if (showImagePreview && hasNewFile)
-        preview = Image.memory(_fileData[f.name]!.bytes, height: 180, fit: BoxFit.cover);
+      if (isMultiPhoto && (hasExisting || (fileList?.isNotEmpty ?? false))) {
+        preview = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (existingUrls != null)
+              for (final url in existingUrls)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(url, width: 72, height: 72, fit: BoxFit.cover, headers: const {'ngrok-skip-browser-warning': 'true'}, errorBuilder: (_, __, ___) => _filePlaceholder(context, 'Image')),
+                ),
+            if (fileList != null)
+              for (var i = 0; i < fileList.length; i++)
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(fileList[i].bytes, width: 72, height: 72, fit: BoxFit.cover),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            fileList.removeAt(i);
+                            _fileData[f.name] = fileList.isEmpty ? null : fileList;
+                          });
+                          _scheduleDraftSave();
+                        },
+                        child: const CircleAvatar(radius: 12, backgroundColor: Colors.black54, child: Icon(Icons.close, size: 16, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+          ],
+        );
+      } else if (showImagePreview && hasNewFile)
+        preview = Image.memory((_fileData[f.name] as ({Uint8List bytes, String filename})).bytes, height: 180, fit: BoxFit.cover);
       else if (showImagePreview && existingUrl != null)
         preview = Image.network(existingUrl, height: 180, fit: BoxFit.cover, headers: const {'ngrok-skip-browser-warning': 'true'}, errorBuilder: (_, __, ___) => _filePlaceholder(context, existingLabel));
       else if (hasNewFile)
-        preview = _filePlaceholder(context, _fileData[f.name]!.filename);
+        preview = _filePlaceholder(context, (_fileData[f.name] as ({Uint8List bytes, String filename})).filename);
       else if (existingLabel != null)
         preview = _filePlaceholder(context, existingLabel);
       else
@@ -513,6 +701,11 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
                       child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                     ),
                     preview,
+                    if (isMultiPhoto && ((existingUrls?.length ?? 0) + (fileList?.length ?? 0) > 0))
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                        child: Text('${(existingUrls?.length ?? 0) + (fileList?.length ?? 0)} photo(s). Total max 5MB.', style: Theme.of(context).textTheme.bodySmall),
+                      ),
                     Padding(
                       padding: const EdgeInsets.all(10),
                       child: OutlinedButton(

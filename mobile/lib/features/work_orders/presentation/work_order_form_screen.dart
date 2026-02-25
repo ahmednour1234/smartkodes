@@ -31,11 +31,13 @@ class WorkOrderFormScreen extends ConsumerStatefulWidget {
   ConsumerState<WorkOrderFormScreen> createState() => _WorkOrderFormScreenState();
 }
 
+const int _maxFileBytes = 5 * 1024 * 1024; // 5MB
+
 class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     with WidgetsBindingObserver {
   FormModel? _form;
   final _values = <String, dynamic>{};
-  final _fileData = <String, ({Uint8List bytes, String filename})>{};
+  final _fileData = <String, dynamic>{}; // single: (bytes, filename); photo multi: List<(bytes, filename)>
   final _fieldErrors = <String, String>{};
   bool _loading = true;
   bool _submitting = false;
@@ -84,7 +86,20 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     for (final e in _values.entries) {
       values[e.key] = _toJsonSafeValue(e.value);
     }
-    await store.saveDraft(_draftKey, values, _fileData.isEmpty ? null : _fileData);
+    Map<String, ({Uint8List bytes, String filename})>? flatFiles;
+    if (_fileData.isNotEmpty) {
+      flatFiles = {};
+      for (final e in _fileData.entries) {
+        final v = e.value;
+        if (v is List && v.isNotEmpty) {
+          flatFiles[e.key] = v.first as ({Uint8List bytes, String filename});
+        } else if (v is ({Uint8List bytes, String filename})) {
+          flatFiles[e.key] = v;
+        }
+      }
+      if (flatFiles!.isEmpty) flatFiles = null;
+    }
+    await store.saveDraft(_draftKey, values, flatFiles);
     if (mounted) setState(() => _hasDraft = true);
   }
 
@@ -165,6 +180,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     }
   }
 
+  List<({Uint8List bytes, String filename})> _getFileList(String fieldName) {
+    final v = _fileData[fieldName];
+    if (v == null) return [];
+    if (v is List) return List<({Uint8List bytes, String filename})>.from(v);
+    return [v as ({Uint8List bytes, String filename})];
+  }
+
   Future<void> _pickFile(FormFieldModel field) async {
     if (field.type == 'file') {
       final result = await FilePicker.platform.pickFiles(
@@ -176,20 +198,84 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       final f = result.files.single;
       final bytes = f.bytes;
       if (bytes == null || bytes.isEmpty) return;
+      if (bytes.length > _maxFileBytes) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File must be 5MB or less')));
+        return;
+      }
       final filename = f.name.isNotEmpty ? f.name : 'file';
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
+      _scheduleDraftSave();
+      return;
+    }
+    if (field.type == 'photo' || field.type == 'image') {
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (source == null) return;
+      final picker = ImagePicker();
+      final x = await picker.pickImage(source: source);
+      if (x == null) return;
+      final bytes = await x.readAsBytes();
+      final list = _getFileList(field.name);
+      final totalBytes = list.fold<int>(0, (s, f) => s + f.bytes.length) + bytes.length;
+      if (totalBytes > _maxFileBytes) {
+        if (mounted) {
+          final totalMB = (totalBytes / (1024 * 1024)).toStringAsFixed(2);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Total would be ${totalMB}MB. Max 5MB for all photos in this field.')));
+        }
+        return;
+      }
+      final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
+      setState(() {
+        list.add((bytes: bytes, filename: filename));
+        _fileData[field.name] = list;
+      });
       _scheduleDraftSave();
       return;
     }
     final picker = ImagePicker();
     final XFile? x;
     if (field.type == 'video') {
-      x = await picker.pickVideo(source: ImageSource.gallery);
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(leading: const Icon(Icons.videocam), title: const Text('Camera'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+              ListTile(leading: const Icon(Icons.photo_library), title: const Text('Gallery'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+            ],
+          ),
+        ),
+      );
+      if (source == null) return;
+      x = await picker.pickVideo(source: source);
     } else {
       x = await picker.pickImage(source: ImageSource.gallery);
     }
     if (x != null) {
       final bytes = await x.readAsBytes();
+      if (bytes.length > _maxFileBytes) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File must be 5MB or less')));
+        return;
+      }
       final defaultName = field.type == 'video' ? 'video.mp4' : 'image.jpg';
       final filename = x.name.isNotEmpty ? x.name : defaultName;
       setState(() => _fileData[field.name] = (bytes: bytes, filename: filename));
@@ -236,6 +322,11 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     final fields = _form!.fields ?? [];
     final errs = <String, String>{};
     for (final f in fields) {
+      final isFileType = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
+      if (isFileType && f.required) {
+        final hasFile = (f.type == 'photo' || f.type == 'image') ? _getFileList(f.name).isNotEmpty : _fileData[f.name] != null;
+        if (!hasFile) errs[f.name] = '${f.label ?? f.name} is required';
+      }
       final v = _values[f.name];
       final msg = _validateField(f, v);
       if (msg != null) errs[f.name] = msg;
@@ -278,8 +369,21 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
         createdAt: createdAt,
       );
       final store = ref.read(pendingSubmissionsStoreProvider);
+      Map<String, ({Uint8List bytes, String filename})>? filesForPending;
       if (_fileData.isNotEmpty) {
-        await store.addWithFiles(s, _fileData);
+        filesForPending = {};
+        for (final e in _fileData.entries) {
+          final v = e.value;
+          if (v is List && v.isNotEmpty) {
+            filesForPending[e.key] = v.first as ({Uint8List bytes, String filename});
+          } else if (v is ({Uint8List bytes, String filename})) {
+            filesForPending[e.key] = v;
+          }
+        }
+        if (filesForPending!.isEmpty) filesForPending = null;
+      }
+      if (filesForPending != null) {
+        await store.addWithFiles(s, filesForPending);
       } else {
         await store.add(s);
       }
@@ -414,7 +518,10 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   }
 
   bool _isUpdated(FormFieldModel f) {
-    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type) && _fileData[f.name] != null) return true;
+    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type)) {
+      if (f.type == 'photo' || f.type == 'image') return _getFileList(f.name).isNotEmpty;
+      return _fileData[f.name] != null;
+    }
     final a = _initialValues[f.name];
     final b = _toJsonSafeValue(_values[f.name]);
     if (a == b) return false;
@@ -506,9 +613,12 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   Widget _buildField(FormFieldModel f) {
     final isFile = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
     if (isFile) {
+      final isMultiPhoto = (f.type == 'photo' || f.type == 'image');
+      final fileList = isMultiPhoto ? _getFileList(f.name) : null;
+      final hasSingle = !isMultiPhoto && _fileData[f.name] != null;
       final buttonLabel = f.type == 'video'
-          ? (_fileData[f.name] != null ? 'Change video' : 'Pick video')
-          : (_fileData[f.name] != null ? 'Change file' : 'Pick file');
+          ? (hasSingle ? 'Change video' : 'Pick video')
+          : (isMultiPhoto ? 'Add photo' : (hasSingle ? 'Change file' : 'Pick file'));
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: _wrapIfUpdated(
@@ -522,13 +632,46 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
                   child: Text(_fieldErrors[f.name]!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                 ),
               const SizedBox(height: 4),
+              if (isMultiPhoto && (fileList?.isNotEmpty ?? false))
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (var i = 0; i < fileList!.length; i++)
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(fileList[i].bytes, width: 72, height: 72, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  fileList.removeAt(i);
+                                  _fileData[f.name] = fileList.isEmpty ? null : fileList;
+                                });
+                                _scheduleDraftSave();
+                              },
+                              child: const CircleAvatar(radius: 12, backgroundColor: Colors.black54, child: Icon(Icons.close, size: 16, color: Colors.white)),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              if (isMultiPhoto && (fileList?.isNotEmpty ?? false)) const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () => _pickFile(f),
                 child: Text(buttonLabel),
               ),
-              if (_fileData[f.name] != null)
-                Text(_fileData[f.name]!.filename,
+              if (!isMultiPhoto && _fileData[f.name] != null)
+                Text((_fileData[f.name] as ({Uint8List bytes, String filename})).filename,
                     style: Theme.of(context).textTheme.bodySmall),
+              if (isMultiPhoto && (fileList?.isNotEmpty ?? false))
+                Text('${fileList!.length} photo(s). Total max 5MB.', style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
           f,

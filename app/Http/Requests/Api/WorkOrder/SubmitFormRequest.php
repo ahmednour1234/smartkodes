@@ -100,22 +100,29 @@ class SubmitFormRequest extends BaseApiRequest
                     break;
                 case 'file':
                 case 'photo':
+                case 'image':
                 case 'video':
                 case 'audio':
-                    $fieldRules[] = 'file';
-                    if ($field->type === 'photo') {
-                        $fieldRules[] = 'image';
-                        $fieldRules[] = 'max:5120'; // 5MB
-                    } elseif ($field->type === 'video') {
-                        $fieldRules[] = 'mimes:mp4,avi,mov';
-                        $fieldRules[] = 'max:51200'; // 50MB
-                    } elseif ($field->type === 'audio') {
-                        $fieldRules[] = 'mimes:mp3,wav,ogg';
-                        $fieldRules[] = 'max:10240'; // 10MB
-                    } else {
-                        $fieldRules[] = 'max:10240'; // 10MB
+                    $fieldRules[] = 'array';
+                    if ($isRequired) {
+                        $fieldRules[] = 'min:1';
                     }
-                    break;
+                    $rules[$field->name] = $fieldRules;
+                    $starRules = ['file'];
+                    if ($field->type === 'photo' || $field->type === 'image') {
+                        $starRules[] = 'image';
+                        $starRules[] = 'max:5120';
+                    } elseif ($field->type === 'video') {
+                        $starRules[] = 'mimes:mp4,avi,mov';
+                        $starRules[] = 'max:51200';
+                    } elseif ($field->type === 'audio') {
+                        $starRules[] = 'mimes:mp3,wav,ogg';
+                        $starRules[] = 'max:10240';
+                    } else {
+                        $starRules[] = 'max:10240';
+                    }
+                    $rules[$field->name . '.*'] = $starRules;
+                    continue 2;
                 case 'select':
                 case 'radio':
                     if (!empty($field->options)) {
@@ -163,6 +170,11 @@ class SubmitFormRequest extends BaseApiRequest
         foreach ($form->formFields as $field) {
             $label = $field->label ?? str_replace('_', ' ', ucfirst($field->name));
             $out["{$field->name}.required"] = "$label is required.";
+            if (in_array($field->type, ['file', 'photo', 'image', 'video', 'audio'], true)) {
+                $out["{$field->name}.array"] = "$label must be one or more files.";
+                $out["{$field->name}.min"] = "At least one file is required for $label.";
+                $out["{$field->name}.*.file"] = "Each item in $label must be a file.";
+            }
             $out["{$field->name}.date"] = "$label must be a valid date (e.g. Y-m-d).";
             $out["{$field->name}.date_format"] = "$label must match the required format.";
             $out["{$field->name}.numeric"] = "$label must be a number.";

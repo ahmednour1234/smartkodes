@@ -28,7 +28,7 @@ class RecordController extends BaseApiController
             $perPage = min(max($perPage, 1), 50);
 
             $query = Record::where('submitted_by', $user->id)
-                ->with(['form', 'workOrder', 'recordFields.formField']);
+                ->with(['form', 'workOrder', 'recordFields.formField', 'files']);
 
             if ($request->filled('work_order_id')) {
                 $query->where('work_order_id', $request->work_order_id);
@@ -46,6 +46,23 @@ class RecordController extends BaseApiController
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to retrieve records: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get a single record by ID (own records only).
+     */
+    public function show(string $recordId)
+    {
+        $user = Auth::user();
+        $record = Record::where('submitted_by', $user->id)
+            ->where('id', $recordId)
+            ->with(['form', 'workOrder', 'recordFields.formField', 'files'])
+            ->firstOrFail();
+
+        return $this->successResponse(
+            new RecordResource($record),
+            'Record retrieved successfully'
+        );
     }
 
     /**

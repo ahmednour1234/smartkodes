@@ -38,13 +38,26 @@ class RecordResource extends BaseResource
             'location' => $this->location,
             'fields' => $this->whenLoaded('recordFields', function () {
                 $fields = [];
+                $fileFieldTypes = ['file', 'photo', 'video', 'audio', 'image'];
                 foreach ($this->recordFields as $recordField) {
-                    if ($recordField->formField) {
+                    if (!$recordField->formField) {
+                        continue;
+                    }
+                    $name = $recordField->formField->name;
+                    $isFileType = in_array($recordField->formField->type, $fileFieldTypes, true);
+                    if ($isFileType && $this->relationLoaded('files')) {
+                        $paths = $this->files
+                            ->where('form_field_id', $recordField->form_field_id)
+                            ->pluck('path')
+                            ->values()
+                            ->all();
+                        $fields[$name] = count($paths) === 1 ? $paths[0] : $paths;
+                    } else {
                         $value = $recordField->value_json;
                         if (is_array($value) && isset($value['value'])) {
                             $value = $value['value'];
                         }
-                        $fields[$recordField->formField->name] = $value;
+                        $fields[$name] = $value;
                     }
                 }
                 return $fields;

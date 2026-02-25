@@ -41,6 +41,15 @@ class FormsRepository {
     );
   }
 
+  Future<RecordModel?> getRecord(String recordId) async {
+    final response = await _client.request<Map<String, dynamic>>(
+      'records/$recordId',
+      fromJsonT: (d) => d as Map<String, dynamic>,
+    );
+    if (!response.success || response.data == null) return null;
+    return RecordModel.fromJson(response.data!);
+  }
+
   Future<Uint8List?> getRecordPdfBytes(String recordId) async {
     try {
       final response = await _client.dio.get<Uint8List>(
@@ -66,7 +75,7 @@ class FormsRepository {
     String formId,
     String recordId,
     Map<String, dynamic> fields, {
-    Map<String, ({Uint8List bytes, String filename})>? fileFields,
+    Map<String, dynamic>? fileFields,
   }) async {
     try {
       if (fileFields != null && fileFields.isNotEmpty) {
@@ -82,10 +91,12 @@ class FormsRepository {
           }
         }
         for (final e in fileFields.entries) {
-          map[e.key] = MultipartFile.fromBytes(
-            e.value.bytes,
-            filename: e.value.filename,
-          );
+          final v = e.value;
+          final list = v is List ? v as List<({Uint8List bytes, String filename})> : [v as ({Uint8List bytes, String filename})];
+          for (var i = 0; i < list.length; i++) {
+            final f = list[i];
+            map['${e.key}[$i]'] = MultipartFile.fromBytes(f.bytes, filename: f.filename);
+          }
         }
         final formData = FormData.fromMap(map);
         final response = await _client.dio.post<Map<String, dynamic>>(

@@ -72,22 +72,29 @@ class UpdateFormDataRequest extends BaseApiRequest
                     break;
                 case 'file':
                 case 'photo':
+                case 'image':
                 case 'video':
                 case 'audio':
-                    $fieldRules[] = 'file';
-                    if ($field->type === 'photo') {
-                        $fieldRules[] = 'image';
-                        $fieldRules[] = 'max:5120';
-                    } elseif ($field->type === 'video') {
-                        $fieldRules[] = 'mimes:mp4,avi,mov';
-                        $fieldRules[] = 'max:51200';
-                    } elseif ($field->type === 'audio') {
-                        $fieldRules[] = 'mimes:mp3,wav,ogg';
-                        $fieldRules[] = 'max:10240';
-                    } else {
-                        $fieldRules[] = 'max:10240';
+                    $fieldRules[] = 'array';
+                    if ($isRequired) {
+                        $fieldRules[] = 'min:1';
                     }
-                    break;
+                    $rules[$field->name] = $fieldRules;
+                    $starRules = ['file'];
+                    if ($field->type === 'photo' || $field->type === 'image') {
+                        $starRules[] = 'image';
+                        $starRules[] = 'max:5120';
+                    } elseif ($field->type === 'video') {
+                        $starRules[] = 'mimes:mp4,avi,mov';
+                        $starRules[] = 'max:51200';
+                    } elseif ($field->type === 'audio') {
+                        $starRules[] = 'mimes:mp3,wav,ogg';
+                        $starRules[] = 'max:10240';
+                    } else {
+                        $starRules[] = 'max:10240';
+                    }
+                    $rules[$field->name . '.*'] = $starRules;
+                    continue 2;
             }
 
             // Regex validation

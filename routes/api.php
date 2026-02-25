@@ -51,6 +51,7 @@ Route::prefix('v1')->group(function () {
 
         // Records (submitted by current user)
         Route::get('/records', [RecordController::class, 'index']);
+        Route::get('/records/{recordId}', [RecordController::class, 'show']);
         Route::get('/records/{record}/pdf', [RecordController::class, 'pdf']);
 
         // Notifications

@@ -87,20 +87,54 @@ class FormController extends BaseApiController
 
             $validated = $request->validated();
 
+            $maxFileBytes = 5 * 1024 * 1024; // 5MB
+
             // Update or create record fields
             foreach ($form->formFields as $formField) {
                 $fieldName = $formField->name;
-                
-                if (!$request->has($fieldName)) {
-                    continue;
-                }
+                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio'], true);
 
-                $fieldValue = $request->input($fieldName);
-
-                // Handle file uploads
-                if (in_array($formField->type, ['file', 'photo', 'video', 'audio'], true) && $request->hasFile($fieldName)) {
-                    $file = $request->file($fieldName);
-                    $fieldValue = $this->formService->handleFileUpload($file, $formField, $record, $user);
+                if ($isFileType) {
+                    if (!$request->hasFile($fieldName)) {
+                        continue;
+                    }
+                    $files = $request->file($fieldName);
+                    if (!is_array($files)) {
+                        $files = [$files];
+                    }
+                    $recordField = RecordField::where('record_id', $record->id)
+                        ->where('form_field_id', $formField->id)
+                        ->first();
+                    $existingPaths = [];
+                    if ($recordField && $recordField->value_json) {
+                        $prev = $recordField->value_json;
+                        if (is_array($prev) && isset($prev['value'])) {
+                            $prev = $prev['value'];
+                        }
+                        $existingPaths = is_array($prev) ? $prev : ($prev ? [$prev] : []);
+                    }
+                    $existingSize = 0;
+                    foreach ($record->files()->where('form_field_id', $formField->id)->get() as $f) {
+                        $existingSize += $f->size ?? 0;
+                    }
+                    $newBytes = 0;
+                    foreach ($files as $file) {
+                        $newBytes += $file->getSize();
+                    }
+                    if ($existingSize + $newBytes > $maxFileBytes) {
+                        return $this->errorResponse('Total size of files for "' . ($formField->label ?? $fieldName) . '" must not exceed 5MB.', 422);
+                    }
+                    $paths = [];
+                    foreach ($files as $file) {
+                        $paths[] = $this->formService->handleFileUpload($file, $formField, $record, $user);
+                    }
+                    $allPaths = array_merge($existingPaths, $paths);
+                    $fieldValue = count($allPaths) === 1 ? $allPaths[0] : $allPaths;
+                } else {
+                    if (!$request->has($fieldName)) {
+                        continue;
+                    }
+                    $fieldValue = $request->input($fieldName);
                 }
 
                 // Handle calculated fields
