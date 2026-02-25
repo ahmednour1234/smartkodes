@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -80,9 +81,20 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $emailRule = Rule::unique('users', 'email')->whereNull('deleted_at');
+        if (!$this->isAdminContext()) {
+            $currentTenant = session('tenant_context.current_tenant');
+            if (!$currentTenant) {
+                abort(403, 'No tenant context available.');
+            }
+            $emailRule->where('tenant_id', $currentTenant->id);
+        } else {
+            $emailRule->whereNull('tenant_id');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => ['required', 'string', 'email', 'max:255', $emailRule],
             'password' => 'required|string|min:8|confirmed',
             'role_ids' => 'nullable|array',
             'role_ids.*' => 'exists:roles,id',
