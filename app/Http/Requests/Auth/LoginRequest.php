@@ -56,6 +56,21 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+        if (($user->status ?? 1) != 1) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'Your account is inactive. Please contact support.',
+            ]);
+        }
+
+        if ($user->tenant_id && $user->hasRole('Field Worker')) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'Field workers must sign in using the mobile app.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

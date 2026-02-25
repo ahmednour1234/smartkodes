@@ -66,6 +66,16 @@ class TenantMiddleware
      */
     private function handleRegularUserTenant($user, Request $request)
     {
+        if ($user->hasRole('Field Worker')) {
+            Auth::logout();
+            session()->invalidate();
+            session()->regenerateToken();
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Field workers must sign in using the mobile app.'], 403);
+            }
+            return redirect('/login')->with('error', 'Field workers must sign in using the mobile app.');
+        }
+
         Log::info('TenantMiddleware: Handling regular user tenant', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
 
         // Load tenant relationship if not already loaded

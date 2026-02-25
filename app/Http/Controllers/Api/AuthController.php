@@ -42,7 +42,11 @@ class AuthController extends BaseApiController
 
         $user = Auth::user();
 
-        // Check tenant status
+        if (($user->status ?? 1) != 1) {
+            JWTAuth::invalidate($token);
+            return $this->forbiddenResponse('Your account is inactive. Please contact support.');
+        }
+
         if ($user->tenant_id && $user->tenant && $user->tenant->status !== 1) {
             JWTAuth::invalidate($token);
             return $this->forbiddenResponse('Your tenant account has been suspended');

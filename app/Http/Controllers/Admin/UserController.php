@@ -171,9 +171,19 @@ class UserController extends Controller
     {
         $this->authorizeTenant($user);
 
+        $emailRule = Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at');
+        if (!$this->isAdminContext()) {
+            $currentTenant = session('tenant_context.current_tenant');
+            if ($currentTenant) {
+                $emailRule->where('tenant_id', $currentTenant->id);
+            }
+        } else {
+            $emailRule->whereNull('tenant_id');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'email' => ['required', 'string', 'email', 'max:255', $emailRule],
             'password' => 'nullable|string|min:8|confirmed',
             'role_ids' => 'nullable|array',
             'role_ids.*' => 'exists:roles,id',
@@ -182,6 +192,7 @@ class UserController extends Controller
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
+            'status' => $request->boolean('status') ? 1 : 0,
             'updated_by' => Auth::id(),
         ]);
 

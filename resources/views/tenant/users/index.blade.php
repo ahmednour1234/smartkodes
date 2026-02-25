@@ -85,17 +85,22 @@
                                 <div class="flex justify-between items-start gap-2">
                                     <span class="text-sm text-gray-600 shrink-0">Role:</span>
                                     <div class="text-right">
+                                        @php
+                                            $role = $user->roles->first();
+                                            $roleSlug = $role ? $role->slug : null;
+                                            $roleName = $role ? $role->name : 'User';
+                                        @endphp
                                         <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                            @if($user->role == 'admin') bg-purple-100 text-purple-800
-                                            @elseif($user->role == 'manager') bg-blue-100 text-blue-800
-                                            @elseif($user->role == 'field_worker') bg-green-100 text-green-800
+                                            @if($roleSlug == 'admin') bg-purple-100 text-purple-800
+                                            @elseif($roleSlug == 'manager') bg-blue-100 text-blue-800
+                                            @elseif($roleSlug == 'field_worker') bg-green-100 text-green-800
                                             @else bg-gray-100 text-gray-800 @endif">
-                                            {{ ucfirst(str_replace('_', ' ', $user->role ?? 'user')) }}
+                                            {{ $roleName }}
                                         </span>
                                         <p class="text-xs text-gray-500 mt-1">
-                                            @if($user->role == 'admin') Manages users, billing, and system settings
-                                            @elseif($user->role == 'manager') Manages work orders, forms, and team assignments
-                                            @elseif($user->role == 'field_worker') Completes assigned work orders and submits forms
+                                            @if($roleSlug == 'admin') Manages users, billing, and system settings
+                                            @elseif($roleSlug == 'manager') Manages work orders, forms, and team assignments
+                                            @elseif($roleSlug == 'field_worker') Completes assigned work orders and submits forms
                                             @else Access to assigned work and own data
                                             @endif
                                         </p>
