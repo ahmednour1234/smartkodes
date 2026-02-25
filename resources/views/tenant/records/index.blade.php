@@ -199,14 +199,14 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
+                                @php $recordStatus = (int) $record->status; @endphp
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    @if($record->status === 'submitted') bg-blue-100 text-blue-800
-                                    @elseif($record->status === 'reviewed') bg-yellow-100 text-yellow-800
-                                    @elseif($record->status === 'approved') bg-green-100 text-green-800
-                                    @elseif($record->status === 'rejected') bg-red-100 text-red-800
+                                    @if($recordStatus === \App\Constants\RecordStatus::SUBMITTED) bg-blue-100 text-blue-800
+                                    @elseif($recordStatus === \App\Constants\RecordStatus::APPROVED) bg-green-100 text-green-800
+                                    @elseif($recordStatus === \App\Constants\RecordStatus::REJECTED) bg-red-100 text-red-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">
-                                    {{ ucfirst($record->status ?? 'draft') }}
+                                    {{ \App\Constants\RecordStatus::getLabel($recordStatus) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

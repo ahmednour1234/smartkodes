@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\RecordsExport;
+use App\Constants\RecordStatus;
 
 class RecordController extends Controller
 {
@@ -55,9 +56,19 @@ class RecordController extends Controller
             $query->where('project_id', $request->project_id);
         }
 
-        // Filter by status
+        // Filter by status (map form string to integer)
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statusMap = [
+                'draft' => RecordStatus::DRAFT,
+                'submitted' => RecordStatus::SUBMITTED,
+                'reviewed' => RecordStatus::SUBMITTED,
+                'approved' => RecordStatus::APPROVED,
+                'rejected' => RecordStatus::REJECTED,
+            ];
+            $statusValue = $statusMap[$request->status] ?? null;
+            if ($statusValue !== null) {
+                $query->where('status', $statusValue);
+            }
         }
 
         // Filter by date range
@@ -502,10 +513,19 @@ class RecordController extends Controller
             'status' => 'required|string|in:submitted,in_review,approved,rejected,pending_info',
         ]);
 
+        $statusMap = [
+            'submitted' => RecordStatus::SUBMITTED,
+            'in_review' => RecordStatus::SUBMITTED,
+            'approved' => RecordStatus::APPROVED,
+            'rejected' => RecordStatus::REJECTED,
+            'pending_info' => RecordStatus::DRAFT,
+        ];
+        $statusValue = $statusMap[$request->status];
+
         $count = Record::where('tenant_id', $currentTenant->id)
             ->whereIn('id', $request->record_ids)
             ->update([
-                'status' => $request->status,
+                'status' => $statusValue,
                 'updated_by' => Auth::id(),
             ]);
 
