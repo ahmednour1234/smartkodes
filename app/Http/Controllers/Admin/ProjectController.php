@@ -331,6 +331,10 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         $this->authorizeTenant($project);
+        if ($project->workOrders()->exists()) {
+            $routePrefix = $this->getRoutePrefix();
+            return redirect()->route("{$routePrefix}.projects.index")->with('error', 'Project cannot be deleted because it has related work orders. Remove or reassign work orders first.');
+        }
         $project->delete();
         $routePrefix = $this->getRoutePrefix();
         return redirect()->route("{$routePrefix}.projects.index")->with('success', 'Project deleted successfully.');
