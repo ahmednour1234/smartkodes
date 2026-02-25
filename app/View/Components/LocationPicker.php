@@ -14,6 +14,7 @@ class LocationPicker extends Component
     public string $label;
     public ?string $hint;
     public ?string $description;
+    public bool $useCurrentLocationAsDefault;
 
     public function __construct(
         string $latName = 'latitude',
@@ -22,7 +23,8 @@ class LocationPicker extends Component
         ?float $lngValue = null,
         string $label = 'Location on Map',
         ?string $hint = null,
-        ?string $description = null
+        ?string $description = null,
+        bool $useCurrentLocationAsDefault = false
     ) {
         $this->latName      = $latName;
         $this->lngName      = $lngName;
@@ -31,6 +33,7 @@ class LocationPicker extends Component
         $this->label        = $label;
         $this->hint         = $hint;
         $this->description  = $description;
+        $this->useCurrentLocationAsDefault = $useCurrentLocationAsDefault;
     }
 
     public function render()

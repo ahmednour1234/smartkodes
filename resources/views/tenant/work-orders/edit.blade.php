@@ -261,6 +261,7 @@
                         :lng-value="old('longitude', $workOrder->longitude)"
                         label="Work Order Location"
                         hint="Drag the marker or click on the map to set the exact location for this work order."
+                        :use-current-location-as-default="!$workOrder->latitude && !$workOrder->longitude"
                     />
                     @error('latitude')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
