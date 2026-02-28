@@ -47,6 +47,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   bool _hasDraft = false;
   bool _draftWasCleared = false;
   bool _hasUserEdited = false;
+  int _formFieldKey = 0;
   String get _draftKey => 'submission_${widget.workOrderId}_${widget.formId}';
 
   @override
@@ -92,7 +93,9 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       for (final e in _fileData.entries) {
         final v = e.value;
         if (v is List && v.isNotEmpty) {
-          flatFiles[e.key] = v.first as ({Uint8List bytes, String filename});
+          for (var i = 0; i < v.length; i++) {
+            flatFiles['${e.key}__$i'] = v[i] as ({Uint8List bytes, String filename});
+          }
         } else if (v is ({Uint8List bytes, String filename})) {
           flatFiles[e.key] = v;
         }
@@ -103,34 +106,33 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     if (mounted) setState(() => _hasDraft = true);
   }
 
-  Future<void> _loadDraft() async {
-    final store = ref.read(formDraftStoreProvider);
-    final draft = await store.loadDraftWithFiles(_draftKey);
-    if (draft == null || !mounted) return;
-    setState(() {
-      _hasDraft = true;
-      for (final e in draft.values.entries) {
-        _values[e.key] = e.value;
-      }
-      if (draft.fileData != null) {
-        _fileData.addAll(draft.fileData!);
-      }
-    });
-  }
-
   Future<void> _clearDraft() async {
     final store = ref.read(formDraftStoreProvider);
     await store.removeDraft(_draftKey);
     ref.invalidate(draftKeysProvider);
     ref.read(draftKeysRefreshTriggerProvider.notifier).update((s) => s + 1);
     if (!mounted) return;
+    final form = _form;
     setState(() {
       _hasDraft = false;
       _draftWasCleared = true;
+      _formFieldKey++;
+      _fieldErrors.clear();
       _fileData.clear();
       _values.clear();
-      for (final e in _initialValues.entries) {
-        _values[e.key] = e.value;
+      if (form != null) {
+        for (final f in form.fields ?? []) {
+          if (f.defaultValue != null) _values[f.name] = f.defaultValue;
+        }
+        if (widget.initialFields != null) {
+          for (final e in widget.initialFields!.entries) {
+            _values[e.key] = e.value;
+          }
+        }
+        _initialValues.clear();
+        for (final e in _values.entries) {
+          _initialValues[e.key] = _toJsonSafeValue(e.value);
+        }
       }
     });
   }
@@ -145,17 +147,51 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
 
   Future<void> _load() async {
     final repo = ref.read(workOrderRepositoryProvider);
+    final store = ref.read(formDraftStoreProvider);
     try {
       final form = await repo.getForm(widget.workOrderId, widget.formId);
+      final draft = form != null ? await store.loadDraftWithFiles(_draftKey) : null;
+      if (!mounted) return;
       setState(() {
         _form = form;
         if (form != null) {
-          for (final f in form.fields ?? []) {
-            if (f.defaultValue != null) _values[f.name] = f.defaultValue;
-          }
-          if (widget.initialFields != null) {
-            for (final e in widget.initialFields!.entries) {
+          _values.clear();
+          _fileData.clear();
+          if (draft != null) {
+            _hasDraft = true;
+            for (final e in draft.values.entries) {
               _values[e.key] = e.value;
+            }
+            if (draft.fileData != null) {
+              _fileData.addAll(draft.fileData!);
+              final grouped = <String, List<(int, ({Uint8List bytes, String filename}))>>{};
+              for (final k in _fileData.keys.toList()) {
+                final m = RegExp(r'^(.+)__(\d+)$').firstMatch(k);
+                if (m != null) {
+                  final base = m.group(1)!;
+                  final idx = int.parse(m.group(2)!);
+                  final file = _fileData.remove(k) as ({Uint8List bytes, String filename});
+                  grouped.putIfAbsent(base, () => []).add((idx, file));
+                }
+              }
+              for (final e in grouped.entries) {
+                e.value.sort((a, b) => a.$1.compareTo(b.$1));
+                _fileData[e.key] = e.value.map((x) => x.$2).toList();
+              }
+            }
+            for (final f in form.fields ?? []) {
+              if (!_values.containsKey(f.name) && f.defaultValue != null) {
+                _values[f.name] = f.defaultValue;
+              }
+            }
+          } else {
+            for (final f in form.fields ?? []) {
+              if (f.defaultValue != null) _values[f.name] = f.defaultValue;
+            }
+            if (widget.initialFields != null) {
+              for (final e in widget.initialFields!.entries) {
+                _values[e.key] = e.value;
+              }
             }
           }
           _initialValues.clear();
@@ -164,16 +200,9 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
           }
         }
       });
-      if (form != null) {
-        await _loadDraft();
-        if (mounted) {
-          setState(() => _loading = false);
-        }
-      } else if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     } catch (e) {
-      setState(() {
+      if (mounted) setState(() {
         _error = e.toString();
         _loading = false;
       });
@@ -491,7 +520,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(_error!, style: const TextStyle(color: Colors.red)),
                   ),
-                ...fields.map((f) => _buildField(f)),
+                ...fields.map((f) => KeyedSubtree(key: ValueKey('${f.name}_$_formFieldKey'), child: _buildField(f))),
               ],
             ),
           ),

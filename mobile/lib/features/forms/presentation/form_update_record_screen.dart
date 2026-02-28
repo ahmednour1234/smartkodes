@@ -72,20 +72,39 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       _initialValues[e.key] = _toJsonSafeValue(e.value);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _loadDraft();
-      if (widget.recordId != null && mounted) await _fetchRecordFields();
-    });
-  }
-
-  Future<void> _fetchRecordFields() async {
-    if (widget.recordId == null) return;
-    final repo = ref.read(formsRepositoryProvider);
-    final record = await repo.getRecord(widget.recordId!);
-    if (!mounted || record?.fields == null) return;
-    setState(() {
-      for (final e in record!.fields!.entries) {
-        _values[e.key] = e.value;
+      if (widget.recordId != null && mounted) {
+        final repo = ref.read(formsRepositoryProvider);
+        final record = await repo.getRecord(widget.recordId!);
+        if (mounted && record != null) {
+          final recordFields = record.fields;
+          final hasRecordData = recordFields != null && recordFields.isNotEmpty;
+          if (hasRecordData || widget.initialFields != null) {
+            setState(() {
+              if (hasRecordData) {
+                for (final e in recordFields!.entries) {
+                  _values[e.key] = e.value;
+                }
+              }
+              if (widget.initialFields != null) {
+                for (final e in widget.initialFields!.entries) {
+                  if (!_values.containsKey(e.key)) _values[e.key] = e.value;
+                }
+              }
+              for (final f in widget.form.fields ?? []) {
+                if (!_values.containsKey(f.name) && f.defaultValue != null) {
+                  _values[f.name] = f.defaultValue;
+                }
+              }
+              _initialValues.clear();
+              for (final e in _values.entries) {
+                _initialValues[e.key] = _toJsonSafeValue(e.value);
+              }
+            });
+          }
+        }
       }
+      if (!mounted) return;
+      await _loadDraft();
     });
   }
 
@@ -126,7 +145,9 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       for (final e in _fileData.entries) {
         final v = e.value;
         if (v is List && v.isNotEmpty) {
-          flatFiles[e.key] = v.first as ({Uint8List bytes, String filename});
+          for (var i = 0; i < v.length; i++) {
+            flatFiles['${e.key}__$i'] = v[i] as ({Uint8List bytes, String filename});
+          }
         } else if (v is ({Uint8List bytes, String filename})) {
           flatFiles[e.key] = v;
         }
@@ -149,6 +170,20 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
         }
         if (draft.fileData != null) {
           _fileData.addAll(draft.fileData!);
+          final grouped = <String, List<(int, ({Uint8List bytes, String filename}))>>{};
+          for (final k in _fileData.keys.toList()) {
+            final m = RegExp(r'^(.+)__(\d+)$').firstMatch(k);
+            if (m != null) {
+              final base = m.group(1)!;
+              final idx = int.parse(m.group(2)!);
+              final file = _fileData.remove(k) as ({Uint8List bytes, String filename});
+              grouped.putIfAbsent(base, () => []).add((idx, file));
+            }
+          }
+          for (final e in grouped.entries) {
+            e.value.sort((a, b) => a.$1.compareTo(b.$1));
+            _fileData[e.key] = e.value.map((x) => x.$2).toList();
+          }
         }
       }
       _draftLoaded = true;
@@ -759,10 +794,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
                 title: Text(opt),
                 value: opt,
                 groupValue: current,
-                onChanged: (v) => setState(() {
-                  _values[f.name] = v;
-                  _fieldErrors.remove(f.name);
-                }),
+                onChanged: (v) {
+                  setState(() {
+                    _values[f.name] = v;
+                    _fieldErrors.remove(f.name);
+                  });
+                  _scheduleDraftSave();
+                },
               )),
             ],
           ),
