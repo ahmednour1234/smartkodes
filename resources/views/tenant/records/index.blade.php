@@ -191,11 +191,22 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">
-                                    {{ $record->submittedBy->name ?? 'Anonymous' }}
-                                </div>
-                                <div class="text-sm text-gray-500">
-                                    {{ $record->submittedBy->email ?? 'N/A' }}
+                                <div class="flex items-center gap-3">
+                                    @if(optional($record->submittedBy)->photo_url)
+                                        <img src="{{ $record->submittedBy->photo_url }}" alt="{{ $record->submittedBy->name }}" class="h-10 w-10 rounded-full object-cover border border-gray-200">
+                                    @else
+                                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+                                            {{ strtoupper(substr($record->submittedBy->name ?? 'A', 0, 1)) }}
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="text-sm text-gray-900">
+                                            {{ $record->submittedBy->name ?? 'Anonymous' }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ $record->submittedBy->email ?? 'N/A' }}
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">

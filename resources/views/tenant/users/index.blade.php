@@ -71,9 +71,13 @@
                         <div class="p-6">
                             <!-- User Info -->
                             <div class="flex items-center mb-4">
-                                <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg mr-4">
-                                    {{ strtoupper(substr($user->name, 0, 1)) }}
-                                </div>
+                                @if($user->photo_url)
+                                    <img src="{{ $user->photo_url }}" alt="{{ $user->name }}" class="h-12 w-12 rounded-full object-cover border border-gray-200 mr-4">
+                                @else
+                                    <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-lg mr-4">
+                                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                                    </div>
+                                @endif
                                 <div class="flex-1">
                                     <h3 class="text-lg font-semibold text-gray-900">{{ $user->name }}</h3>
                                     <p class="text-sm text-gray-600">{{ $user->email }}</p>

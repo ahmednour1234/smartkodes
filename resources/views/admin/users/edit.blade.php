@@ -7,7 +7,7 @@
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Edit Admin User</h2>
 
-                <form method="POST" action="{{ route('admin.users.update', $user) }}">
+                <form method="POST" action="{{ route('admin.users.update', $user) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="space-y-4">
@@ -20,6 +20,15 @@
                             <label class="block text-sm font-medium text-gray-700">Email</label>
                             <input type="email" name="email" value="{{ old('email', $user->email) }}" class="mt-1 block w-full border-gray-300 rounded-md" required />
                             @error('email')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Photo</label>
+                            @if($user->photo_url)
+                                <img src="{{ $user->photo_url }}" alt="{{ $user->name }}" class="mt-2 h-16 w-16 rounded-full object-cover border border-gray-200">
+                            @endif
+                            <input type="file" name="photo" accept="image/*" class="mt-2 block w-full border-gray-300 rounded-md" />
+                            <p class="mt-1 text-xs text-gray-500">Optional. Uploading a new photo replaces the current one.</p>
+                            @error('photo')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">New Password (optional)</label>

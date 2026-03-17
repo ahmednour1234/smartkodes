@@ -20,7 +20,7 @@
 
             <!-- Form -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <form method="POST" action="{{ route('tenant.users.update', $user) }}" class="p-6">
+                <form method="POST" action="{{ route('tenant.users.update', $user) }}" enctype="multipart/form-data" class="p-6">
                     @csrf
                     @method('PUT')
 
@@ -53,6 +53,19 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('phone') border-red-500 @enderror"
                                placeholder="Enter phone number">
                         @error('phone')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="photo" class="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label>
+                        @if($user->photo_url)
+                            <img src="{{ $user->photo_url }}" alt="{{ $user->name }}" class="mb-3 h-16 w-16 rounded-full object-cover border border-gray-200">
+                        @endif
+                        <input type="file" name="photo" id="photo" accept="image/*"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('photo') border-red-500 @enderror">
+                        <p class="mt-1 text-sm text-gray-500">Optional. Uploading a new photo replaces the current one.</p>
+                        @error('photo')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\UsersExport;
@@ -96,9 +97,14 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', $emailRule],
             'password' => 'required|string|min:8|confirmed',
+            'photo' => 'nullable|image|max:5120',
             'role_ids' => 'nullable|array',
             'role_ids.*' => 'exists:roles,id',
         ]);
+
+        $photoPath = $request->hasFile('photo')
+            ? $request->file('photo')->store('users/photos', 'public')
+            : null;
 
         if ($this->isAdminContext()) {
             $user = User::create([
@@ -106,6 +112,7 @@ class UserController extends Controller
                 'tenant_id' => null,
                 'name' => $request->name,
                 'email' => $request->email,
+                'photo_path' => $photoPath,
                 'password' => Hash::make($request->password),
                 'email_verified_at' => now(),
                 'created_by' => Auth::id(),
@@ -120,6 +127,7 @@ class UserController extends Controller
                 'tenant_id' => $currentTenant->id,
                 'name' => $request->name,
                 'email' => $request->email,
+                'photo_path' => $photoPath,
                 'password' => Hash::make($request->password),
                 'email_verified_at' => now(),
                 'created_by' => Auth::id(),
@@ -185,13 +193,23 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', $emailRule],
             'password' => 'nullable|string|min:8|confirmed',
+            'photo' => 'nullable|image|max:5120',
             'role_ids' => 'nullable|array',
             'role_ids.*' => 'exists:roles,id',
         ]);
 
+        $photoPath = $user->photo_path;
+        if ($request->hasFile('photo')) {
+            if ($user->photo_path) {
+                Storage::disk('public')->delete($user->photo_path);
+            }
+            $photoPath = $request->file('photo')->store('users/photos', 'public');
+        }
+
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
+            'photo_path' => $photoPath,
             'status' => $request->boolean('status') ? 1 : 0,
             'updated_by' => Auth::id(),
         ]);

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
@@ -52,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'phone',
         'country',
+        'photo_path',
         'password',
         'passcode',
         'passcode_set_at',
@@ -155,5 +157,21 @@ class User extends Authenticatable implements JWTSubject
                $this->roles()->whereHas('permissions', function ($query) use ($permission) {
                    $query->where('name', $permission);
                })->exists();
+    }
+
+    /**
+     * Resolve a usable URL for the stored profile photo.
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (!$this->photo_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->photo_path, 'http://') || str_starts_with($this->photo_path, 'https://')) {
+            return $this->photo_path;
+        }
+
+        return Storage::url($this->photo_path);
     }
 }

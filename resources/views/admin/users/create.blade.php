@@ -7,7 +7,7 @@
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Create Admin User</h2>
 
-                <form method="POST" action="{{ route('admin.users.store') }}">
+                <form method="POST" action="{{ route('admin.users.store') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="space-y-4">
                         <div>
@@ -19,6 +19,12 @@
                             <label class="block text-sm font-medium text-gray-700">Email</label>
                             <input type="email" name="email" value="{{ old('email') }}" class="mt-1 block w-full border-gray-300 rounded-md" required />
                             @error('email')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Photo</label>
+                            <input type="file" name="photo" accept="image/*" class="mt-1 block w-full border-gray-300 rounded-md" />
+                            <p class="mt-1 text-xs text-gray-500">Optional. JPG, PNG, WEBP up to 5MB.</p>
+                            @error('photo')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Password</label>

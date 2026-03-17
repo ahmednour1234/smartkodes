@@ -23,7 +23,18 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($users as $user)
                             <tr>
-                                <td class="px-4 py-2 text-sm text-gray-900">{{ $user->name }}</td>
+                                <td class="px-4 py-2 text-sm text-gray-900">
+                                    <div class="flex items-center gap-3">
+                                        @if($user->photo_url)
+                                            <img src="{{ $user->photo_url }}" alt="{{ $user->name }}" class="h-9 w-9 rounded-full object-cover border border-gray-200">
+                                        @else
+                                            <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+                                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                                            </div>
+                                        @endif
+                                        <span>{{ $user->name }}</span>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-2 text-sm text-gray-500">{{ $user->email }}</td>
                                 <td class="px-4 py-2 text-sm text-gray-500">{{ $user->roles->pluck('name')->join(', ') }}</td>
                                 <td class="px-4 py-2 text-right">
