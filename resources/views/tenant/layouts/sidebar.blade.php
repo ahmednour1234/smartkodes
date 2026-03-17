@@ -2,13 +2,20 @@
 {{-- Mobile Top Bar + Drawer --}}
 {{-- ========================= --}}
 
+@php
+    $sessionTenant = session('tenant_context.current_tenant');
+    $currentTenant = $sessionTenant ? \App\Models\Tenant::find($sessionTenant->id) ?? $sessionTenant : null;
+    $currentUser = Auth::user();
+@endphp
+
 {{-- Top bar للموبايل --}}
 <div class="md:hidden fixed top-0 inset-x-0 z-[100] bg-blue-800 text-white flex items-center justify-between px-4 py-3 shadow-lg">
-    <div>
-        <h1 class="text-lg font-bold">Smart Kodes</h1>
-        <p class="text-xs text-blue-200">
-            {{ session('tenant_context.current_tenant') ? session('tenant_context.current_tenant')->name : 'Tenant Portal' }}
-        </p>
+    <div class="flex items-center gap-2 min-w-0">
+        <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Kodes" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
+        <div class="min-w-0">
+            <h1 class="text-base font-bold leading-tight truncate">Smart Kodes</h1>
+            <p class="text-xs text-blue-200 truncate">{{ $currentTenant?->name ?? 'Tenant Portal' }}</p>
+        </div>
     </div>
 
     <button id="mobileSidebarToggle"
@@ -32,14 +39,33 @@
      class="fixed inset-y-0 left-0 z-[95] w-64 bg-blue-800 text-white transform -translate-x-full transition-transform duration-200 ease-in-out md:hidden flex flex-col">
 
     <div class="p-4 flex items-start justify-between">
-        <div>
-            <h1 class="text-xl font-bold">Smart Kodes</h1>
-            <p class="text-sm text-blue-200">
-                {{ session('tenant_context.current_tenant') ? session('tenant_context.current_tenant')->name : 'Tenant Portal' }}
-            </p>
-            <p class="text-xs text-blue-300 mt-1">
-                {{ Auth::user()->name }}
-            </p>
+        <div class="space-y-3">
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Kodes" class="h-10 w-10 rounded-full object-cover border border-blue-300/60 bg-white">
+                <p class="font-semibold">Smart Kodes</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                @if($currentTenant?->logo_url)
+                    <img src="{{ $currentTenant->logo_url }}" alt="{{ $currentTenant->name }} logo" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
+                @else
+                    <div class="h-9 w-9 rounded-full bg-blue-700 border border-blue-300/60 flex items-center justify-center text-sm font-semibold">
+                        {{ strtoupper(substr($currentTenant?->name ?? 'C', 0, 1)) }}
+                    </div>
+                @endif
+                <p class="text-sm text-blue-100 truncate max-w-[150px]">{{ $currentTenant?->name ?? 'Company' }}</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                @if($currentUser?->photo_url)
+                    <img src="{{ $currentUser->photo_url }}" alt="{{ $currentUser->name }}" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
+                @else
+                    <div class="h-9 w-9 rounded-full bg-blue-700 border border-blue-300/60 flex items-center justify-center text-sm font-semibold">
+                        {{ strtoupper(substr($currentUser?->name ?? 'U', 0, 1)) }}
+                    </div>
+                @endif
+                <p class="text-sm text-blue-100 truncate max-w-[150px]">{{ $currentUser?->name ?? 'User' }}</p>
+            </div>
         </div>
 
         <button id="mobileSidebarClose"
@@ -133,12 +159,33 @@
 
 <nav class="hidden md:flex md:fixed md:top-0 md:left-0 md:h-full md:w-64 md:bg-blue-800 md:text-white md:flex-col md:overflow-y-auto sidebar-scroll z-40">
 
-    <div class="p-4">
-        <h1 class="text-xl font-bold">Smart Kodes</h1>
-        <p class="text-sm text-blue-200">
-            {{ session('tenant_context.current_tenant') ? session('tenant_context.current_tenant')->name : 'Tenant Portal' }}
-        </p>
-        <p class="text-xs text-blue-300 mt-1">{{ Auth::user()->name }}</p>
+    <div class="p-4 space-y-3">
+        <div class="flex items-center gap-3">
+            <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Kodes" class="h-10 w-10 rounded-full object-cover border border-blue-300/60 bg-white">
+            <p class="font-semibold">Smart Kodes</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            @if($currentTenant?->logo_url)
+                <img src="{{ $currentTenant->logo_url }}" alt="{{ $currentTenant->name }} logo" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
+            @else
+                <div class="h-9 w-9 rounded-full bg-blue-700 border border-blue-300/60 flex items-center justify-center text-sm font-semibold">
+                    {{ strtoupper(substr($currentTenant?->name ?? 'C', 0, 1)) }}
+                </div>
+            @endif
+            <p class="text-sm text-blue-100 truncate">{{ $currentTenant?->name ?? 'Company' }}</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            @if($currentUser?->photo_url)
+                <img src="{{ $currentUser->photo_url }}" alt="{{ $currentUser->name }}" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
+            @else
+                <div class="h-9 w-9 rounded-full bg-blue-700 border border-blue-300/60 flex items-center justify-center text-sm font-semibold">
+                    {{ strtoupper(substr($currentUser?->name ?? 'U', 0, 1)) }}
+                </div>
+            @endif
+            <p class="text-sm text-blue-100 truncate">{{ $currentUser?->name ?? 'User' }}</p>
+        </div>
     </div>
 
     <ul class="mt-4 space-y-1 flex-1">

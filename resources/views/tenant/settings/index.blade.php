@@ -37,7 +37,7 @@
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Organization Profile</h3>
-                        <form method="POST" action="{{ route('tenant.settings.update-profile') }}" class="space-y-4">
+                        <form method="POST" action="{{ route('tenant.settings.update-profile') }}" enctype="multipart/form-data" class="space-y-4">
                             @csrf
                             @method('PUT')
 
@@ -60,6 +60,19 @@
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('organization_email') border-red-500 @enderror"
                                            placeholder="Enter organization email">
                                     @error('organization_email')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="company_logo" class="block text-sm font-medium text-gray-700 mb-2">Company Logo (Optional)</label>
+                                    @if($tenant->logo_url)
+                                        <img src="{{ $tenant->logo_url }}" alt="{{ $tenant->name }} logo" class="mb-2 h-14 w-14 rounded-full object-cover border border-gray-200">
+                                    @endif
+                                    <input type="file" name="company_logo" id="company_logo" accept="image/*"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('company_logo') border-red-500 @enderror">
+                                    <p class="mt-1 text-xs text-gray-500">JPG, PNG, WEBP up to 5MB.</p>
+                                    @error('company_logo')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
 {
@@ -136,8 +137,21 @@ class SettingController extends Controller
             'phone' => 'nullable|string|max:50',
             'website' => 'nullable|url|max:255',
             'address' => 'nullable|string|max:500',
+            'company_logo' => 'nullable|image|max:5120',
         ]);
-        $currentTenant->update(['name' => $request->organization_name]);
+
+        $logoPath = $currentTenant->logo_path;
+        if ($request->hasFile('company_logo')) {
+            if ($currentTenant->logo_path) {
+                Storage::disk('public')->delete($currentTenant->logo_path);
+            }
+            $logoPath = $request->file('company_logo')->store('tenants/logos', 'public');
+        }
+
+        $currentTenant->update([
+            'name' => $request->organization_name,
+            'logo_path' => $logoPath,
+        ]);
         $existing = Cache::get('tenant_settings_' . $currentTenant->id, []);
         $profile = [
             'organization_email' => $request->organization_email,
