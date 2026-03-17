@@ -9,15 +9,74 @@ use App\Models\FormField;
 use App\Models\FormVersion;
 use App\Models\Project;
 use App\Models\Category;
+use App\Models\Record;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\FormsExport;
 
 class FormController extends Controller
 {
+    private function formHasSubmissions(Form $form): bool
+    {
+        return Record::where('form_id', $form->id)->exists();
+    }
+
+    private function makeVersionedClone(Form $originalForm, string $tenantId): Form
+    {
+        $nextVersion = max(2, ((int) $originalForm->version) + 1);
+        $baseName = trim((string) $originalForm->name);
+        $candidateName = preg_replace('/\s*\(v\d+\)$/i', '', $baseName) . ' (v' . $nextVersion . ')';
+        while (Form::where('tenant_id', $tenantId)
+            ->where('name', $candidateName)
+            ->whereNull('deleted_at')
+            ->exists()) {
+            $nextVersion++;
+            $candidateName = preg_replace('/\s*\(v\d+\)$/i', '', $baseName) . ' (v' . $nextVersion . ')';
+        }
+
+        return DB::transaction(function () use ($originalForm, $tenantId, $candidateName, $nextVersion) {
+            $clone = Form::create([
+                'tenant_id'   => $tenantId,
+                'name'        => $candidateName,
+                'category_id' => $originalForm->category_id,
+                'description' => $originalForm->description,
+                'schema_json' => $originalForm->schema_json,
+                'version'     => $nextVersion,
+                'status'      => $originalForm->status,
+                'created_by'  => Auth::id(),
+                'updated_by'  => Auth::id(),
+            ]);
+
+            foreach ($originalForm->formFields()->orderBy('order')->get() as $field) {
+                FormField::create([
+                    'tenant_id'          => $tenantId,
+                    'form_id'            => $clone->id,
+                    'name'               => $field->name,
+                    'type'               => $field->type,
+                    'config_json'        => $field->config_json,
+                    'order'              => $field->order,
+                    'is_sensitive'       => $field->is_sensitive,
+                    'default_value'      => $field->default_value,
+                    'placeholder'        => $field->placeholder,
+                    'regex_pattern'      => $field->regex_pattern,
+                    'visibility_rules'   => $field->visibility_rules,
+                    'conditional_logic'  => $field->conditional_logic,
+                    'min_value'          => $field->min_value,
+                    'max_value'          => $field->max_value,
+                    'options'            => $field->options,
+                    'currency_symbol'    => $field->currency_symbol,
+                    'calculation_formula'=> $field->calculation_formula,
+                ]);
+            }
+
+            return $clone;
+        });
+    }
+
     /**
      * Get the view prefix based on current route.
      */
@@ -161,12 +220,31 @@ class FormController extends Controller
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
 
+        $hasSubmissions = $this->formHasSubmissions($form);
+
         $request->validate([
-            'name'        => 'required|string|max:255|unique:forms,name,' . $id . ',id,tenant_id,' . $currentTenant->id . ',deleted_at,NULL',
+            'name'        => $hasSubmissions
+                ? 'required|string|max:255'
+                : 'required|string|max:255|unique:forms,name,' . $id . ',id,tenant_id,' . $currentTenant->id . ',deleted_at,NULL',
             'description' => 'nullable|string|max:500',
             'status'      => 'required|integer|in:0,1,2',
             'category_id' => 'nullable|exists:categories,id',
         ]);
+
+        if ($hasSubmissions) {
+            $editableForm = $this->makeVersionedClone($form, $currentTenant->id);
+            $editableForm->update([
+                'name'        => $request->name,
+                'description' => $request->description,
+                'status'      => $request->status,
+                'category_id' => $request->category_id,
+                'updated_by'  => Auth::id(),
+            ]);
+
+            $routePrefix = $this->getRoutePrefix();
+            return redirect()->route("{$routePrefix}.forms.edit", $editableForm->id)
+                ->with('success', 'Form has submissions, so a new version was created for editing.');
+        }
 
         $form->update([
             'name'        => $request->name,
@@ -229,6 +307,8 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $hasSubmissions = $this->formHasSubmissions($form);
+        $targetForm = $hasSubmissions ? $this->makeVersionedClone($form, $currentTenant->id) : $form;
 
         $request->validate([
             'schema' => 'required|array',
@@ -236,18 +316,18 @@ class FormController extends Controller
         ]);
 
         // Save form schema
-        $form->update([
+        $targetForm->update([
             'schema_json' => $request->schema,
             'updated_by'  => Auth::id(),
         ]);
 
         // Save form fields
-        $form->formFields()->delete(); // Remove existing fields
+        $targetForm->formFields()->delete(); // Remove existing fields
 
         foreach ($request->fields as $index => $fieldData) {
             FormField::create([
                 'tenant_id'   => $currentTenant->id,
-                'form_id'     => $form->id,
+                'form_id'     => $targetForm->id,
                 'name'        => $fieldData['key'],
                 'type'        => $fieldData['type'],
                 'config_json' => $fieldData,
@@ -256,8 +336,10 @@ class FormController extends Controller
         }
 
         $routePrefix = $this->getRoutePrefix();
-        return redirect()->route("{$routePrefix}.forms.builder", $form->id)
-            ->with('success', 'Form saved successfully!');
+        return redirect()->route("{$routePrefix}.forms.builder", $targetForm->id)
+            ->with('success', $hasSubmissions
+                ? 'Form has submissions, so a new version was created and saved in builder.'
+                : 'Form saved successfully!');
     }
 
     /**
