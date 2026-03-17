@@ -9,10 +9,7 @@ use App\Models\WorkOrder;
 use App\Models\User;
 use App\Models\FormSubmission;
 use App\Models\RecordActivity;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -38,10 +35,10 @@ class DashboardController extends Controller
             'pending_reviews' => FormSubmission::where('tenant_id', $tenantId)->where('status', 'pending_review')->count(),
         ];
 
-        // Chart data for project progress (last 6 months)
+        // Chart data: progress percentage by project
         $projectChartData = $this->getProjectChartData($tenantId);
 
-        // Chart data for manpower distribution
+        // Chart data: manpower assigned to each project
         $manpowerChartData = $this->getManpowerChartData($tenantId);
 
         // Recent activity (mock data for now - would come from activity log)
@@ -52,57 +49,57 @@ class DashboardController extends Controller
 
     private function getProjectChartData($tenantId)
     {
-        $months = collect();
-        for ($i = 5; $i >= 0; $i--) {
-            $months->push(Carbon::now()->subMonths($i)->format('M Y'));
-        }
+        $projects = Project::where('tenant_id', $tenantId)
+            ->select('id', 'name')
+            ->withCount([
+                'workOrders as assigned_work_orders_count',
+                'records as submitted_records_count' => function ($query) {
+                    $query->whereNotNull('submitted_at');
+                },
+            ])
+            ->orderBy('name')
+            ->get();
 
-        $projectData = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i);
-            $count = Project::where('tenant_id', $tenantId)
-                ->whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->count();
-            $projectData[] = $count;
+        $projectIds = [];
+        $labels = [];
+        $progressData = [];
+        $workOrdersData = [];
+        $submittedRecordsData = [];
+
+        foreach ($projects as $project) {
+            $assignedWorkOrders = (int) $project->assigned_work_orders_count;
+            $submittedRecords = (int) $project->submitted_records_count;
+            $progressPercent = $assignedWorkOrders > 0
+                ? min(round(($submittedRecords / $assignedWorkOrders) * 100, 2), 100)
+                : 0;
+
+            $projectIds[] = $project->id;
+            $labels[] = $project->name;
+            $progressData[] = $progressPercent;
+            $workOrdersData[] = $assignedWorkOrders;
+            $submittedRecordsData[] = $submittedRecords;
         }
 
         return [
-            'project_labels' => $months->toArray(),
-            'project_data' => $projectData,
+            'project_ids' => $projectIds,
+            'project_labels' => $labels,
+            'project_progress_data' => $progressData,
+            'project_work_orders_data' => $workOrdersData,
+            'project_submitted_records_data' => $submittedRecordsData,
         ];
     }
 
     private function getManpowerChartData($tenantId)
     {
-        // Get user roles distribution using the roles relationship
-        $roles = User::where('tenant_id', $tenantId)
-            ->with('roles')
-            ->get()
-            ->pluck('roles')
-            ->flatten()
-            ->groupBy('name')
-            ->map(function ($roleGroup) {
-                return $roleGroup->count();
-            });
-
-        $labels = [];
-        $data = [];
-
-        foreach ($roles as $roleName => $count) {
-            $labels[] = ucfirst($roleName);
-            $data[] = $count;
-        }
-
-        // If no roles found, provide default data
-        if (empty($labels)) {
-            $labels = ['Field Workers', 'Managers', 'Admins'];
-            $data = [0, 0, 0];
-        }
+        $projects = Project::where('tenant_id', $tenantId)
+            ->select('id', 'name')
+            ->withCount('members')
+            ->orderBy('name')
+            ->get();
 
         return [
-            'user_labels' => $labels,
-            'user_data' => $data,
+            'project_labels' => $projects->pluck('name')->toArray(),
+            'project_manpower_data' => $projects->pluck('members_count')->map(fn ($count) => (int) $count)->toArray(),
         ];
     }
 

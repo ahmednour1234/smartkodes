@@ -97,18 +97,34 @@
 
         <!-- Charts Section -->
         @php
+            $projectIds = $projectChartData['project_ids'] ?? [];
             $projectLabels = $projectChartData['project_labels'] ?? [];
-            $projectData = $projectChartData['project_data'] ?? [];
-            $userLabels = $manpowerChartData['user_labels'] ?? [];
-            $userData = $manpowerChartData['user_data'] ?? [];
-            $hasProjectChartData = count($projectLabels) > 0 && array_sum($projectData) > 0;
-            $hasManpowerChartData = count($userLabels) > 0 && array_sum($userData) > 0;
+            $projectProgressData = $projectChartData['project_progress_data'] ?? [];
+            $projectWorkOrdersData = $projectChartData['project_work_orders_data'] ?? [];
+            $projectSubmittedRecordsData = $projectChartData['project_submitted_records_data'] ?? [];
+
+            $manpowerProjectLabels = $manpowerChartData['project_labels'] ?? [];
+            $manpowerProjectData = $manpowerChartData['project_manpower_data'] ?? [];
+
+            $hasProjectChartData = count($projectLabels) > 0;
+            $hasManpowerChartData = count($manpowerProjectLabels) > 0;
         @endphp
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Project Progress Chart -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Project Progress (Monthly)</h3>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Project Progress (%)</h3>
+                    @if($hasProjectChartData)
+                        <select id="projectProgressFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="all">All Projects</option>
+                            @foreach($projectLabels as $index => $projectLabel)
+                                <option value="{{ $projectIds[$index] ?? '' }}">{{ $projectLabel }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                </div>
                 @if($hasProjectChartData)
+                    <p id="selectedProjectProgressText" class="text-sm text-gray-600 mb-3">Showing progress for all projects.</p>
                     <canvas id="projectProgressChart" width="400" height="200"></canvas>
                 @else
                     <p class="text-gray-500 text-center py-8">Data will appear here once projects and work orders are created.</p>
@@ -117,11 +133,11 @@
 
             <!-- Manpower Chart -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Manpower Distribution</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Manpower Distribution By Project</h3>
                 @if($hasManpowerChartData)
                     <canvas id="manpowerChart" width="400" height="200"></canvas>
                 @else
-                    <p class="text-gray-500 text-center py-8">Data will appear here once projects and work orders are created.</p>
+                    <p class="text-gray-500 text-center py-8">Data will appear here once users are assigned to projects.</p>
                 @endif
             </div>
         </div>
@@ -206,43 +222,142 @@
 
     <script>
         @if($hasProjectChartData)
+        const projectChartSource = {
+            projectIds: @json($projectIds),
+            labels: @json($projectLabels),
+            progress: @json($projectProgressData),
+            assignedWorkOrders: @json($projectWorkOrdersData),
+            submittedRecords: @json($projectSubmittedRecordsData),
+        };
+
         const projectCtx = document.getElementById('projectProgressChart').getContext('2d');
-        new Chart(projectCtx, {
-            type: 'line',
+
+        const buildProjectChartDataset = (selectedProjectId = 'all') => {
+            if (selectedProjectId === 'all') {
+                return {
+                    labels: projectChartSource.labels,
+                    progress: projectChartSource.progress,
+                    assignedWorkOrders: projectChartSource.assignedWorkOrders,
+                    submittedRecords: projectChartSource.submittedRecords,
+                };
+            }
+
+            const selectedIndex = projectChartSource.projectIds.findIndex((id) => id === selectedProjectId);
+            if (selectedIndex === -1) {
+                return {
+                    labels: [],
+                    progress: [],
+                    assignedWorkOrders: [],
+                    submittedRecords: [],
+                };
+            }
+
+            return {
+                labels: [projectChartSource.labels[selectedIndex]],
+                progress: [projectChartSource.progress[selectedIndex]],
+                assignedWorkOrders: [projectChartSource.assignedWorkOrders[selectedIndex]],
+                submittedRecords: [projectChartSource.submittedRecords[selectedIndex]],
+            };
+        };
+
+        const initialProjectDataset = buildProjectChartDataset('all');
+
+        const projectChart = new Chart(projectCtx, {
+            type: 'bar',
             data: {
-                labels: @json($projectLabels),
+                labels: initialProjectDataset.labels,
                 datasets: [{
-                    label: 'Projects Created',
-                    data: @json($projectData),
+                    label: 'Progress %',
+                    data: initialProjectDataset.progress,
                     borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4
+                    backgroundColor: 'rgba(59, 130, 246, 0.35)',
+                    borderWidth: 1,
                 }]
             },
             options: {
                 responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: (value) => `${value}%`
+                        }
+                    }
+                },
                 plugins: {
-                    legend: { position: 'top' }
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                const progress = initialProjectDataset.progress[index] ?? 0;
+                                const submitted = initialProjectDataset.submittedRecords[index] ?? 0;
+                                const assigned = initialProjectDataset.assignedWorkOrders[index] ?? 0;
+                                return `Progress: ${progress}% (Submitted Records: ${submitted}, Assigned Work Orders: ${assigned})`;
+                            }
+                        }
+                    }
                 }
             }
         });
+
+        const projectFilter = document.getElementById('projectProgressFilter');
+        const selectedProjectProgressText = document.getElementById('selectedProjectProgressText');
+
+        if (projectFilter) {
+            projectFilter.addEventListener('change', (event) => {
+                const selectedProjectId = event.target.value;
+                const nextDataset = buildProjectChartDataset(selectedProjectId);
+
+                projectChart.data.labels = nextDataset.labels;
+                projectChart.data.datasets[0].data = nextDataset.progress;
+                projectChart.options.plugins.tooltip.callbacks.label = function(context) {
+                    const index = context.dataIndex;
+                    const progress = nextDataset.progress[index] ?? 0;
+                    const submitted = nextDataset.submittedRecords[index] ?? 0;
+                    const assigned = nextDataset.assignedWorkOrders[index] ?? 0;
+                    return `Progress: ${progress}% (Submitted Records: ${submitted}, Assigned Work Orders: ${assigned})`;
+                };
+                projectChart.update();
+
+                if (selectedProjectProgressText) {
+                    if (selectedProjectId === 'all') {
+                        selectedProjectProgressText.textContent = 'Showing progress for all projects.';
+                    } else {
+                        selectedProjectProgressText.textContent = `Showing progress for: ${nextDataset.labels[0] ?? 'Selected Project'}`;
+                    }
+                }
+            });
+        }
         @endif
 
         @if($hasManpowerChartData)
         const manpowerCtx = document.getElementById('manpowerChart').getContext('2d');
         new Chart(manpowerCtx, {
-            type: 'doughnut',
+            type: 'bar',
             data: {
-                labels: @json($userLabels),
+                labels: @json($manpowerProjectLabels),
                 datasets: [{
-                    data: @json($userData),
-                    backgroundColor: ['rgb(34, 197, 94)', 'rgb(251, 191, 36)', 'rgb(239, 68, 68)']
+                    label: 'Assigned Manpower',
+                    data: @json($manpowerProjectData),
+                    backgroundColor: 'rgba(16, 185, 129, 0.4)',
+                    borderColor: 'rgb(5, 150, 105)',
+                    borderWidth: 1,
                 }]
             },
             options: {
                 responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { position: 'top' }
                 }
             }
         });
