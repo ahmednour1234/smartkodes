@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Sign Up - {{ config('app.name', 'Smart Kodes') }}</title>
+    <title>Sign Up - {{ config('app.name', 'Smart Site') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -105,7 +105,7 @@
                     </svg>
                 </div>
                 <h1 class="text-4xl font-bold text-gray-900 mb-2">Create Your Account</h1>
-                <p class="text-gray-600">Join Smart Kodes and start managing your field operations</p>
+                <p class="text-gray-600">Join Smart Site and start managing your field operations</p>
             </div>
 
             <!-- Progress Steps -->

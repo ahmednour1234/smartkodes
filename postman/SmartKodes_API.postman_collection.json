@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "smartkodes-api-collection",
-		"name": "Smart Kodes API",
-		"description": "Complete API collection for Smart Kodes platform with unified response handling",
+		"name": "Smart Site API",
+		"description": "Complete API collection for Smart Site platform with unified response handling",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [

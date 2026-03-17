@@ -1,4 +1,4 @@
-# Smart Kodes - Project Analysis & Architecture Documentation
+# Smart Site - Project Analysis & Architecture Documentation
 
 **Analysis Date:** October 5, 2025  
 **Laravel Version:** 12.31.1  
@@ -9,7 +9,7 @@
 
 ## 📋 Executive Summary
 
-Smart Kodes is a **multi-tenant SaaS application** built on Laravel 12 that provides dynamic form building, work order management, and data collection capabilities. The system uses a sophisticated tenant isolation architecture with role-based access control (RBAC).
+Smart Site is a **multi-tenant SaaS application** built on Laravel 12 that provides dynamic form building, work order management, and data collection capabilities. The system uses a sophisticated tenant isolation architecture with role-based access control (RBAC).
 
 ---
 

@@ -11,9 +11,9 @@
 {{-- Top bar للموبايل --}}
 <div class="md:hidden fixed top-0 inset-x-0 z-[100] bg-blue-800 text-white flex items-center justify-between px-4 py-3 shadow-lg">
     <div class="flex items-center gap-2 min-w-0">
-        <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Kodes" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
+        <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Site" class="h-9 w-9 rounded-full object-cover border border-blue-300/60 bg-white">
         <div class="min-w-0">
-            <h1 class="text-base font-bold leading-tight truncate">Smart Kodes</h1>
+            <h1 class="text-base font-bold leading-tight truncate">Smart Site</h1>
             <p class="text-xs text-blue-200 truncate">{{ $currentTenant?->name ?? 'Tenant Portal' }}</p>
         </div>
     </div>
@@ -41,8 +41,8 @@
     <div class="p-4 flex items-start justify-between">
         <div class="space-y-3">
             <div class="flex items-center gap-3">
-                <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Kodes" class="h-10 w-10 rounded-full object-cover border border-blue-300/60 bg-white">
-                <p class="font-semibold">Smart Kodes</p>
+                <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Site" class="h-10 w-10 rounded-full object-cover border border-blue-300/60 bg-white">
+                <p class="font-semibold">Smart Site</p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -161,8 +161,8 @@
 
     <div class="p-4 space-y-3">
         <div class="flex items-center gap-3">
-            <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Kodes" class="h-10 w-10 rounded-full object-cover border border-blue-300/60 bg-white">
-            <p class="font-semibold">Smart Kodes</p>
+            <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Site" class="h-10 w-10 rounded-full object-cover border border-blue-300/60 bg-white">
+            <p class="font-semibold">Smart Site</p>
         </div>
 
         <div class="flex items-center gap-3">

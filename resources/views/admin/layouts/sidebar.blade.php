@@ -1,6 +1,6 @@
 <div class="lg:hidden fixed top-0 inset-x-0 z-[100] bg-gray-800 text-white flex items-center justify-between px-4 py-3 shadow-lg">
     <div>
-        <h1 class="text-lg font-bold">Smart Kodes Admin</h1>
+        <h1 class="text-lg font-bold">Smart Site Admin</h1>
         <p class="text-xs text-gray-300">
             {{ session('tenant_context.current_tenant') ? session('tenant_context.current_tenant')->name : 'Platform Admin' }}
         </p>
@@ -18,7 +18,7 @@
 <nav id="adminMobileSidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-800 text-white overflow-y-auto z-[95] transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
     <div class="p-4 flex items-start justify-between">
         <div>
-            <h1 class="text-xl font-bold">Smart Kodes Admin</h1>
+            <h1 class="text-xl font-bold">Smart Site Admin</h1>
             <p class="text-sm text-gray-300">
                 {{ session('tenant_context.current_tenant') ? session('tenant_context.current_tenant')->name : 'Platform Admin' }}
             </p>

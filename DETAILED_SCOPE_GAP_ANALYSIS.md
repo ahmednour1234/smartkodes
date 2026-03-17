@@ -2,7 +2,7 @@
 
 **Review Date:** October 10, 2025  
 **Scope Document:** Updated detailed requirements map  
-**Project:** Smart Kodes Multi-Tenant Platform
+**Project:** Smart Site Multi-Tenant Platform
 
 ---
 
@@ -31,7 +31,7 @@
 
 | Requirement | Implementation | Status |
 |-------------|----------------|---------|
-| Header with branding | ✅ "Smart Kodes" in sidebar | **DONE** |
+| Header with branding | ✅ "Smart Site" in sidebar | **DONE** |
 | Powered-by footer | 🔄 Can add to layouts | **PARTIAL** |
 | Left navigation | ✅ Fixed sidebar with modules | **DONE** |
 | **Tenant Portal Modules:** | | |
@@ -48,7 +48,7 @@
 | - Statement | 🔄 Need dedicated view | **PARTIAL** |
 
 **Notes:**
-- Branding says "Smart Site" in scope but implemented as "Smart Kodes"
+- Branding says "Smart Site" in scope but implemented as "Smart Site"
 - "Statement" feature needs implementation
 
 ---
@@ -833,10 +833,10 @@ All mobile app requirements (Sections 10.1-10.4) are pending Flutter development
 ## Branding Note
 
 **Scope Document:** "Smart Site" (SS SMART SITE)  
-**Implementation:** "Smart Kodes"
+**Implementation:** "Smart Site"
 
 **Recommendation:** Align branding across all views:
-- Update headers from "Smart Kodes" to "Smart Site"
+- Update headers from "Smart Site" to "Smart Site"
 - Add "SS" logo
 - Update footer with "Powered by Smart Site"
 

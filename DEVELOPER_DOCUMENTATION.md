@@ -1,4 +1,4 @@
-# Smart Kodes - Developer Documentation
+# Smart Site - Developer Documentation
 
 **Version:** 1.0  
 **Last Updated:** January 2025  
@@ -33,7 +33,7 @@
 
 ## Overview
 
-**Smart Kodes** (also branded as "Smart Site") is a multi-tenant SaaS application that provides:
+**Smart Site** (also branded as "Smart Site") is a multi-tenant SaaS application that provides:
 
 - **Dynamic Form Building**: Visual drag-and-drop form builder with 20+ field types
 - **Work Order Management**: Create, assign, and track work orders with associated forms
@@ -61,7 +61,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Smart Kodes Platform                  │
+│                    Smart Site Platform                  │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌──────────────┐         ┌──────────────┐             │
@@ -359,7 +359,7 @@ Record
 
 ### Tenant Isolation Strategy
 
-Smart Kodes uses a **shared database with tenant_id column isolation** approach:
+Smart Site uses a **shared database with tenant_id column isolation** approach:
 
 - All tenant-scoped tables include a `tenant_id` column
 - Middleware enforces tenant context on every request

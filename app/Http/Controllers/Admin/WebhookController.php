@@ -211,7 +211,7 @@ class WebhookController extends Controller
             'timestamp' => now()->toISOString(),
             'tenant_id' => $currentTenant->id,
             'data' => [
-                'message' => 'This is a test webhook from Smart Kodes',
+                'message' => 'This is a test webhook from Smart Site',
                 'test_id' => Str::random(10)
             ]
         ];

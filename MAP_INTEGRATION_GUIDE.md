@@ -1,7 +1,7 @@
-# Smart Kodes - Map Integration Guide
+# Smart Site - Map Integration Guide
 
 ## Overview
-Smart Kodes uses **Leaflet.js** with **OpenStreetMap** tiles for all mapping features. This is a completely free, open-source solution with no API keys, no usage limits, and no costs.
+Smart Site uses **Leaflet.js** with **OpenStreetMap** tiles for all mapping features. This is a completely free, open-source solution with no API keys, no usage limits, and no costs.
 
 ---
 
@@ -454,6 +454,6 @@ legend.addTo(map);
 
 ## Conclusion
 
-Leaflet.js + OpenStreetMap provides a robust, free, and feature-rich mapping solution for Smart Kodes. No API keys, no limits, no costs—perfect for a SaaS application with unlimited scalability.
+Leaflet.js + OpenStreetMap provides a robust, free, and feature-rich mapping solution for Smart Site. No API keys, no limits, no costs—perfect for a SaaS application with unlimited scalability.
 
 **Last Updated:** October 9, 2025

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - {{ config('app.name', 'Smart Kodes') }}</title>
+    <title>Login - {{ config('app.name', 'Smart Site') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -239,7 +239,7 @@
             <div class="relative z-10 flex flex-col justify-center items-start p-16 text-white animate-slideInLeft">
                 <!-- Brand -->
                 <div class="mb-12">
-                    <h2 class="text-5xl font-bold mb-4">Smart Kodes</h2>
+                    <h2 class="text-5xl font-bold mb-4">Smart Site</h2>
                     <p class="text-xl text-indigo-100">Field Operations & Data Management Platform</p>
                 </div>
 

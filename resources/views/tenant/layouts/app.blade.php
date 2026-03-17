@@ -60,7 +60,7 @@
                         <span class="w-3 h-3 rounded-full bg-white/40 transition-colors" id="dot-2"></span>
                         <span class="w-3 h-3 rounded-full bg-white/40 transition-colors" id="dot-3"></span>
                     </div>
-                    <h2 class="text-2xl font-bold text-white mb-1" id="onboarding-title">Welcome to Smart Kodes</h2>
+                    <h2 class="text-2xl font-bold text-white mb-1" id="onboarding-title">Welcome to Smart Site</h2>
                     <p class="text-blue-100 text-sm" id="onboarding-subtitle">Your workspace for projects, forms, work orders, and team collaboration.</p>
                 </div>
                 <div id="onboarding-step-1" class="onboarding-step p-8">
@@ -89,7 +89,7 @@
         </div>
         <script>
         var onboardingStep = 1;
-        var titles = ['Welcome to Smart Kodes', 'Key sections', 'Permissions'];
+        var titles = ['Welcome to Smart Site', 'Key sections', 'Permissions'];
         var subtitles = ['Your workspace for projects, forms, work orders, and team collaboration.', 'Navigate easily between main areas.', 'We may ask for these when needed.'];
         function onboardingNext() {
             document.getElementById('onboarding-step-' + onboardingStep).classList.add('hidden');

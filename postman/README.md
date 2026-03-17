@@ -1,8 +1,8 @@
-# Smart Kodes API - Postman Collection
+# Smart Site API - Postman Collection
 
 ## Overview
 
-This Postman collection provides a complete set of API endpoints for the Smart Kodes platform with unified response handling and automatic token management.
+This Postman collection provides a complete set of API endpoints for the Smart Site platform with unified response handling and automatic token management.
 
 ## Setup Instructions
 

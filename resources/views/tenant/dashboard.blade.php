@@ -5,7 +5,7 @@
     <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div class="text-center">
-                <h1 class="text-4xl font-bold mb-4">Welcome to Smart Kodes</h1>
+                <h1 class="text-4xl font-bold mb-4">Welcome to Smart Site</h1>
                 <p class="text-xl opacity-90 mb-8">Manage your organization's projects, forms, and field operations with ease.</p>
                 <div class="flex justify-center space-x-4">
                     <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2">
