@@ -600,7 +600,7 @@ class FormController extends Controller
             $fieldValue = $request->input($formField->name);
 
             // Handle file uploads
-            if (in_array($formField->type, ['file', 'photo', 'video', 'audio'], true) && $request->hasFile($formField->name)) {
+            if (in_array($formField->type, ['file', 'photo', 'video', 'audio', 'voice_message'], true) && $request->hasFile($formField->name)) {
                 $fieldValue = $this->handleFileUpload($request->file($formField->name), $formField, $record);
             }
 
@@ -692,6 +692,7 @@ class FormController extends Controller
                 case 'photo':
                 case 'video':
                 case 'audio':
+                case 'voice_message':
                     $fieldRules[] = 'file';
                     if ($field->type === 'photo') {
                         $fieldRules[] = 'image';
@@ -699,8 +700,8 @@ class FormController extends Controller
                     } elseif ($field->type === 'video') {
                         $fieldRules[] = 'mimes:mp4,avi,mov';
                         $fieldRules[] = 'max:51200'; // 50MB
-                    } elseif ($field->type === 'audio') {
-                        $fieldRules[] = 'mimes:mp3,wav,ogg';
+                    } elseif ($field->type === 'audio' || $field->type === 'voice_message') {
+                        $fieldRules[] = 'mimes:mp3,wav,ogg,m4a';
                         $fieldRules[] = 'max:10240'; // 10MB
                     } else {
                         $fieldRules[] = 'max:10240'; // 10MB

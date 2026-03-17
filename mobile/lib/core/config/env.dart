@@ -2,6 +2,6 @@ class Env {
   Env._();
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://smartkodes.syscomdemos.com/api/v1/',
+    defaultValue: 'https://f796-197-43-10-99.ngrok-free.app/api/v1/',
   );
 }

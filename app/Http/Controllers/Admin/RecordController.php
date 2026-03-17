@@ -397,8 +397,10 @@ class RecordController extends Controller
                     break;
                 case 'file':
                 case 'photo':
+                case 'image':
                 case 'video':
                 case 'audio':
+                case 'voice_message':
                     $rules[] = 'file';
                     if ($field->max_size) $rules[] = 'max:' . $field->max_size;
                     break;
@@ -462,17 +464,31 @@ class RecordController extends Controller
         }
 
         // Update field values
-        $fileFieldTypes = ['file', 'photo', 'video', 'audio'];
+        $fileFieldTypes = ['file', 'photo', 'image', 'video', 'audio', 'voice_message'];
         $formService = app(FormService::class);
         foreach ($record->form->formFields as $field) {
             $isFileField = in_array($field->type, $fileFieldTypes, true);
             if ($isFileField && $request->hasFile($field->name)) {
-                $formService->handleFileUpload(
+                $path = $formService->handleFileUpload(
                     $request->file($field->name),
                     $field,
                     $record,
                     Auth::user()
                 );
+                // Also store the path in RecordField so the show page can reference it
+                $recordField = $record->recordFields()
+                    ->where('form_field_id', $field->id)
+                    ->first();
+                $valueToStore = ['value' => $path];
+                if ($recordField) {
+                    $recordField->update(['value_json' => $valueToStore]);
+                } else {
+                    $record->recordFields()->create([
+                        'tenant_id' => $currentTenant->id,
+                        'form_field_id' => $field->id,
+                        'value_json' => $valueToStore,
+                    ]);
+                }
                 continue;
             }
             if ($isFileField) {

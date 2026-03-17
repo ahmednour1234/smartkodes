@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/env.dart';
+import '../../../core/widgets/voice_recorder_field.dart';
 import '../../../core/widgets/gps_map_field.dart';
 import '../../../data/local/form_draft_store.dart';
 import '../../../data/local/pending_record_updates_store.dart';
@@ -25,12 +26,14 @@ class FormUpdateRecordScreen extends ConsumerStatefulWidget {
     required this.form,
     this.recordId,
     this.initialFields,
+    this.readOnly = false,
   });
 
   final String formId;
   final FormModel form;
   final String? recordId;
   final Map<String, dynamic>? initialFields;
+  final bool readOnly;
 
   @override
   ConsumerState<FormUpdateRecordScreen> createState() => _FormUpdateRecordScreenState();
@@ -234,6 +237,22 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     return list != null && list.isNotEmpty ? list.first : null;
   }
 
+  String? _existingAudioUrl(dynamic value) {
+    if (value == null) return null;
+    final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    String? pathToUrl(String s) {
+      if (s.startsWith('http')) return s;
+      if (s.contains('/')) return '$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//');
+      return null;
+    }
+    if (value is String && value.trim().isNotEmpty) return pathToUrl(value.trim());
+    if (value is Map) {
+      final path = value['path'] ?? value['url'];
+      if (path != null) return pathToUrl(path.toString().trim());
+    }
+    return null;
+  }
+
   List<String>? _existingImageUrls(dynamic value) {
     if (value == null) return null;
     final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
@@ -357,6 +376,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       _scheduleDraftSave();
       return;
     }
+
     final picker = ImagePicker();
     final XFile? x;
     if (field.type == 'video') {
@@ -434,7 +454,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     final errs = <String, String>{};
     for (final f in fields) {
       final v = _values[f.name];
-      final isFileType = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
+      final isFileType = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type);
       final hasFileValue = isFileType && (
         (f.type == 'photo' || f.type == 'image') ? _getFileList(f.name).isNotEmpty
             : _fileData[f.name] != null
@@ -460,7 +480,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       _error = null;
       _fieldErrors.clear();
     });
-    final fileTypes = ['file', 'photo', 'video', 'audio', 'image'];
+    final fileTypes = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'];
     final fileFieldNames = <String>{};
     final photoFieldNames = <String>{};
     for (final f in fields) {
@@ -554,7 +574,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   }
 
   bool _isUpdated(FormFieldModel f) {
-    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type)) {
+    if (['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type)) {
       if (f.type == 'photo' || f.type == 'image') return _getFileList(f.name).isNotEmpty;
       return _fileData[f.name] != null;
     }
@@ -646,9 +666,158 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     }
   }
 
+  Widget _buildReadOnlyField(FormFieldModel f) {
+    final value = _values[f.name];
+    final label = '${f.label ?? f.name}${f.required ? ' *' : ''}';
+
+    if (f.type == 'audio' || f.type == 'voice_message') {
+      final current = _fileData[f.name] as ({Uint8List bytes, String filename})?;
+      final existingLabel = _existingFileLabel(value);
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: VoiceRecorderField(
+          label: label,
+          maxFileBytes: _maxFileBytes,
+          currentFileName: current?.filename ?? existingLabel,
+          currentAudioBytes: current?.bytes,
+          currentAudioUrl: current == null ? _existingAudioUrl(value) : null,
+          readOnly: true,
+          onRecorded: (_, __) {},
+        ),
+      );
+    }
+
+    if (f.type == 'photo' || f.type == 'image') {
+      final existingUrls = _existingImageUrls(value);
+      final fileList = _getFileList(f.name);
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            if ((existingUrls?.isNotEmpty ?? false) || fileList.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (existingUrls != null)
+                    for (final url in existingUrls)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(url, width: 72, height: 72, fit: BoxFit.cover, headers: const {'ngrok-skip-browser-warning': 'true'}, errorBuilder: (_, __, ___) => _filePlaceholder(context, 'Image')),
+                      ),
+                  for (final file in fileList)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(file.bytes, width: 72, height: 72, fit: BoxFit.cover),
+                    ),
+                ],
+              )
+            else
+              Text('—', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ],
+        ),
+      );
+    }
+
+    if (f.type == 'file' || f.type == 'video') {
+      final existingLabel = _existingFileLabel(value);
+      final newFile = _fileData[f.name] as ({Uint8List bytes, String filename})?;
+      final displayName = newFile?.filename ?? existingLabel;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: InputDecorator(
+          decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+          child: Row(
+            children: [
+              Icon(f.type == 'video' ? Icons.videocam_outlined : Icons.insert_drive_file_outlined, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(displayName ?? '—', overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (f.type == 'checkbox') {
+      final v = value;
+      final checked = v == true || v == 'true' || v == '1' || v == 1;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: CheckboxListTile(
+          title: Text(label),
+          value: checked,
+          onChanged: null,
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+      );
+    }
+
+    String displayValue = '—';
+    if (value != null) {
+      if (value is List) {
+        displayValue = value.map((e) => e.toString()).join(', ');
+      } else {
+        final s = value.toString().trim();
+        displayValue = s.isEmpty ? '—' : s;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        ),
+        child: Text(displayValue, style: Theme.of(context).textTheme.bodyMedium),
+      ),
+    );
+  }
+
   Widget _buildField(FormFieldModel f) {
-    final isFile = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
+    if (widget.readOnly) return _buildReadOnlyField(f);
+    final isFile = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type);
     if (isFile) {
+      if (f.type == 'audio' || f.type == 'voice_message') {
+        final current = _fileData[f.name] as ({Uint8List bytes, String filename})?;
+        final existingLabel = _existingFileLabel(_values[f.name]);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _wrapIfUpdated(
+            VoiceRecorderField(
+              label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+              errorText: _fieldErrors[f.name],
+              maxFileBytes: _maxFileBytes,
+              currentFileName: current?.filename ?? existingLabel,
+              currentAudioBytes: current?.bytes,
+              currentAudioUrl: current == null ? _existingAudioUrl(_values[f.name]) : null,
+              onRecorded: (bytes, filename) {
+                setState(() {
+                  _fileData[f.name] = (bytes: bytes, filename: filename);
+                  _fieldErrors.remove(f.name);
+                });
+                _scheduleDraftSave();
+              },
+              onClear: (current == null && existingLabel == null)
+                  ? null
+                  : () {
+                      setState(() {
+                        _fileData.remove(f.name);
+                        _values.remove(f.name);
+                      });
+                      _scheduleDraftSave();
+                    },
+            ),
+            f,
+          ),
+        );
+      }
+
       final existingFile = _values[f.name];
       final existingLabel = _existingFileLabel(existingFile);
       final existingUrl = _existingImageUrl(existingFile);
@@ -988,9 +1157,9 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('${widget.form.name} – Update'),
+          title: Text(widget.readOnly ? widget.form.name : '${widget.form.name} – Update'),
           actions: [
-            if (_hasDraft)
+            if (_hasDraft && !widget.readOnly)
               IconButton(
                 onPressed: () async { await _clearDraft(); },
                 icon: const Icon(Icons.delete_outline, color: Colors.orange),
@@ -1027,6 +1196,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
               ],
             ),
           ),
+          if (!widget.readOnly)
           Padding(
             padding: const EdgeInsets.all(16),
             child: FilledButton(

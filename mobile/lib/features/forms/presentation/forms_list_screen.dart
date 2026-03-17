@@ -59,6 +59,7 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
           recordId: record.id,
           form: form,
           initialFields: record.fields,
+          readOnly: true,
         ),
       ),
     ).then((_) => setState(() {}));

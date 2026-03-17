@@ -192,6 +192,14 @@
                                 <span class="text-sm font-medium text-gray-700">Video</span>
                             </div>
                         </div>
+                        <div class="field-item" data-type="voice_message" draggable="true">
+                            <div class="flex items-center p-3 border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 cursor-move transition-colors">
+                                <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5a3 3 0 00-3 3v4a3 3 0 106 0V8a3 3 0 00-3-3zm5 7a5 5 0 01-10 0m5 5v3m-3 0h6"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700">Voice Message</span>
+                            </div>
+                        </div>
                         <div class="field-item" data-type="file" draggable="true">
                             <div class="flex items-center p-3 border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 cursor-move transition-colors">
                                 <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,6 +308,7 @@
             signature: { label: 'Signature', required: false },
             photo: { label: 'Photo', required: false },
             video: { label: 'Video', required: false },
+            voice_message: { label: 'Voice Message', required: false },
             file: { label: 'File Upload', required: false },
             gps: { label: 'GPS Location', required: false },
             barcode: { label: 'Barcode', placeholder: 'Or enter code manually', required: false }
@@ -489,6 +498,8 @@
                 return '<div class="border border-dashed border-gray-300 rounded-md h-20 flex items-center justify-center text-gray-400 text-sm">📷 Photo Upload</div>';
             case 'video':
                 return '<div class="border border-dashed border-gray-300 rounded-md h-20 flex items-center justify-center text-gray-400 text-sm">🎬 Video Upload</div>';
+            case 'voice_message':
+                return '<div class="border border-dashed border-gray-300 rounded-md h-20 flex items-center justify-center text-gray-400 text-sm">🎤 Voice Message Upload</div>';
             case 'file':
                 return '<div class="border border-dashed border-gray-300 rounded-md h-20 flex items-center justify-center text-gray-400 text-sm">📎 File Upload</div>';
             case 'gps':

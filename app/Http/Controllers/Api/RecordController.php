@@ -28,7 +28,7 @@ class RecordController extends BaseApiController
             $perPage = min(max($perPage, 1), 50);
 
             $query = Record::where('submitted_by', $user->id)
-                ->with(['form', 'workOrder', 'recordFields.formField', 'files']);
+                ->with(['form', 'workOrder', 'recordFields.formField', 'files.formField']);
 
             if ($request->filled('work_order_id')) {
                 $query->where('work_order_id', $request->work_order_id);
@@ -56,7 +56,7 @@ class RecordController extends BaseApiController
         $user = Auth::user();
         $record = Record::where('submitted_by', $user->id)
             ->where('id', $recordId)
-            ->with(['form', 'workOrder', 'recordFields.formField', 'files'])
+            ->with(['form', 'workOrder', 'recordFields.formField', 'files.formField'])
             ->firstOrFail();
 
         return $this->successResponse(

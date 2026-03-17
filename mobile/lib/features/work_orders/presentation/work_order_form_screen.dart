@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/widgets/voice_recorder_field.dart';
 import '../../../core/widgets/gps_map_field.dart';
 import '../../../data/local/form_draft_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
@@ -279,6 +280,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       _scheduleDraftSave();
       return;
     }
+
     final picker = ImagePicker();
     final XFile? x;
     if (field.type == 'video') {
@@ -351,7 +353,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     final fields = _form!.fields ?? [];
     final errs = <String, String>{};
     for (final f in fields) {
-      final isFileType = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
+      final isFileType = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type);
       if (isFileType && f.required) {
         final hasFile = (f.type == 'photo' || f.type == 'image') ? _getFileList(f.name).isNotEmpty : _fileData[f.name] != null;
         if (!hasFile) errs[f.name] = '${f.label ?? f.name} is required';
@@ -547,7 +549,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   }
 
   bool _isUpdated(FormFieldModel f) {
-    if (['file', 'photo', 'video', 'audio', 'image'].contains(f.type)) {
+    if (['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type)) {
       if (f.type == 'photo' || f.type == 'image') return _getFileList(f.name).isNotEmpty;
       return _fileData[f.name] != null;
     }
@@ -640,8 +642,38 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   }
 
   Widget _buildField(FormFieldModel f) {
-    final isFile = ['file', 'photo', 'video', 'audio', 'image'].contains(f.type);
+    final isFile = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type);
     if (isFile) {
+      if (f.type == 'audio' || f.type == 'voice_message') {
+        final current = _fileData[f.name] as ({Uint8List bytes, String filename})?;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _wrapIfUpdated(
+            VoiceRecorderField(
+              label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+              errorText: _fieldErrors[f.name],
+              maxFileBytes: _maxFileBytes,
+              currentFileName: current?.filename,
+              currentAudioBytes: current?.bytes,
+              onRecorded: (bytes, filename) {
+                setState(() {
+                  _fileData[f.name] = (bytes: bytes, filename: filename);
+                  _fieldErrors.remove(f.name);
+                });
+                _scheduleDraftSave();
+              },
+              onClear: current == null
+                  ? null
+                  : () {
+                      setState(() => _fileData.remove(f.name));
+                      _scheduleDraftSave();
+                    },
+            ),
+            f,
+          ),
+        );
+      }
+
       final isMultiPhoto = (f.type == 'photo' || f.type == 'image');
       final fileList = isMultiPhoto ? _getFileList(f.name) : null;
       final hasSingle = !isMultiPhoto && _fileData[f.name] != null;

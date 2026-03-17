@@ -103,6 +103,7 @@ class SubmitFormRequest extends BaseApiRequest
                 case 'image':
                 case 'video':
                 case 'audio':
+                case 'voice_message':
                     $fieldRules[] = 'array';
                     if ($isRequired) {
                         $fieldRules[] = 'min:1';
@@ -115,8 +116,8 @@ class SubmitFormRequest extends BaseApiRequest
                     } elseif ($field->type === 'video') {
                         $starRules[] = 'mimes:mp4,avi,mov';
                         $starRules[] = 'max:51200';
-                    } elseif ($field->type === 'audio') {
-                        $starRules[] = 'mimes:mp3,wav,ogg';
+                    } elseif ($field->type === 'audio' || $field->type === 'voice_message') {
+                        $starRules[] = 'mimes:mp3,wav,ogg,m4a';
                         $starRules[] = 'max:10240';
                     } else {
                         $starRules[] = 'max:10240';
@@ -170,7 +171,7 @@ class SubmitFormRequest extends BaseApiRequest
         foreach ($form->formFields as $field) {
             $label = $field->label ?? str_replace('_', ' ', ucfirst($field->name));
             $out["{$field->name}.required"] = "$label is required.";
-            if (in_array($field->type, ['file', 'photo', 'image', 'video', 'audio'], true)) {
+            if (in_array($field->type, ['file', 'photo', 'image', 'video', 'audio', 'voice_message'], true)) {
                 $out["{$field->name}.array"] = "$label must be one or more files.";
                 $out["{$field->name}.min"] = "At least one file is required for $label.";
                 $out["{$field->name}.*.file"] = "Each item in $label must be a file.";

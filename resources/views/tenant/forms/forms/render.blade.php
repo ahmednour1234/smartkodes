@@ -231,6 +231,7 @@
                                     @case('photo')
                                     @case('video')
                                     @case('audio')
+                                    @case('voice_message')
                                     @case('file')
                                         <div class="file-upload-wrapper">
                                             <input type="file"
@@ -239,12 +240,12 @@
                                                    {{ $required ? 'required' : '' }}
                                                    @if($field->type === 'photo') accept="image/*" @endif
                                                    @if($field->type === 'video') accept="video/*" @endif
-                                                   @if($field->type === 'audio') accept="audio/*" @endif
+                                                   @if($field->type === 'audio' || $field->type === 'voice_message') accept="audio/*" @endif
                                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                                             <p class="text-xs text-gray-500 mt-1">
                                                 @if($field->type === 'photo') Max size: 5MB @endif
                                                 @if($field->type === 'video') Max size: 50MB @endif
-                                                @if($field->type === 'audio') Max size: 10MB @endif
+                                                @if($field->type === 'audio' || $field->type === 'voice_message') Max size: 10MB @endif
                                                 @if($field->type === 'file') Max size: 10MB @endif
                                             </p>
                                         </div>

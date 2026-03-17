@@ -128,6 +128,7 @@
                                                 @case('photo')
                                                 @case('video')
                                                 @case('audio')
+                                                @case('voice_message')
                                                     @php
                                                         $files = $record->files->where('form_field_id', $field->id);
                                                     @endphp

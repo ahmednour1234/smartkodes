@@ -70,7 +70,7 @@ class FormController extends BaseApiController
     {
         try {
             $user = Auth::user();
-            
+
             // Find record
             $record = Record::where('tenant_id', $user->tenant_id)
                 ->where('id', $recordId)
@@ -92,7 +92,7 @@ class FormController extends BaseApiController
             // Update or create record fields
             foreach ($form->formFields as $formField) {
                 $fieldName = $formField->name;
-                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio'], true);
+                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio', 'voice_message'], true);
 
                 if ($isFileType) {
                     if (!$request->hasFile($fieldName)) {

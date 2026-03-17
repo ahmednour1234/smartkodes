@@ -93,6 +93,7 @@ class _FormDetailScreenState extends ConsumerState<FormDetailScreen> {
                   builder: (_) => FormUpdateRecordScreen(
                     formId: widget.formId,
                     form: form,
+                    readOnly: true,
                   ),
                 ),
               ),

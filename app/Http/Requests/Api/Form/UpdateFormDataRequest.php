@@ -16,13 +16,13 @@ class UpdateFormDataRequest extends BaseApiRequest
     public function rules(): array
     {
         $formId = $this->route('form');
-        
+
         if (!$formId) {
             return [];
         }
 
         $form = Form::with('formFields')->find($formId);
-        
+
         if (!$form) {
             return [];
         }
@@ -75,6 +75,7 @@ class UpdateFormDataRequest extends BaseApiRequest
                 case 'image':
                 case 'video':
                 case 'audio':
+                case 'voice_message':
                     $fieldRules[] = 'array';
                     if ($isRequired) {
                         $fieldRules[] = 'min:1';
@@ -87,8 +88,8 @@ class UpdateFormDataRequest extends BaseApiRequest
                     } elseif ($field->type === 'video') {
                         $starRules[] = 'mimes:mp4,avi,mov';
                         $starRules[] = 'max:51200';
-                    } elseif ($field->type === 'audio') {
-                        $starRules[] = 'mimes:mp3,wav,ogg';
+                    } elseif ($field->type === 'audio' || $field->type === 'voice_message') {
+                        $starRules[] = 'mimes:mp3,wav,ogg,m4a';
                         $starRules[] = 'max:10240';
                     } else {
                         $starRules[] = 'max:10240';

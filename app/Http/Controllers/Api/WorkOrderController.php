@@ -217,7 +217,7 @@ class WorkOrderController extends BaseApiController
             // Process form fields and store values
             foreach ($form->formFields as $formField) {
                 $fieldName = $formField->name;
-                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio'], true);
+                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio', 'voice_message'], true);
 
                 if ($isFileType) {
                     if (!$request->hasFile($fieldName)) {

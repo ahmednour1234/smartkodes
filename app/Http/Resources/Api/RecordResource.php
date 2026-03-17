@@ -38,7 +38,7 @@ class RecordResource extends BaseResource
             'location' => $this->location,
             'fields' => $this->whenLoaded('recordFields', function () {
                 $fields = [];
-                $fileFieldTypes = ['file', 'photo', 'video', 'audio', 'image'];
+                $fileFieldTypes = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'];
                 foreach ($this->recordFields as $recordField) {
                     if (!$recordField->formField) {
                         continue;
@@ -60,6 +60,20 @@ class RecordResource extends BaseResource
                         $fields[$name] = $value;
                     }
                 }
+                if ($this->relationLoaded('files')) {
+                    $groupedFiles = [];
+                    foreach ($this->files as $file) {
+                        if (!$file->formField) {
+                            continue;
+                        }
+                        $fieldName = $file->formField->name;
+                        $groupedFiles[$fieldName] ??= [];
+                        $groupedFiles[$fieldName][] = $file->path;
+                    }
+                    foreach ($groupedFiles as $fieldName => $paths) {
+                        $fields[$fieldName] = count($paths) === 1 ? $paths[0] : array_values($paths);
+                    }
+                }
                 return $fields;
             }),
             'field_labels' => $this->whenLoaded('recordFields', function () {
@@ -70,6 +84,15 @@ class RecordResource extends BaseResource
                     }
                     $config = is_array($recordField->formField->config_json) ? $recordField->formField->config_json : [];
                     $labels[$recordField->formField->name] = $config['label'] ?? $recordField->formField->name;
+                }
+                if ($this->relationLoaded('files')) {
+                    foreach ($this->files as $file) {
+                        if (!$file->formField) {
+                            continue;
+                        }
+                        $config = is_array($file->formField->config_json) ? $file->formField->config_json : [];
+                        $labels[$file->formField->name] = $config['label'] ?? $file->formField->name;
+                    }
                 }
                 return $labels;
             }),

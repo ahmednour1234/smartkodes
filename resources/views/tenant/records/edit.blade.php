@@ -297,8 +297,10 @@
 
                                     @case('file')
                                     @case('photo')
+                                    @case('image')
                                     @case('video')
                                     @case('audio')
+                                    @case('voice_message')
                                         <div class="space-y-2">
                                             @php
                                                 $files = $record->files->where('form_field_id', $field->id);
@@ -318,7 +320,7 @@
                                             <input type="file"
                                                    id="{{ $field->name }}"
                                                    name="{{ $field->name }}"
-                                                   accept="{{ $field->type === 'photo' ? 'image/*' : ($field->type === 'video' ? 'video/*' : ($field->type === 'audio' ? 'audio/*' : '*/*')) }}"
+                                                  accept="{{ in_array($field->type, ['photo', 'image']) ? 'image/*' : ($field->type === 'video' ? 'video/*' : (($field->type === 'audio' || $field->type === 'voice_message') ? 'audio/*' : '*/*')) }}"
                                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                                         </div>
                                         @break

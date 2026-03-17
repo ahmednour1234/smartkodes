@@ -357,6 +357,7 @@ class _WorkOrderDetailState extends ConsumerState<WorkOrderDetailScreen> with Ro
                                   recordId: rec.id,
                                   form: formModel,
                                   initialFields: rec.fields,
+                                  readOnly: true,
                                 ),
                               ),
                             ).then((result) async {

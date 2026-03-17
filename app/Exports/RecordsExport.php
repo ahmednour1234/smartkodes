@@ -87,7 +87,7 @@ class RecordsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
             foreach ($this->formFields as $field) {
                 $recordField = $record->recordFields->firstWhere('form_field_id', $field->id);
                 $value = '';
-                if (in_array($field->type, ['photo', 'video', 'audio', 'file'], true)) {
+                if (in_array($field->type, ['photo', 'video', 'audio', 'voice_message', 'file'], true)) {
                     $recordFiles = $record->files->where('form_field_id', $field->id);
                     $urls = [];
                     foreach ($recordFiles as $file) {
