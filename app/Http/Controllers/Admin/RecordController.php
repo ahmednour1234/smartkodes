@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\RecordsExport;
 use App\Constants\RecordStatus;
+use App\Services\FormService;
 
 class RecordController extends Controller
 {
@@ -278,6 +279,21 @@ class RecordController extends Controller
     }
 
     /**
+     * Map string status from request to RecordStatus constant.
+     */
+    private function mapStatusToInt(?string $status): int
+    {
+        $map = [
+            'draft' => RecordStatus::DRAFT,
+            'submitted' => RecordStatus::SUBMITTED,
+            'reviewed' => RecordStatus::REVIEWED,
+            'approved' => RecordStatus::APPROVED,
+            'rejected' => RecordStatus::REJECTED,
+        ];
+        return $map[$status] ?? RecordStatus::DRAFT;
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
@@ -290,6 +306,64 @@ class RecordController extends Controller
         $record = Record::where('tenant_id', $currentTenant->id)
                        ->with('form.formFields')
                        ->findOrFail($id);
+
+        $fieldNames = $record->form?->formFields?->pluck('name')->toArray() ?? [];
+        $isStatusOnlyUpdate = empty($fieldNames) || !$request->hasAny($fieldNames);
+
+        if ($isStatusOnlyUpdate) {
+            $request->validate([
+                'status' => 'required|string|in:draft,submitted,reviewed,approved,rejected',
+                'project_id' => 'nullable|exists:projects,id',
+            ]);
+            $newStatus = $this->mapStatusToInt($request->status);
+            $previousStatus = $record->status;
+            $record->update([
+                'project_id' => $request->filled('project_id') ? $request->project_id : $record->project_id,
+                'status' => $newStatus,
+                'submitted_at' => $newStatus === RecordStatus::SUBMITTED ? ($record->submitted_at ?? now()) : $record->submitted_at,
+                'updated_by' => Auth::id(),
+            ]);
+            if ($newStatus === RecordStatus::SUBMITTED && $previousStatus !== RecordStatus::SUBMITTED) {
+                $record->load(['workOrder.project.managers', 'form', 'formVersion.form']);
+                $routePrefix = $this->getRoutePrefix();
+                $recordUrl = route("{$routePrefix}.records.show", $record->id);
+                $formName = $record->form->name ?? $record->formVersion->form->name ?? 'Form';
+                $notifiedIds = [Auth::id()];
+                if ($record->workOrder && $record->workOrder->assigned_to && !in_array($record->workOrder->assigned_to, $notifiedIds)) {
+                    Notification::create([
+                        'tenant_id' => $currentTenant->id,
+                        'user_id' => $record->workOrder->assigned_to,
+                        'type' => 'form',
+                        'title' => 'New form submission',
+                        'message' => "New submission for \"{$formName}\" in work order: " . ($record->workOrder->title ?? ''),
+                        'data' => ['record_id' => $record->id],
+                        'action_url' => $recordUrl,
+                        'created_by' => Auth::id(),
+                    ]);
+                    $notifiedIds[] = $record->workOrder->assigned_to;
+                }
+                if ($record->workOrder && $record->workOrder->project) {
+                    foreach ($record->workOrder->project->managers as $manager) {
+                        if ($manager->id && !in_array($manager->id, $notifiedIds)) {
+                            Notification::create([
+                                'tenant_id' => $currentTenant->id,
+                                'user_id' => $manager->id,
+                                'type' => 'form',
+                                'title' => 'New form submission',
+                                'message' => "New submission for \"{$formName}\" in project: " . $record->workOrder->project->name,
+                                'data' => ['record_id' => $record->id],
+                                'action_url' => $recordUrl,
+                                'created_by' => Auth::id(),
+                            ]);
+                            $notifiedIds[] = $manager->id;
+                        }
+                    }
+                }
+            }
+            $viewPrefix = $this->getViewPrefix();
+            return redirect()->route("{$viewPrefix}.records.show", $record->id)
+                ->with('success', 'Status updated successfully.');
+        }
 
         // Validate the form submission against form field rules
         $validationRules = [];
@@ -339,15 +413,17 @@ class RecordController extends Controller
         $validatedData = $request->validate($validationRules);
 
         $previousStatus = $record->status;
-        $newStatus = (int) ($request->status ?? $record->status);
+        $newStatus = $request->filled('status')
+            ? $this->mapStatusToInt($request->status)
+            : (int) $record->status;
         $record->update([
-            'project_id' => $request->project_id,
+            'project_id' => $request->filled('project_id') ? $request->project_id : null,
             'status' => $newStatus,
-            'submitted_at' => $newStatus === 1 ? ($record->submitted_at ?? now()) : $record->submitted_at,
+            'submitted_at' => $newStatus === RecordStatus::SUBMITTED ? ($record->submitted_at ?? now()) : $record->submitted_at,
             'updated_by' => Auth::id(),
         ]);
 
-        if ($newStatus === 1 && $previousStatus !== 1) {
+        if ($newStatus === RecordStatus::SUBMITTED && $previousStatus !== RecordStatus::SUBMITTED) {
             $record->load(['workOrder.project.managers', 'form', 'formVersion.form']);
             $routePrefix = $this->getRoutePrefix();
             $recordUrl = route("{$routePrefix}.records.show", $record->id);
@@ -386,11 +462,25 @@ class RecordController extends Controller
         }
 
         // Update field values
+        $fileFieldTypes = ['file', 'photo', 'video', 'audio'];
+        $formService = app(FormService::class);
         foreach ($record->form->formFields as $field) {
+            $isFileField = in_array($field->type, $fileFieldTypes, true);
+            if ($isFileField && $request->hasFile($field->name)) {
+                $formService->handleFileUpload(
+                    $request->file($field->name),
+                    $field,
+                    $record,
+                    Auth::user()
+                );
+                continue;
+            }
+            if ($isFileField) {
+                continue;
+            }
             if ($request->has($field->name)) {
                 $value = $request->input($field->name);
 
-                // Find existing record field or create new one
                 $recordField = $record->recordFields()
                     ->where('form_field_id', $field->id)
                     ->first();

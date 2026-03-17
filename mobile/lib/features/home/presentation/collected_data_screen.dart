@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../data/local/pending_record_updates_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
+import '../../forms/data/forms_repository.dart';
+import '../../forms/presentation/forms_providers.dart';
 import '../../work_orders/presentation/work_order_providers.dart';
 import '../../work_orders/presentation/work_order_form_screen.dart';
 
@@ -167,7 +169,7 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
   }
 }
 
-class _PendingCard extends StatefulWidget {
+class _PendingCard extends ConsumerStatefulWidget {
   const _PendingCard({
     super.key,
     required this.pending,
@@ -180,10 +182,10 @@ class _PendingCard extends StatefulWidget {
   final Future<void> Function(BuildContext context, int index, PendingSubmission p) onOpenForm;
 
   @override
-  State<_PendingCard> createState() => _PendingCardState();
+  ConsumerState<_PendingCard> createState() => _PendingCardState();
 }
 
-class _PendingCardState extends State<_PendingCard> {
+class _PendingCardState extends ConsumerState<_PendingCard> {
   bool _expanded = false;
 
   @override
@@ -214,24 +216,40 @@ class _PendingCardState extends State<_PendingCard> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Submitted data:', style: Theme.of(context).textTheme.labelLarge),
-                    const SizedBox(height: 8),
-                    ...fields.entries.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text.rich(
-                        TextSpan(
-                          style: Theme.of(context).textTheme.bodySmall,
-                          children: [
-                            TextSpan(text: '${e.key}: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-                            TextSpan(text: '${e.value}'),
-                          ],
-                        ),
-                      ),
-                    )),
-                  ],
+                child: FutureBuilder(
+                  future: ref.read(formsRepositoryProvider).get(p.formId),
+                  builder: (context, formSnapshot) {
+                    final nameToLabel = <String, String>{};
+                    if (formSnapshot.hasData && formSnapshot.data != null) {
+                      for (final f in formSnapshot.data!.fields ?? []) {
+                        nameToLabel[f.name] = f.label ?? f.name;
+                      }
+                    }
+                    String label(String key) => nameToLabel[key] ?? key;
+                    Object valueDisplay(Object v) {
+                      if (v is List) return v.join(', ');
+                      return v;
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Submitted data:', style: Theme.of(context).textTheme.labelLarge),
+                        const SizedBox(height: 8),
+                        ...fields.entries.map((e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text.rich(
+                            TextSpan(
+                              style: Theme.of(context).textTheme.bodySmall,
+                              children: [
+                                TextSpan(text: '${label(e.key)}: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                TextSpan(text: '${valueDisplay(e.value)}'),
+                              ],
+                            ),
+                          ),
+                        )),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

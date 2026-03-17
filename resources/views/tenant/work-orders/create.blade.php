@@ -136,7 +136,7 @@
                         <!-- Form Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Assign Forms <span class="text-red-500">*</span>
+                                Assign Forms
                             </label>
                             <p class="text-sm text-gray-600 mb-2">
                                 Create or select a form before assigning a work order. Form templates are built in <a href="{{ route('tenant.forms.index') }}" class="text-blue-600 hover:text-blue-800 underline">Forms</a>; then choose one or more below to attach to this work order.

@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\WorkOrdersExport;
+use App\Exports\WorkOrdersTemplateExport;
+use App\Imports\WorkOrdersImport;
 
 class WorkOrderController extends Controller
 {
@@ -99,7 +101,7 @@ class WorkOrderController extends Controller
         'title'        => ['required', 'string', 'max:255'],
 
         'project_id'   => ['required', 'exists:projects,id'],
-        'form_ids'     => ['required', 'array', 'min:1'],
+        'form_ids'     => ['nullable', 'array'],
         'form_ids.*'   => ['exists:forms,id'],
 
         'assigned_to'  => ['nullable', 'exists:users,id'],
@@ -135,14 +137,17 @@ class WorkOrderController extends Controller
     ]);
 
     // Attach forms with order
+    $formIds = $request->form_ids ?? [];
     $formData = [];
-    foreach ($request->form_ids as $index => $formId) {
+    foreach ($formIds as $index => $formId) {
         $formData[$formId] = [
             'id'    => Str::ulid(),
             'order' => $index,
         ];
     }
-    $workOrder->forms()->attach($formData);
+    if (!empty($formData)) {
+        $workOrder->forms()->attach($formData);
+    }
 
     if ($request->filled('assigned_to') && trim((string) $request->assigned_to) !== '') {
         $routePrefix = $this->getRoutePrefix();
@@ -160,12 +165,12 @@ class WorkOrderController extends Controller
 
     $routePrefix = $this->getRoutePrefix();
 
+    $message = empty($formIds)
+        ? 'Work order created successfully.'
+        : 'Work order created successfully with ' . count($formIds) . ' form(s).';
     return redirect()
         ->route("{$routePrefix}.work-orders.index")
-        ->with(
-            'success',
-            'Work order created successfully with ' . count($request->form_ids) . ' form(s).'
-        );
+        ->with('success', $message);
 }
 
 
@@ -223,7 +228,7 @@ public function update(Request $request, string $id)
         'title'        => ['required', 'string', 'max:255'],
 
         'project_id'   => ['required', 'exists:projects,id'],
-        'form_ids'     => ['required', 'array', 'min:1'],
+        'form_ids'     => ['nullable', 'array'],
         'form_ids.*'   => ['exists:forms,id'],
 
         'assigned_to'  => ['nullable', 'exists:users,id'],
@@ -261,8 +266,9 @@ public function update(Request $request, string $id)
     ]);
 
     // Sync forms with order
+    $formIds = $request->form_ids ?? [];
     $formData = [];
-    foreach ($request->form_ids as $index => $formId) {
+    foreach ($formIds as $index => $formId) {
         $formData[$formId] = [
             'id'    => Str::ulid(),
             'order' => $index,
@@ -366,5 +372,45 @@ public function update(Request $request, string $id)
             $filename,
             $format === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX
         );
+    }
+
+    /**
+     * Download the work orders import template (Excel with column guide).
+     */
+    public function downloadTemplate()
+    {
+        $currentTenant = session('tenant_context.current_tenant');
+        if (!$currentTenant) {
+            abort(403, 'No tenant context available.');
+        }
+        $filename = 'work_orders_import_template_' . date('Y-m-d') . '.xlsx';
+        return Excel::download(new WorkOrdersTemplateExport(), $filename, \Maatwebsite\Excel\Excel::XLSX);
+    }
+
+    /**
+     * Import work orders from an Excel file (template format).
+     */
+    public function import(Request $request)
+    {
+        $currentTenant = session('tenant_context.current_tenant');
+        if (!$currentTenant) {
+            abort(403, 'No tenant context available.');
+        }
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+        ]);
+        $import = new WorkOrdersImport($currentTenant->id, Auth::id());
+        try {
+            Excel::import($import, $request->file('file'));
+        } catch (\Throwable $e) {
+            $routePrefix = $this->getRoutePrefix();
+            return redirect()->route("{$routePrefix}.work-orders.index")
+                ->with('error', 'Import failed: ' . $e->getMessage());
+        }
+        $routePrefix = $this->getRoutePrefix();
+        return redirect()->route("{$routePrefix}.work-orders.index")
+            ->with('success', 'Import finished.')
+            ->with('import_succeeded', $import->succeeded)
+            ->with('import_failed', $import->failed);
     }
 }

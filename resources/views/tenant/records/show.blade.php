@@ -41,11 +41,17 @@
                                 @php
                                     $value = $fieldValues[$field->name] ?? null;
                                     $isSensitive = $field->is_sensitive ?? false;
+                                    $config = is_array($field->config_json) ? $field->config_json : (array) json_decode($field->config_json ?? '{}', true);
+                                    $fieldLabel = $config['label'] ?? $field->label ?? $field->name;
+                                    $fieldLabel = is_array($fieldLabel) ? implode(', ', $fieldLabel) : (string) $fieldLabel;
+                                    if (is_array($value) && !in_array($field->type, ['checkboxgroup', 'multiselect', 'gps'])) {
+                                        $value = implode(', ', array_map(fn($v) => is_scalar($v) ? (string)$v : json_encode($v), $value));
+                                    }
                                 @endphp
 
                                 <div class="border-b border-gray-200 pb-4 last:border-b-0">
                                     <dt class="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                                        {{ $field->label ?? $field->name }}
+                                        {{ $fieldLabel }}
                                         @if($field->is_required)
                                             <span class="ml-1 text-red-500">*</span>
                                         @endif
@@ -65,7 +71,7 @@
                                                 @case('url')
                                                     @if($isSensitive)
                                                         <div class="relative">
-                                                            <span class="masked-value">{{ str_repeat('•', min(strlen($value), 20)) }}</span>
+                                                            <span class="masked-value">{{ str_repeat('•', min(strlen((string)$value), 20)) }}</span>
                                                             <span class="real-value hidden">{{ $value }}</span>
                                                             <button type="button" onclick="toggleSensitive(this)" class="ml-2 text-indigo-600 hover:text-indigo-800 text-xs">
                                                                 <span class="show-text">Show</span>
@@ -255,13 +261,13 @@
                     <div>
                         <p class="text-xs font-medium text-gray-500 uppercase">Status</p>
                         <span class="mt-1 inline-block px-3 py-1 text-sm font-semibold rounded-full
-                            @if($record->status === 'submitted') bg-blue-100 text-blue-800
-                            @elseif($record->status === 'reviewed') bg-yellow-100 text-yellow-800
-                            @elseif($record->status === 'approved') bg-green-100 text-green-800
-                            @elseif($record->status === 'rejected') bg-red-100 text-red-800
+                            @if((int) $record->status === \App\Constants\RecordStatus::SUBMITTED) bg-blue-100 text-blue-800
+                            @elseif((int) $record->status === \App\Constants\RecordStatus::REVIEWED) bg-yellow-100 text-yellow-800
+                            @elseif((int) $record->status === \App\Constants\RecordStatus::APPROVED) bg-green-100 text-green-800
+                            @elseif((int) $record->status === \App\Constants\RecordStatus::REJECTED) bg-red-100 text-red-800
                             @else bg-gray-100 text-gray-800
                             @endif">
-                            {{ ucfirst($record->status ?? 'draft') }}
+                            {{ \App\Constants\RecordStatus::getLabel((int) $record->status) }}
                         </span>
                     </div>
 
@@ -368,14 +374,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Assign to User
-                    </button>
-
-                    <!-- Request Approval -->
-                    <button onclick="toggleApprovalModal()" class="flex items-center justify-center w-full px-4 py-2 bg-green-600 text-white text-center rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
-                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Request Approval
                     </button>
 
                     <!-- Change Status -->
@@ -507,250 +505,6 @@
         </div>
     </div>
 
-    <!-- Comments & Activity Section -->
-    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Comments Section -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Comments & Discussion</h3>
-            </div>
-            <div class="px-6 py-4">
-                <!-- Add Comment Form -->
-                <form action="{{ route('tenant.records.add-comment', $record->id) }}" method="POST" class="mb-6">
-                    @csrf
-                    <div class="relative">
-                        <textarea name="comment" id="comment-textarea" rows="3" required placeholder="Add a comment... Use @username to mention someone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-
-                        <!-- @Mention Dropdown (Hidden by default) -->
-                        <div id="mention-dropdown" class="hidden absolute z-10 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            @if(isset($users) && $users->count() > 0)
-                                @foreach($users as $user)
-                                <div class="mention-option px-4 py-2 hover:bg-indigo-50 cursor-pointer" data-username="{{ $user->name }}" data-userid="{{ $user->id }}">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold mr-2">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900">{{ $user->name }}</p>
-                                            <p class="text-xs text-gray-500">{{ $user->email }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endforeach
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="mt-2 flex items-center justify-between">
-                        <label class="flex items-center text-sm text-gray-600">
-                            <input type="checkbox" name="is_internal" value="1" class="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            Internal note (staff only)
-                        </label>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            Add Comment
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Comments List -->
-                <div class="space-y-4">
-                    @forelse($record->comments->where('parent_id', null) as $comment)
-                    <div class="border-l-4 {{ $comment->is_internal ? 'border-yellow-400 bg-yellow-50' : 'border-indigo-400 bg-gray-50' }} rounded-r-lg p-4">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start flex-1">
-                                <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold mr-3 flex-shrink-0">
-                                    {{ strtoupper(substr($comment->user->name, 0, 1)) }}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center flex-wrap gap-2">
-                                        <span class="font-semibold text-gray-900">{{ $comment->user->name }}</span>
-                                        <span class="text-xs text-gray-500">{{ $comment->created_at->diffForHumans() }}</span>
-                                        @if($comment->is_internal)
-                                        <span class="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs rounded-full">Internal</span>
-                                        @endif
-                                    </div>
-                                    <p class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ $comment->comment }}</p>
-
-                                    @if($comment->mentions && count($comment->mentions) > 0)
-                                    <div class="mt-2 flex items-center text-xs text-gray-600">
-                                        <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
-                                        Mentioned: {{ $comment->mentionedUsers()->pluck('name')->join(', ') }}
-                                    </div>
-                                    @endif
-
-                                    <!-- Reply Button -->
-                                    <button onclick="toggleReplyForm('{{ $comment->id }}')" class="mt-2 text-xs text-indigo-600 hover:text-indigo-800">
-                                        Reply
-                                    </button>
-
-                                    <!-- Reply Form (Hidden) -->
-                                    <form id="reply-form-{{ $comment->id }}" action="{{ route('tenant.records.add-comment', $record->id) }}" method="POST" class="hidden mt-3">
-                                        @csrf
-                                        <input type="hidden" name="parent_id" value="{{ $comment->id }}">
-                                        <textarea name="comment" rows="2" required placeholder="Write a reply..." class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                                        <div class="mt-2 flex gap-2">
-                                            <button type="submit" class="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">
-                                                Reply
-                                            </button>
-                                            <button type="button" onclick="toggleReplyForm('{{ $comment->id }}')" class="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400">
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </form>
-
-                                    <!-- Replies -->
-                                    @if($comment->replies->count() > 0)
-                                    <div class="mt-3 space-y-3 pl-4 border-l-2 border-gray-300">
-                                        @foreach($comment->replies as $reply)
-                                        <div class="bg-white rounded-lg p-3">
-                                            <div class="flex items-start">
-                                                <div class="w-8 h-8 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-semibold mr-2 flex-shrink-0">
-                                                    {{ strtoupper(substr($reply->user->name, 0, 1)) }}
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="font-semibold text-sm text-gray-900">{{ $reply->user->name }}</span>
-                                                        <span class="text-xs text-gray-500">{{ $reply->created_at->diffForHumans() }}</span>
-                                                    </div>
-                                                    <p class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ $reply->comment }}</p>
-
-                                                    @if($reply->user_id === Auth::id())
-                                                    <form action="{{ route('tenant.records.delete-comment', [$record->id, $reply->id]) }}" method="POST" class="inline-block mt-1" onsubmit="return confirm('Delete this reply?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="text-xs text-red-600 hover:text-red-800">Delete</button>
-                                                    </form>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            @if($comment->user_id === Auth::id())
-                            <form action="{{ route('tenant.records.delete-comment', [$record->id, $comment->id]) }}" method="POST" onsubmit="return confirm('Delete this comment and all replies?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-gray-400 hover:text-red-600 ml-2">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </form>
-                            @endif
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <p class="mt-2">No comments yet. Be the first to comment!</p>
-                    </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-        <!-- Activity Timeline -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Activity Timeline</h3>
-            </div>
-            <div class="px-6 py-4">
-                <div class="space-y-4">
-                    @forelse($record->activities->sortByDesc('created_at')->take(20) as $activity)
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mr-3">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center
-                                {{ $activity->action === 'created' ? 'bg-blue-100 text-blue-600' : '' }}
-                                {{ $activity->action === 'updated' ? 'bg-yellow-100 text-yellow-600' : '' }}
-                                {{ $activity->action === 'status_changed' ? 'bg-purple-100 text-purple-600' : '' }}
-                                {{ $activity->action === 'commented' ? 'bg-green-100 text-green-600' : '' }}
-                                {{ $activity->action === 'approved' ? 'bg-green-100 text-green-600' : '' }}
-                                {{ $activity->action === 'rejected' ? 'bg-red-100 text-red-600' : '' }}
-                                {{ $activity->action === 'assigned' ? 'bg-indigo-100 text-indigo-600' : '' }}
-                                {{ $activity->action === 'approval_requested' ? 'bg-orange-100 text-orange-600' : '' }}">
-
-                                @switch($activity->action)
-                                    @case('created')
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        @break
-                                    @case('updated')
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        @break
-                                    @case('commented')
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                        </svg>
-                                        @break
-                                    @case('approved')
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        @break
-                                    @case('rejected')
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                        @break
-                                    @case('assigned')
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
-                                        @break
-                                    @default
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                @endswitch
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm">
-                                <span class="font-medium text-gray-900">{{ $activity->user ? $activity->user->name : 'System' }}</span>
-                                <span class="text-gray-600">{{ $activity->description }}</span>
-                            </div>
-
-                            @if($activity->old_value || $activity->new_value)
-                            <div class="mt-1 text-xs text-gray-600">
-                                @if($activity->old_value)
-                                <span class="line-through text-red-600">{{ Str::limit($activity->old_value, 30) }}</span>
-                                →
-                                @endif
-                                @if($activity->new_value)
-                                <span class="text-green-600">{{ Str::limit($activity->new_value, 30) }}</span>
-                                @endif
-                            </div>
-                            @endif
-
-                            <div class="mt-1 text-xs text-gray-500">
-                                {{ $activity->created_at->diffForHumans() }}
-                            </div>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="mt-2">No activity yet.</p>
-                    </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Assign Modal -->
     <div id="assign-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -789,48 +543,6 @@
         </div>
     </div>
 
-    <!-- Approval Request Modal -->
-    <div id="approval-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Request Approval</h3>
-                <button onclick="toggleApprovalModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <form action="{{ route('tenant.records.request-approval', $record->id) }}" method="POST">
-                @csrf
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Approvers (in order)</label>
-                    <div class="space-y-2 max-h-64 overflow-y-auto border border-gray-300 rounded-md p-3">
-                        @if(isset($users))
-                            @foreach($users as $user)
-                            <label class="flex items-center space-x-2 hover:bg-gray-50 p-2 rounded">
-                                <input type="checkbox" name="approvers[]" value="{{ $user->id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <div class="flex-1">
-                                    <p class="text-sm font-medium text-gray-900">{{ $user->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $user->email }}</p>
-                                </div>
-                            </label>
-                            @endforeach
-                        @endif
-                    </div>
-                    <p class="mt-2 text-xs text-gray-500">Approvals will be requested in the order selected.</p>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                        Request Approval
-                    </button>
-                    <button type="button" onclick="toggleApprovalModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Change Status Modal -->
     <div id="status-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -849,24 +561,24 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
                     <p class="text-sm text-gray-900 mb-4 px-3 py-2 bg-gray-50 rounded-md">
                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                            @if($record->status === 'submitted') bg-blue-100 text-blue-800
-                            @elseif($record->status === 'reviewed') bg-yellow-100 text-yellow-800
-                            @elseif($record->status === 'approved') bg-green-100 text-green-800
-                            @elseif($record->status === 'rejected') bg-red-100 text-red-800
+                            @if((int) $record->status === \App\Constants\RecordStatus::SUBMITTED) bg-blue-100 text-blue-800
+                            @elseif((int) $record->status === \App\Constants\RecordStatus::REVIEWED) bg-yellow-100 text-yellow-800
+                            @elseif((int) $record->status === \App\Constants\RecordStatus::APPROVED) bg-green-100 text-green-800
+                            @elseif((int) $record->status === \App\Constants\RecordStatus::REJECTED) bg-red-100 text-red-800
                             @else bg-gray-100 text-gray-800
                             @endif">
-                            {{ ucfirst($record->status ?? 'draft') }}
+                            {{ \App\Constants\RecordStatus::getLabel((int) $record->status) }}
                         </span>
                     </p>
 
                     <label class="block text-sm font-medium text-gray-700 mb-2">New Status</label>
                     <select name="status" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Select status...</option>
-                        <option value="draft" {{ $record->status === 'draft' ? 'selected' : '' }}>Draft</option>
-                        <option value="submitted" {{ $record->status === 'submitted' ? 'selected' : '' }}>Submitted</option>
-                        <option value="reviewed" {{ $record->status === 'reviewed' ? 'selected' : '' }}>Reviewed</option>
-                        <option value="approved" {{ $record->status === 'approved' ? 'selected' : '' }}>Approved</option>
-                        <option value="rejected" {{ $record->status === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                        <option value="draft" {{ (int) $record->status === \App\Constants\RecordStatus::DRAFT ? 'selected' : '' }}>Draft</option>
+                        <option value="submitted" {{ (int) $record->status === \App\Constants\RecordStatus::SUBMITTED ? 'selected' : '' }}>Submitted</option>
+                        <option value="reviewed" {{ (int) $record->status === \App\Constants\RecordStatus::REVIEWED ? 'selected' : '' }}>Reviewed</option>
+                        <option value="approved" {{ (int) $record->status === \App\Constants\RecordStatus::APPROVED ? 'selected' : '' }}>Approved</option>
+                        <option value="rejected" {{ (int) $record->status === \App\Constants\RecordStatus::REJECTED ? 'selected' : '' }}>Rejected</option>
                     </select>
                 </div>
                 <div class="flex gap-2">
@@ -894,12 +606,6 @@ function toggleSensitive(button) {
     realValue.classList.toggle('hidden');
     showText.classList.toggle('hidden');
     hideText.classList.toggle('hidden');
-}
-
-// Toggle reply form
-function toggleReplyForm(commentId) {
-    const form = document.getElementById('reply-form-' + commentId);
-    form.classList.toggle('hidden');
 }
 
 // Show approve form
@@ -936,12 +642,6 @@ function toggleAssignModal() {
     modal.classList.toggle('hidden');
 }
 
-// Toggle approval modal
-function toggleApprovalModal() {
-    const modal = document.getElementById('approval-modal');
-    modal.classList.toggle('hidden');
-}
-
 // Toggle status modal
 function toggleStatusModal() {
     const modal = document.getElementById('status-modal');
@@ -952,107 +652,9 @@ function toggleStatusModal() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         document.getElementById('assign-modal').classList.add('hidden');
-        document.getElementById('approval-modal').classList.add('hidden');
         document.getElementById('status-modal').classList.add('hidden');
     }
 });
 
-// @Mention functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const textarea = document.getElementById('comment-textarea');
-    const dropdown = document.getElementById('mention-dropdown');
-
-    if (textarea && dropdown) {
-        let mentionStartPos = -1;
-        let mentionQuery = '';
-
-        textarea.addEventListener('input', function(e) {
-            const cursorPos = this.selectionStart;
-            const textBeforeCursor = this.value.substring(0, cursorPos);
-            const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
-
-            // Check if we're typing after an @ symbol
-            if (lastAtSymbol !== -1) {
-                const textAfterAt = textBeforeCursor.substring(lastAtSymbol + 1);
-
-                // Check if there's no space after @
-                if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
-                    mentionStartPos = lastAtSymbol;
-                    mentionQuery = textAfterAt.toLowerCase();
-
-                    // Filter mention options
-                    const options = dropdown.querySelectorAll('.mention-option');
-                    let hasVisibleOptions = false;
-
-                    options.forEach(option => {
-                        const username = option.dataset.username.toLowerCase();
-                        if (username.includes(mentionQuery)) {
-                            option.style.display = 'block';
-                            hasVisibleOptions = true;
-                        } else {
-                            option.style.display = 'none';
-                        }
-                    });
-
-                    // Show dropdown if we have matches
-                    if (hasVisibleOptions && mentionQuery.length >= 0) {
-                        dropdown.classList.remove('hidden');
-
-                        // Position dropdown
-                        const rect = textarea.getBoundingClientRect();
-                        dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-                        dropdown.style.left = rect.left + 'px';
-                    } else {
-                        dropdown.classList.add('hidden');
-                    }
-                } else {
-                    dropdown.classList.add('hidden');
-                    mentionStartPos = -1;
-                }
-            } else {
-                dropdown.classList.add('hidden');
-                mentionStartPos = -1;
-            }
-        });
-
-        // Handle mention selection
-        const mentionOptions = dropdown.querySelectorAll('.mention-option');
-        mentionOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                if (mentionStartPos !== -1) {
-                    const username = this.dataset.username;
-                    const beforeMention = textarea.value.substring(0, mentionStartPos);
-                    const afterMention = textarea.value.substring(textarea.selectionStart);
-
-                    textarea.value = beforeMention + '@' + username + ' ' + afterMention;
-
-                    // Set cursor position after the mention
-                    const newCursorPos = mentionStartPos + username.length + 2;
-                    textarea.setSelectionRange(newCursorPos, newCursorPos);
-                    textarea.focus();
-
-                    dropdown.classList.add('hidden');
-                    mentionStartPos = -1;
-                }
-            });
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!textarea.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-
-        // Close dropdown on escape
-        textarea.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
-                dropdown.classList.add('hidden');
-                mentionStartPos = -1;
-                e.preventDefault();
-            }
-        });
-    }
-});
 </script>
 @endsection

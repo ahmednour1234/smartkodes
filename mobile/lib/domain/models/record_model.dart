@@ -5,6 +5,7 @@ class RecordModel {
   final String? status;
   final String? submittedAt;
   final Map<String, dynamic>? fields;
+  final Map<String, String>? fieldLabels;
 
   const RecordModel({
     required this.id,
@@ -13,12 +14,20 @@ class RecordModel {
     this.status,
     this.submittedAt,
     this.fields,
+    this.fieldLabels,
   });
+
+  String fieldLabel(String fieldName) =>
+      fieldLabels?[fieldName] ?? fieldName;
 
   factory RecordModel.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic>? fieldsMap;
     if (json['fields'] is Map) {
       fieldsMap = Map<String, dynamic>.from(json['fields'] as Map);
+    }
+    Map<String, String>? labelsMap;
+    if (json['field_labels'] is Map) {
+      labelsMap = (json['field_labels'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? k.toString()));
     }
     return RecordModel(
       id: _str(json['id']) ?? '',
@@ -31,6 +40,7 @@ class RecordModel {
       status: _str(json['status']),
       submittedAt: _str(json['submitted_at']),
       fields: fieldsMap,
+      fieldLabels: labelsMap,
     );
   }
 }

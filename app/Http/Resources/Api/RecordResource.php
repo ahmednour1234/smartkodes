@@ -62,6 +62,17 @@ class RecordResource extends BaseResource
                 }
                 return $fields;
             }),
+            'field_labels' => $this->whenLoaded('recordFields', function () {
+                $labels = [];
+                foreach ($this->recordFields as $recordField) {
+                    if (!$recordField->formField) {
+                        continue;
+                    }
+                    $config = is_array($recordField->formField->config_json) ? $recordField->formField->config_json : [];
+                    $labels[$recordField->formField->name] = $config['label'] ?? $recordField->formField->name;
+                }
+                return $labels;
+            }),
             'files' => FileResource::collection($this->whenLoaded('files')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

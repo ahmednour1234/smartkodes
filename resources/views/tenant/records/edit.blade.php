@@ -41,46 +41,44 @@
                     </div>
                 @endif
 
-                <!-- Record Metadata -->
-                <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 class="font-semibold text-blue-900 mb-3">Record Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="project_id" class="block text-sm font-medium text-gray-700 mb-1">Project</label>
-                            <select name="project_id" id="project_id" form="edit-record-form"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">Select Project</option>
-                                @foreach($projects as $project)
-                                    <option value="{{ $project->id }}" {{ $record->project_id == $project->id ? 'selected' : '' }}>
-                                        {{ $project->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" id="status" form="edit-record-form"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="draft" {{ $record->status == 'draft' ? 'selected' : '' }}>Draft</option>
-                                <option value="submitted" {{ $record->status == 'submitted' ? 'selected' : '' }}>Submitted</option>
-                                <option value="reviewed" {{ $record->status == 'reviewed' ? 'selected' : '' }}>Reviewed</option>
-                                <option value="approved" {{ $record->status == 'approved' ? 'selected' : '' }}>Approved</option>
-                                <option value="rejected" {{ $record->status == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Form Fields -->
                 <form id="edit-record-form" method="POST" action="{{ route('tenant.records.update', $record) }}" enctype="multipart/form-data" class="space-y-6">
                     @csrf
                     @method('PUT')
 
+                    <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h3 class="font-semibold text-blue-900 mb-3">Record Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="project_id" class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                                <select name="project_id" id="project_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select Project</option>
+                                    @foreach($projects as $project)
+                                        <option value="{{ $project->id }}" {{ $record->project_id == $project->id ? 'selected' : '' }}>
+                                            {{ $project->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" id="status" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="draft" {{ (int) $record->status === \App\Constants\RecordStatus::DRAFT ? 'selected' : '' }}>Draft</option>
+                                    <option value="submitted" {{ (int) $record->status === \App\Constants\RecordStatus::SUBMITTED ? 'selected' : '' }}>Submitted</option>
+                                    <option value="reviewed" {{ (int) $record->status === \App\Constants\RecordStatus::REVIEWED ? 'selected' : '' }}>Reviewed</option>
+                                    <option value="approved" {{ (int) $record->status === \App\Constants\RecordStatus::APPROVED ? 'selected' : '' }}>Approved</option>
+                                    <option value="rejected" {{ (int) $record->status === \App\Constants\RecordStatus::REJECTED ? 'selected' : '' }}>Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     @foreach(($record->formVersion->form->formFields ?? $record->form->formFields ?? []) as $field)
                         @php
-                            $config = is_array($field->config_json) ? $field->config_json : json_decode($field->config_json, true);
+                            $config = is_array($field->config_json) ? $field->config_json : (array) json_decode($field->config_json ?? '{}', true);
                             $required = $field->is_required;
-                            $label = $field->label ?? $field->name;
+                            $label = $config['label'] ?? $field->label ?? $field->name;
+                            $label = is_array($label) ? implode(', ', $label) : (string)$label;
                             $placeholder = $field->placeholder ?? '';
                             $currentValue = $currentValues[$field->name] ?? null;
                             $rawVal = old($field->name, $currentValue);
@@ -244,7 +242,7 @@
 
                                     @case('signature')
                                         @php
-                                            $signatureValue = is_array($currentValue) && isset($currentValue['value']) ? (string)$currentValue['value'] : (string)($currentValue ?? '');
+                                            $signatureValue = is_array($currentValue) && isset($currentValue['value']) ? (string)$currentValue['value'] : (is_array($currentValue) ? '' : (string)($currentValue ?? ''));
                                         @endphp
                                         <div class="border-2 border-dashed border-gray-300 rounded-md p-4">
                                             <label class="text-sm text-gray-600 mb-2 block">Current Signature:</label>

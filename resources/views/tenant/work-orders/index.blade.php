@@ -54,6 +54,14 @@
                                 </div>
                             </div>
 
+                            <button type="button" onclick="toggleWorkOrderImportModal()"
+                                    class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-2 px-4 rounded-lg transition duration-200 inline-flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import
+                            </button>
+
                             <a href="{{ route('tenant.work-orders.create') }}"
                                class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-2 px-4 rounded-lg transition duration-200 inline-flex items-center whitespace-nowrap shrink-0">
                                 <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor"
@@ -77,6 +85,31 @@
             @if(session('error'))
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {{ session('error') }}
+                </div>
+            @endif
+
+            @if(session('import_succeeded') || session('import_failed'))
+                <div class="mb-4 space-y-3">
+                    @if(session('import_succeeded') && count(session('import_succeeded')) > 0)
+                        <div class="bg-green-50 border border-green-200 rounded p-4">
+                            <p class="font-medium text-green-800 mb-2">Imported ({{ count(session('import_succeeded')) }}):</p>
+                            <ul class="text-sm text-green-700 list-disc list-inside space-y-1">
+                                @foreach(session('import_succeeded') as $s)
+                                    <li>Row {{ $s['row'] }}: {{ $s['ident'] }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    @if(session('import_failed') && count(session('import_failed')) > 0)
+                        <div class="bg-red-50 border border-red-200 rounded p-4">
+                            <p class="font-medium text-red-800 mb-2">Not imported ({{ count(session('import_failed')) }}):</p>
+                            <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
+                                @foreach(session('import_failed') as $f)
+                                    <li>Row {{ $f['row'] }}: {{ $f['ident'] }} — {{ $f['reason'] }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -455,7 +488,55 @@
         </div>
     </div>
 
+    <!-- Import Work Orders Modal -->
+    <div id="work-order-import-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-6 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Import Work Orders</h3>
+                <button type="button" onclick="toggleWorkOrderImportModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Use the template below. Fill the <strong>Import</strong> sheet with your data; the <strong>Column Guide</strong> sheet explains each column. Use project <strong>code</strong> (not name or ID), and assignee <strong>email</strong> (not name).</p>
+            <div class="mb-4">
+                <a href="{{ route('tenant.work-orders.template') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Download template (.xlsx)
+                </a>
+            </div>
+            <div class="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50 text-sm">
+                <p class="font-medium text-gray-800 mb-2">Column summary</p>
+                <ul class="list-disc list-inside space-y-1 text-gray-700">
+                    <li><strong>project_code</strong> — Required. Project code (e.g. PRJ-001).</li>
+                    <li><strong>title</strong> — Required. Work order title.</li>
+                    <li><strong>assigned_to_email</strong> — Optional. Assignee’s email.</li>
+                    <li><strong>status</strong> — Optional: Draft, Assigned, In Progress, Completed.</li>
+                    <li><strong>importance_level</strong> — Optional: low, medium, high, critical.</li>
+                    <li><strong>due_date</strong> — Optional. Format Y-m-d (e.g. 2026-12-31).</li>
+                    <li><strong>priority_value</strong> / <strong>priority_unit</strong> — Optional. e.g. 2 and day.</li>
+                    <li><strong>latitude</strong> / <strong>longitude</strong> — Optional. Coordinates.</li>
+                    <li><strong>description</strong> — Optional. Free text.</li>
+                </ul>
+            </div>
+            <form action="{{ route('tenant.work-orders.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select your filled template (Excel file)</label>
+                    <input type="file" name="file" accept=".xlsx,.xls" required
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Import</button>
+                    <button type="button" onclick="toggleWorkOrderImportModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        function toggleWorkOrderImportModal() {
+            document.getElementById('work-order-import-modal').classList.toggle('hidden');
+        }
         function toggleWorkOrderExportMenu() {
             const menu = document.getElementById('work-order-export-menu');
             menu.classList.toggle('hidden');

@@ -122,6 +122,8 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
     // Work Orders (tenant-scoped)
     Route::resource('work-orders', \App\Http\Controllers\Admin\WorkOrderController::class);
     Route::get('work-orders-export', [\App\Http\Controllers\Admin\WorkOrderController::class, 'export'])->name('work-orders.export');
+    Route::get('work-orders-template', [\App\Http\Controllers\Admin\WorkOrderController::class, 'downloadTemplate'])->name('work-orders.template');
+    Route::post('work-orders-import', [\App\Http\Controllers\Admin\WorkOrderController::class, 'import'])->name('work-orders.import');
 
     // Records (tenant-scoped)
     Route::resource('records', \App\Http\Controllers\Admin\RecordController::class);
