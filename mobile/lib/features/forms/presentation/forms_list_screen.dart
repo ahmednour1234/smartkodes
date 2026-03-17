@@ -106,7 +106,7 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Forms'),
+        title: const Text('My Records'),
         actions: [
           IconButton(
             icon: const Icon(Icons.home_outlined),
@@ -143,7 +143,7 @@ class _FormsListScreenState extends ConsumerState<FormsListScreen> {
                     Icon(Icons.assignment_turned_in_outlined, size: 28, color: theme.colorScheme.primary),
                     const SizedBox(width: 12),
                     Text(
-                      'My submitted forms',
+                      'My Submitted Records',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),

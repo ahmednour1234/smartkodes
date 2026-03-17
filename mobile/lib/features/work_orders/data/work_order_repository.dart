@@ -98,6 +98,9 @@ class WorkOrderRepository {
       if (longitude != null) 'longitude': longitude,
     };
     for (final e in fields.entries) {
+      if (e.key.endsWith('_photo')) {
+        continue;
+      }
       final v = e.value;
       if (v is List) {
         for (var i = 0; i < v.length; i++) {

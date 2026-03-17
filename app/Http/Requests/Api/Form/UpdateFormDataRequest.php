@@ -96,6 +96,12 @@ class UpdateFormDataRequest extends BaseApiRequest
                     }
                     $rules[$field->name . '.*'] = $starRules;
                     continue 2;
+                case 'barcode':
+                case 'qrcode':
+                    $photoKey = $field->name . '_photo';
+                    $rules[$photoKey] = ['nullable', 'array'];
+                    $rules[$photoKey . '.*'] = ['file', 'image', 'max:5120'];
+                    break;
             }
 
             // Regex validation

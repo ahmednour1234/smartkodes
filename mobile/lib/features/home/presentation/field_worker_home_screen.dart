@@ -159,7 +159,7 @@ class _FieldWorkerHomeScreenState extends ConsumerState<FieldWorkerHomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   _HomeTile(
-                    title: 'My Forms',
+                    title: 'My Records',
                     subtitle: 'Browse forms and update records',
                     icon: Icons.description_outlined,
                     iconBg: colorScheme.secondaryContainer,

@@ -67,11 +67,24 @@ class RecordResource extends BaseResource
                             continue;
                         }
                         $fieldName = $file->formField->name;
+                        $fieldType = $file->formField->type;
                         $groupedFiles[$fieldName] ??= [];
-                        $groupedFiles[$fieldName][] = $file->path;
+                        $groupedFiles[$fieldName][] = [
+                            'path' => $file->path,
+                            'type' => $fieldType,
+                        ];
                     }
-                    foreach ($groupedFiles as $fieldName => $paths) {
-                        $fields[$fieldName] = count($paths) === 1 ? $paths[0] : array_values($paths);
+                    foreach ($groupedFiles as $fieldName => $items) {
+                        $type = $items[0]['type'] ?? null;
+                        $paths = array_values(array_map(fn ($it) => $it['path'], $items));
+                        if (in_array($type, $fileFieldTypes, true)) {
+                            $fields[$fieldName] = count($paths) === 1 ? $paths[0] : $paths;
+                            continue;
+                        }
+                        if (in_array($type, ['barcode', 'qrcode'], true)) {
+                            $photoKey = $fieldName . '_photo';
+                            $fields[$photoKey] = count($paths) === 1 ? $paths[0] : $paths;
+                        }
                     }
                 }
                 return $fields;

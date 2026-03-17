@@ -217,7 +217,7 @@ class WorkOrderController extends BaseApiController
             // Process form fields and store values
             foreach ($form->formFields as $formField) {
                 $fieldName = $formField->name;
-                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio', 'voice_message'], true);
+                $isFileType = in_array($formField->type, ['file', 'photo', 'image', 'video', 'audio', 'voice_message'], true);
 
                 if ($isFileType) {
                     if (!$request->hasFile($fieldName)) {
@@ -240,6 +240,16 @@ class WorkOrderController extends BaseApiController
                     }
                     $fieldValue = count($paths) === 1 ? $paths[0] : $paths;
                 } else {
+                    $barcodePhotoKey = $fieldName . '_photo';
+                    if (in_array($formField->type, ['barcode', 'qrcode'], true) && $request->hasFile($barcodePhotoKey)) {
+                        $barcodePhotos = $request->file($barcodePhotoKey);
+                        if (!is_array($barcodePhotos)) {
+                            $barcodePhotos = [$barcodePhotos];
+                        }
+                        foreach ($barcodePhotos as $barcodePhoto) {
+                            $this->workOrderService->handleFileUpload($barcodePhoto, $formField, $record, $user);
+                        }
+                    }
                     if (!$request->has($fieldName)) {
                         continue;
                     }
@@ -287,7 +297,7 @@ class WorkOrderController extends BaseApiController
             }
 
             return $this->createdResponse(
-                new RecordResource($record->load('form', 'workOrder', 'recordFields.formField', 'files')),
+                new RecordResource($record->load('form', 'workOrder', 'recordFields.formField', 'files.formField')),
                 'Form submitted successfully'
             );
         } catch (\Exception $e) {

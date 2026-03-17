@@ -81,6 +81,9 @@ class FormsRepository {
       if (fileFields != null && fileFields.isNotEmpty) {
         final map = <String, dynamic>{'_method': 'PUT'};
         for (final entry in fields.entries) {
+          if (entry.key.endsWith('_photo')) {
+            continue;
+          }
           final v = entry.value;
           if (v is List) {
             for (var i = 0; i < v.length; i++) {

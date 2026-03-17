@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/config/env.dart';
+import '../../../core/widgets/barcode_scanner_field.dart';
 import '../../../core/widgets/voice_recorder_field.dart';
 import '../../../core/widgets/gps_map_field.dart';
 import '../../../data/local/form_draft_store.dart';
@@ -39,6 +41,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   FormModel? _form;
   final _values = <String, dynamic>{};
   final _fileData = <String, dynamic>{}; // single: (bytes, filename); photo multi: List<(bytes, filename)>
+  final _barcodePhotos = <String, ({Uint8List bytes, String filename})>{};
   final _fieldErrors = <String, String>{};
   bool _loading = true;
   bool _submitting = false;
@@ -120,6 +123,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       _formFieldKey++;
       _fieldErrors.clear();
       _fileData.clear();
+      _barcodePhotos.clear();
       _values.clear();
       if (form != null) {
         for (final f in form.fields ?? []) {
@@ -146,6 +150,22 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     return v.toString();
   }
 
+  String? _existingBarcodePhotoUrl(String fieldName) {
+    final value = _values['${fieldName}_photo'];
+    if (value == null) return null;
+    String? path;
+    if (value is String && value.trim().isNotEmpty) {
+      path = value.trim();
+    } else if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is String && first.trim().isNotEmpty) path = first.trim();
+    }
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    return '$base/storage/$path'.replaceFirst(RegExp(r'//+'), '//');
+  }
+
   Future<void> _load() async {
     final repo = ref.read(workOrderRepositoryProvider);
     final store = ref.read(formDraftStoreProvider);
@@ -158,6 +178,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
         if (form != null) {
           _values.clear();
           _fileData.clear();
+          _barcodePhotos.clear();
           if (draft != null) {
             _hasDraft = true;
             for (final e in draft.values.entries) {
@@ -432,11 +453,17 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     }
     final repo = ref.read(workOrderRepositoryProvider);
     try {
+      final filesToSend = <String, dynamic>{};
+      filesToSend.addAll(_fileData);
+      for (final e in _barcodePhotos.entries) {
+        filesToSend['${e.key}_photo'] = (bytes: e.value.bytes, filename: e.value.filename);
+      }
+
       final ok = await repo.submitForm(
         widget.workOrderId,
         widget.formId,
         Map<String, dynamic>.from(_values),
-        fileFields: _fileData.isEmpty ? null : _fileData,
+        fileFields: filesToSend.isEmpty ? null : filesToSend,
         latitude: lat,
         longitude: lon,
       );
@@ -734,6 +761,33 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
               if (isMultiPhoto && (fileList?.isNotEmpty ?? false))
                 Text('${fileList!.length} photo(s). Total max 5MB.', style: Theme.of(context).textTheme.bodySmall),
             ],
+          ),
+          f,
+        ),
+      );
+    }
+    if (f.type == 'barcode' || f.type == 'qrcode') {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          BarcodeScannerField(
+            label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+            errorText: _fieldErrors[f.name],
+            currentValue: _values[f.name]?.toString(),
+            currentPhotoBytes: _barcodePhotos[f.name]?.bytes,
+            currentPhotoUrl: _barcodePhotos[f.name] == null ? _existingBarcodePhotoUrl(f.name) : null,
+            onValueChanged: (v) {
+              setState(() {
+                _values[f.name] = (v == null || v.isEmpty) ? null : v;
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            onPhotoChanged: (bytes, filename) {
+              setState(() {
+                _barcodePhotos[f.name] = (bytes: bytes, filename: filename);
+              });
+            },
           ),
           f,
         ),

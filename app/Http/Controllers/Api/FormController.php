@@ -92,7 +92,7 @@ class FormController extends BaseApiController
             // Update or create record fields
             foreach ($form->formFields as $formField) {
                 $fieldName = $formField->name;
-                $isFileType = in_array($formField->type, ['file', 'photo', 'video', 'audio', 'voice_message'], true);
+                $isFileType = in_array($formField->type, ['file', 'photo', 'image', 'video', 'audio', 'voice_message'], true);
 
                 if ($isFileType) {
                     if (!$request->hasFile($fieldName)) {
@@ -131,6 +131,16 @@ class FormController extends BaseApiController
                     $allPaths = array_merge($existingPaths, $paths);
                     $fieldValue = count($allPaths) === 1 ? $allPaths[0] : $allPaths;
                 } else {
+                    $barcodePhotoKey = $fieldName . '_photo';
+                    if (in_array($formField->type, ['barcode', 'qrcode'], true) && $request->hasFile($barcodePhotoKey)) {
+                        $barcodePhotos = $request->file($barcodePhotoKey);
+                        if (!is_array($barcodePhotos)) {
+                            $barcodePhotos = [$barcodePhotos];
+                        }
+                        foreach ($barcodePhotos as $barcodePhoto) {
+                            $this->formService->handleFileUpload($barcodePhoto, $formField, $record, $user);
+                        }
+                    }
                     if (!$request->has($fieldName)) {
                         continue;
                     }
@@ -167,7 +177,7 @@ class FormController extends BaseApiController
             ]);
 
             return $this->successResponse(
-                new RecordResource($record->load('form', 'recordFields.formField', 'files')),
+                new RecordResource($record->load('form', 'recordFields.formField', 'files.formField')),
                 'Form data updated successfully'
             );
         } catch (\Exception $e) {

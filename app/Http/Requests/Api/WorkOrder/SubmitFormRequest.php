@@ -142,6 +142,12 @@ class SubmitFormRequest extends BaseApiRequest
                         }
                     }
                     break;
+                case 'barcode':
+                case 'qrcode':
+                    $photoKey = $field->name . '_photo';
+                    $rules[$photoKey] = ['nullable', 'array'];
+                    $rules[$photoKey . '.*'] = ['file', 'image', 'max:5120'];
+                    break;
             }
 
             // Regex validation
@@ -175,6 +181,11 @@ class SubmitFormRequest extends BaseApiRequest
                 $out["{$field->name}.array"] = "$label must be one or more files.";
                 $out["{$field->name}.min"] = "At least one file is required for $label.";
                 $out["{$field->name}.*.file"] = "Each item in $label must be a file.";
+            }
+            if (in_array($field->type, ['barcode', 'qrcode'], true)) {
+                $out["{$field->name}_photo.array"] = "$label photo must be one or more files.";
+                $out["{$field->name}_photo.*.file"] = "Each barcode photo must be a file.";
+                $out["{$field->name}_photo.*.image"] = "Barcode photo must be an image.";
             }
             $out["{$field->name}.date"] = "$label must be a valid date (e.g. Y-m-d).";
             $out["{$field->name}.date_format"] = "$label must match the required format.";
