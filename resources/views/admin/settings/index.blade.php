@@ -6,13 +6,28 @@
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Platform Settings</h2>
-                <p class="text-gray-600">Settings UI placeholder. Managed via existing Admin\SettingController.</p>
+                <p class="text-gray-600">Manage support contacts used by dashboard Get Help buttons.</p>
+
+                @if(session('success'))
+                    <div class="mt-4 mb-4 bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('admin.settings.update') }}">
                     @csrf
                     <div class="grid grid-cols-1 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Support Email</label>
-                            <input type="email" name="support_email" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="support@example.com" />
+                            <input type="email" name="support_email" value="{{ old('support_email', $settings['support_email'] ?? '') }}" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="support@example.com" />
+                            @error('support_email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">WhatsApp Help URL</label>
+                            <input type="url" name="whatsapp_help_url" value="{{ old('whatsapp_help_url', $settings['whatsapp_help_url'] ?? '') }}" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="https://wa.me/201234567890" />
+                            <p class="mt-1 text-xs text-gray-500">Example: https://wa.me/201234567890</p>
+                            @error('whatsapp_help_url')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end">

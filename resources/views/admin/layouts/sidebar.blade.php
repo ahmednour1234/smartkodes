@@ -76,6 +76,14 @@
                 </li>
             @endif
 
+            {{-- Settings --}}
+            <li>
+                <a href="{{ route('admin.settings.index') }}"
+                   class="admin-nav-link block px-4 py-2 hover:bg-gray-700 {{ request()->routeIs('admin.settings.*') ? 'bg-gray-700' : '' }}">
+                    <i class="fas fa-cog mr-2"></i>Settings
+                </a>
+            </li>
+
         {{-- ======================
              TENANT CONTEXT
            ======================= --}}

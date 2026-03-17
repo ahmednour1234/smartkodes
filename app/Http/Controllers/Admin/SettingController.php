@@ -17,12 +17,23 @@ class SettingController extends Controller
      */
     public function index()
     {
+        $routeName = request()->route()->getName();
+
+        if (str_starts_with($routeName, 'admin.')) {
+            $platformSettings = Cache::get('platform_settings', []);
+            $settings = [
+                'support_email' => $platformSettings['support_email'] ?? config('mail.from.address'),
+                'whatsapp_help_url' => $platformSettings['whatsapp_help_url'] ?? config('services.whatsapp.help_url'),
+            ];
+
+            return view('admin.settings.index', compact('settings'));
+        }
+
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
         }
 
-        $routeName = request()->route()->getName();
         if (str_starts_with($routeName, 'tenant.')) {
             $tenant = $currentTenant;
             $cached = Cache::get('tenant_settings_' . $currentTenant->id, []);
@@ -43,18 +54,7 @@ class SettingController extends Controller
             return view('tenant.settings.index', compact('tenant', 'settings', 'user'));
         }
 
-        $settings = [
-            'tenant_name' => $currentTenant->name,
-            'tenant_email' => $currentTenant->email ?? '',
-            'timezone' => config('app.timezone'),
-            'date_format' => 'Y-m-d',
-            'time_format' => 'H:i:s',
-            'default_language' => 'en',
-            'email_notifications' => true,
-            'auto_assign_work_orders' => false,
-        ];
-
-        return view('admin.settings.index', compact('settings'));
+        abort(404);
     }
 
     /**
@@ -62,6 +62,26 @@ class SettingController extends Controller
      */
     public function update(Request $request)
     {
+        $routeName = request()->route()->getName();
+
+        if (str_starts_with($routeName, 'admin.')) {
+            $request->validate([
+                'support_email' => 'nullable|email|max:255',
+                'whatsapp_help_url' => 'nullable|url|max:255',
+            ]);
+
+            $existing = Cache::get('platform_settings', []);
+            $platformSettings = array_merge($existing, [
+                'support_email' => $request->input('support_email'),
+                'whatsapp_help_url' => $request->input('whatsapp_help_url') ?: config('services.whatsapp.help_url'),
+            ]);
+
+            Cache::put('platform_settings', $platformSettings, now()->addDays(30));
+
+            return redirect()->route('admin.settings.index')
+                ->with('success', 'Platform settings updated successfully.');
+        }
+
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
