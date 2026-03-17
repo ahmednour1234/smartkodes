@@ -3,8 +3,6 @@
 @push('head')
     <!-- Signature Pad Library -->
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
-    <!-- Html5-QRCode Library for Barcode/QR Scanning -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 @endpush
 
 @section('content')
@@ -277,21 +275,36 @@
                                         @break
 
                                     @case('barcode')
-                                        <div class="space-y-2">
-                                            <button type="button"
-                                                    onclick="scanCode('{{ $field->name }}', 'barcode')"
-                                                    data-type="Barcode"
-                                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                                📱 Scan Barcode
-                                            </button>
+                                    @case('qrcode')
+                                        <div class="space-y-3">
                                             <input type="text"
                                                    id="{{ $field->name }}"
                                                    name="{{ $field->name }}"
                                                    value="{{ $inputValue }}"
-                                                   placeholder="Or enter code manually"
+                                                   placeholder="Enter barcode value"
                                                    {{ $required ? 'required' : '' }}
                                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-                                            <div id="{{ $field->name }}-scanner" class="hidden border border-gray-300 rounded-lg overflow-hidden" style="width: 100%; max-width: 500px;"></div>
+                                            @php
+                                                $barcodeImage = $record->files->where('form_field_id', $field->id)->first(function($f) {
+                                                    return str_starts_with($f->mime_type ?? '', 'image/');
+                                                });
+                                            @endphp
+                                            @if($barcodeImage)
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-700 mb-2">Current Barcode Image:</p>
+                                                    <a href="{{ Storage::url($barcodeImage->file_path) }}" target="_blank" rel="noopener" class="inline-block">
+                                                        <img src="{{ Storage::url($barcodeImage->file_path) }}" alt="Barcode image" class="max-h-48 rounded border border-gray-200">
+                                                    </a>
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <label for="{{ $field->name }}_photo" class="block text-sm text-gray-700 mb-1">Barcode Image (optional)</label>
+                                                <input type="file"
+                                                       id="{{ $field->name }}_photo"
+                                                       name="{{ $field->name }}_photo"
+                                                       accept="image/*"
+                                                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                            </div>
                                         </div>
                                         @break
 
@@ -508,26 +521,6 @@ function evaluateVisibility(field, rules) {
     }
 }
 
-const scanners = {};
-function scanCode(fieldName, codeType) {
-    const scannerDiv = document.getElementById(fieldName + '-scanner');
-    const inputField = document.getElementById(fieldName);
-    const scanButton = event.target;
-    if (scannerDiv.classList.contains('hidden')) {
-        scannerDiv.classList.remove('hidden');
-        scanButton.textContent = '🛑 Stop Scanning';
-        scanButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-        scanButton.classList.add('bg-red-600', 'hover:bg-red-700');
-        if (!scanners[fieldName]) scanners[fieldName] = new Html5Qrcode(fieldName + '-scanner');
-        const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-        const formatsToSupport = (codeType === 'qr') ? [Html5QrcodeSupportedFormats.QR_CODE] : [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E];
-        scanners[fieldName].start({ facingMode: 'environment' }, { ...config, formatsToSupport }, (decodedText) => { inputField.value = decodedText; stopScanner(fieldName, scanButton); }, () => {}).catch(() => { alert('Unable to access camera. Please check permissions or enter the code manually.'); stopScanner(fieldName, scanButton); });
-    } else stopScanner(fieldName, scanButton);
-}
-function stopScanner(fieldName, button) {
-    const scannerDiv = document.getElementById(fieldName + '-scanner');
-    if (scanners[fieldName]) scanners[fieldName].stop().then(() => { scannerDiv.classList.add('hidden'); button.textContent = '📱 Scan Barcode'; button.classList.remove('bg-red-600', 'hover:bg-red-700'); button.classList.add('bg-blue-600', 'hover:bg-blue-700'); }).catch(() => {});
-    else { scannerDiv.classList.add('hidden'); button.textContent = '📱 Scan Barcode'; button.classList.remove('bg-red-600', 'hover:bg-red-700'); button.classList.add('bg-blue-600', 'hover:bg-blue-700'); }
-}
+
 </script>
 @endsection

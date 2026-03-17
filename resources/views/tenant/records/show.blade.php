@@ -207,7 +207,20 @@
 
                                                 @case('barcode')
                                                 @case('qrcode')
-                                                    <div class="font-mono bg-gray-50 px-3 py-2 rounded">{{ $value }}</div>
+                                                    @php
+                                                        $barcodeFiles = $record->files->where('form_field_id', $field->id);
+                                                        $barcodeImage = $barcodeFiles->first(function ($f) {
+                                                            return str_starts_with($f->mime_type ?? '', 'image/');
+                                                        });
+                                                    @endphp
+                                                    <div class="space-y-3">
+                                                        <div class="font-mono bg-gray-50 px-3 py-2 rounded">{{ $value }}</div>
+                                                        @if($barcodeImage)
+                                                            <a href="{{ Storage::url($barcodeImage->file_path) }}" target="_blank" rel="noopener" class="inline-block">
+                                                                <img src="{{ Storage::url($barcodeImage->file_path) }}" alt="Barcode image" class="max-w-full max-h-64 w-auto object-contain rounded border border-gray-200 shadow-sm">
+                                                            </a>
+                                                        @endif
+                                                    </div>
                                                     @break
 
                                                 @case('rating')

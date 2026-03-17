@@ -395,6 +395,10 @@ class RecordController extends Controller
                     $rules[] = 'array';
                     if ($field->is_required) $rules[] = 'min:1';
                     break;
+                case 'barcode':
+                case 'qrcode':
+                    $validationRules[$field->name . '_photo'] = 'nullable|image|max:5120';
+                    break;
                 case 'file':
                 case 'photo':
                 case 'image':
@@ -468,6 +472,16 @@ class RecordController extends Controller
         $formService = app(FormService::class);
         foreach ($record->form->formFields as $field) {
             $isFileField = in_array($field->type, $fileFieldTypes, true);
+
+            if (in_array($field->type, ['barcode', 'qrcode'], true) && $request->hasFile($field->name . '_photo')) {
+                $formService->handleFileUpload(
+                    $request->file($field->name . '_photo'),
+                    $field,
+                    $record,
+                    Auth::user()
+                );
+            }
+
             if ($isFileField && $request->hasFile($field->name)) {
                 $path = $formService->handleFileUpload(
                     $request->file($field->name),
