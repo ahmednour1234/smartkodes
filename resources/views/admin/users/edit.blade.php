@@ -31,6 +31,24 @@
                             @error('photo')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700">User ID Copy</label>
+                            @if($user->id_copy_url)
+                                <a href="{{ $user->id_copy_url }}" target="_blank" class="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-800">View current file</a>
+                            @endif
+                            <input type="file" name="id_copy" accept=".jpg,.jpeg,.png,.pdf" class="mt-2 block w-full border-gray-300 rounded-md" />
+                            <p class="mt-1 text-xs text-gray-500">Optional. Uploading a new file replaces the current one.</p>
+                            @error('id_copy')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Driving License Copy</label>
+                            @if($user->driving_license_url)
+                                <a href="{{ $user->driving_license_url }}" target="_blank" class="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-800">View current file</a>
+                            @endif
+                            <input type="file" name="driving_license" accept=".jpg,.jpeg,.png,.pdf" class="mt-2 block w-full border-gray-300 rounded-md" />
+                            <p class="mt-1 text-xs text-gray-500">Optional. Uploading a new file replaces the current one.</p>
+                            @error('driving_license')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700">New Password (optional)</label>
                             <input type="password" name="password" class="mt-1 block w-full border-gray-300 rounded-md" />
                             @error('password')<p class="text-sm text-red-600">{{ $message }}</p>@enderror

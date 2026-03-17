@@ -130,7 +130,7 @@
 
             <!-- Registration Form -->
             <div class="bg-white rounded-2xl shadow-xl p-8 animate-fadeInUp">
-                <form method="POST" action="{{ route('register') }}" id="registrationForm">
+                <form method="POST" action="{{ route('register') }}" id="registrationForm" enctype="multipart/form-data">
                     @csrf
 
                     <!-- Personal Information Section -->
@@ -232,6 +232,38 @@
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                                 <p class="mt-1 text-xs text-gray-500">Start typing to search for your country</p>
+                            </div>
+
+                            <div>
+                                <label for="id_copy" class="block text-sm font-medium text-gray-700 mb-2">
+                                    User ID Copy <span class="text-gray-400">(Optional)</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    id="id_copy"
+                                    name="id_copy"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none transition-all"
+                                />
+                                @error('id_copy')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="driving_license" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Driving License Copy <span class="text-gray-400">(Optional)</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    id="driving_license"
+                                    name="driving_license"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none transition-all"
+                                />
+                                @error('driving_license')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
                     </div>

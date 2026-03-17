@@ -98,12 +98,20 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', $emailRule],
             'password' => 'required|string|min:8|confirmed',
             'photo' => 'nullable|image|max:5120',
+            'id_copy' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'driving_license' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'role_ids' => 'nullable|array',
             'role_ids.*' => 'exists:roles,id',
         ]);
 
         $photoPath = $request->hasFile('photo')
             ? $request->file('photo')->store('users/photos', 'public')
+            : null;
+        $idCopyPath = $request->hasFile('id_copy')
+            ? $request->file('id_copy')->store('users/id-copies', 'public')
+            : null;
+        $drivingLicensePath = $request->hasFile('driving_license')
+            ? $request->file('driving_license')->store('users/driving-licenses', 'public')
             : null;
 
         if ($this->isAdminContext()) {
@@ -113,6 +121,8 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'photo_path' => $photoPath,
+                'id_copy_path' => $idCopyPath,
+                'driving_license_path' => $drivingLicensePath,
                 'password' => Hash::make($request->password),
                 'email_verified_at' => now(),
                 'created_by' => Auth::id(),
@@ -128,6 +138,8 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'photo_path' => $photoPath,
+                'id_copy_path' => $idCopyPath,
+                'driving_license_path' => $drivingLicensePath,
                 'password' => Hash::make($request->password),
                 'email_verified_at' => now(),
                 'created_by' => Auth::id(),
@@ -194,6 +206,8 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', $emailRule],
             'password' => 'nullable|string|min:8|confirmed',
             'photo' => 'nullable|image|max:5120',
+            'id_copy' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'driving_license' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'role_ids' => 'nullable|array',
             'role_ids.*' => 'exists:roles,id',
         ]);
@@ -206,10 +220,28 @@ class UserController extends Controller
             $photoPath = $request->file('photo')->store('users/photos', 'public');
         }
 
+        $idCopyPath = $user->id_copy_path;
+        if ($request->hasFile('id_copy')) {
+            if ($user->id_copy_path) {
+                Storage::disk('public')->delete($user->id_copy_path);
+            }
+            $idCopyPath = $request->file('id_copy')->store('users/id-copies', 'public');
+        }
+
+        $drivingLicensePath = $user->driving_license_path;
+        if ($request->hasFile('driving_license')) {
+            if ($user->driving_license_path) {
+                Storage::disk('public')->delete($user->driving_license_path);
+            }
+            $drivingLicensePath = $request->file('driving_license')->store('users/driving-licenses', 'public');
+        }
+
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
             'photo_path' => $photoPath,
+            'id_copy_path' => $idCopyPath,
+            'driving_license_path' => $drivingLicensePath,
             'status' => $request->boolean('status') ? 1 : 0,
             'updated_by' => Auth::id(),
         ]);

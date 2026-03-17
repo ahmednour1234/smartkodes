@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class UsersExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
@@ -36,6 +37,8 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             'Phone',
             'Role',
             'Status',
+            'ID Copy',
+            'Driving License Copy',
             'Last Login',
             'Created At',
         ];
@@ -50,6 +53,8 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             $user->phone ?? '',
             ucfirst(str_replace('_', ' ', $user->role ?? 'user')),
             $user->status == 1 ? 'Active' : 'Inactive',
+            $user->id_copy_path ? Storage::url($user->id_copy_path) : '',
+            $user->driving_license_path ? Storage::url($user->driving_license_path) : '',
             $user->last_login_at ? $user->last_login_at->format('Y-m-d H:i:s') : 'Never',
             $user->created_at->format('Y-m-d H:i:s'),
         ];

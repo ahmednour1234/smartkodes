@@ -27,6 +27,18 @@
                             @error('photo')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700">User ID Copy</label>
+                            <input type="file" name="id_copy" accept=".jpg,.jpeg,.png,.pdf" class="mt-1 block w-full border-gray-300 rounded-md" />
+                            <p class="mt-1 text-xs text-gray-500">Optional. JPG, PNG, PDF up to 5MB.</p>
+                            @error('id_copy')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Driving License Copy</label>
+                            <input type="file" name="driving_license" accept=".jpg,.jpeg,.png,.pdf" class="mt-1 block w-full border-gray-300 rounded-md" />
+                            <p class="mt-1 text-xs text-gray-500">Optional. JPG, PNG, PDF up to 5MB.</p>
+                            @error('driving_license')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700">Password</label>
                             <input type="password" name="password" class="mt-1 block w-full border-gray-300 rounded-md" required />
                             @error('password')<p class="text-sm text-red-600">{{ $message }}</p>@enderror

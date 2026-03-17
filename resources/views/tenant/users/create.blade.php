@@ -66,6 +66,26 @@
                         @enderror
                     </div>
 
+                    <div class="mb-6">
+                        <label for="id_copy" class="block text-sm font-medium text-gray-700 mb-2">User ID Copy</label>
+                        <input type="file" name="id_copy" id="id_copy" accept=".jpg,.jpeg,.png,.pdf"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('id_copy') border-red-500 @enderror">
+                        <p class="mt-1 text-sm text-gray-500">Optional. JPG, PNG, PDF up to 5MB.</p>
+                        @error('id_copy')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="driving_license" class="block text-sm font-medium text-gray-700 mb-2">Driving License Copy</label>
+                        <input type="file" name="driving_license" id="driving_license" accept=".jpg,.jpeg,.png,.pdf"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('driving_license') border-red-500 @enderror">
+                        <p class="mt-1 text-sm text-gray-500">Optional. JPG, PNG, PDF up to 5MB.</p>
+                        @error('driving_license')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Role -->
                     <div class="mb-6">
                         <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>

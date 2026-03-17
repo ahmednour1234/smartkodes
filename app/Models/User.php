@@ -54,6 +54,8 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'country',
         'photo_path',
+        'id_copy_path',
+        'driving_license_path',
         'password',
         'passcode',
         'passcode_set_at',
@@ -173,5 +175,31 @@ class User extends Authenticatable implements JWTSubject
         }
 
         return Storage::url($this->photo_path);
+    }
+
+    public function getIdCopyUrlAttribute(): ?string
+    {
+        if (!$this->id_copy_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->id_copy_path, 'http://') || str_starts_with($this->id_copy_path, 'https://')) {
+            return $this->id_copy_path;
+        }
+
+        return Storage::url($this->id_copy_path);
+    }
+
+    public function getDrivingLicenseUrlAttribute(): ?string
+    {
+        if (!$this->driving_license_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->driving_license_path, 'http://') || str_starts_with($this->driving_license_path, 'https://')) {
+            return $this->driving_license_path;
+        }
+
+        return Storage::url($this->driving_license_path);
     }
 }

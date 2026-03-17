@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
@@ -42,6 +43,8 @@ class RegisteredUserController extends Controller
             'field_of_work' => ['required', 'string', 'max:255'],
             'num_users' => ['required', 'integer', 'min:1', 'max:100'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'id_copy' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'driving_license' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'captcha' => ['required', 'captcha'],
             'terms' => ['accepted'],
         ]);
@@ -63,6 +66,13 @@ class RegisteredUserController extends Controller
             ]);
 
             // Create user (tenant admin)
+            $idCopyPath = $request->hasFile('id_copy')
+                ? $request->file('id_copy')->store('users/id-copies', 'public')
+                : null;
+            $drivingLicensePath = $request->hasFile('driving_license')
+                ? $request->file('driving_license')->store('users/driving-licenses', 'public')
+                : null;
+
             $user = User::create([
                 'tenant_id' => $tenant->id,
                 'name' => $request->first_name . ' ' . $request->last_name,
@@ -71,6 +81,8 @@ class RegisteredUserController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'country' => $request->country,
+                'id_copy_path' => $idCopyPath,
+                'driving_license_path' => $drivingLicensePath,
                 'password' => Hash::make($request->password),
             ]);
 
@@ -97,6 +109,15 @@ class RegisteredUserController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Cleanup uploaded files when registration fails after upload.
+            if (!empty($idCopyPath ?? null)) {
+                Storage::disk('public')->delete($idCopyPath);
+            }
+            if (!empty($drivingLicensePath ?? null)) {
+                Storage::disk('public')->delete($drivingLicensePath);
+            }
+
             return back()->withErrors(['error' => 'Registration failed. Please try again.'])->withInput();
         }
     }
