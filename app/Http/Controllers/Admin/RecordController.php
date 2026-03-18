@@ -511,6 +511,12 @@ class RecordController extends Controller
             if ($request->has($field->name)) {
                 $value = $request->input($field->name);
 
+                // For signature fields, skip update when the submitted value is empty
+                // (i.e. the canvas was not drawn and the hidden input remained blank).
+                if ($field->type === 'signature' && ($value === null || $value === '')) {
+                    continue;
+                }
+
                 $recordField = $record->recordFields()
                     ->where('form_field_id', $field->id)
                     ->first();

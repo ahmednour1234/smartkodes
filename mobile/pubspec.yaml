@@ -25,6 +25,8 @@ dependencies:
   record: ^6.2.0
   just_audio: ^0.10.5
   mobile_scanner: ^6.0.2
+  signature: ^5.5.0
+  webview_flutter: ^4.10.0
   connectivity_plus: ^5.0.2
   equatable: ^2.0.5
   json_annotation: ^4.8.1

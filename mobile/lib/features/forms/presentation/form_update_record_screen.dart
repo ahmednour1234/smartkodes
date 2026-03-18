@@ -6,12 +6,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/widgets/barcode_scanner_field.dart';
+import '../../../core/widgets/signature_field.dart';
 import '../../../core/widgets/voice_recorder_field.dart';
 import '../../../core/widgets/gps_map_field.dart';
-import '../../../data/local/form_draft_store.dart';
 import '../../../data/local/pending_record_updates_store.dart';
 import '../../../domain/models/form_model.dart';
 import '../../work_orders/presentation/work_order_providers.dart';
@@ -46,6 +48,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   final _values = <String, dynamic>{};
   final _fileData = <String, dynamic>{};
   final _barcodePhotos = <String, ({Uint8List bytes, String filename})>{};
+  final _signatureData = <String, ({Uint8List bytes, String filename})>{};
   final _fieldErrors = <String, String>{};
   bool _submitting = false;
   String? _error;
@@ -55,6 +58,265 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   bool _hasDraft = false;
   bool _draftWasCleared = false;
   bool _hasUserEdited = false;
+  final AudioPlayer _submissionAudioPlayer = AudioPlayer();
+  String? _activeSubmissionAudioUrl;
+  bool _submissionAudioPlaying = false;
+
+  bool _isSignatureField(FormFieldModel f) {
+    final type = f.type.toLowerCase().trim();
+    final name = f.name.toLowerCase().trim();
+    return type == 'signature' || type.contains('signature') || name.contains('signature');
+  }
+
+  bool _isSignatureLikeValue(dynamic value) {
+    if (value == null) return false;
+
+    // Handle list/array format (value might be wrapped in a list)
+    if (value is List && value.isNotEmpty) {
+      value = value.first;
+    }
+
+    if (value == null) return false;
+    String str = value.toString().trim();
+
+    // Check if value looks like base64 data URL or signature file path
+    bool isBase64 = str.startsWith('data:image/png;base64,');
+    bool isFilePath = (str.contains('/tenants/') && str.endsWith('.png')) ||
+                      (str.contains('records') && str.endsWith('signature.png')) ||
+                      (str.contains('storage/') && str.endsWith('.png'));
+
+    return isBase64 || isFilePath;
+  }
+
+
+  Uint8List? _decodeDataUrl(String value) {
+    if (!value.startsWith('data:')) return null;
+    final comma = value.indexOf(',');
+    if (comma < 0 || comma + 1 >= value.length) return null;
+    try {
+      return base64Decode(value.substring(comma + 1));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _looksLikeImagePath(String value) {
+    final v = value.toLowerCase();
+    return v.endsWith('.png') || v.endsWith('.jpg') || v.endsWith('.jpeg') || v.endsWith('.webp') || v.endsWith('.gif');
+  }
+
+  bool _looksLikeAudioPath(String value) {
+    final v = value.toLowerCase();
+    return v.endsWith('.mp3') || v.endsWith('.wav') || v.endsWith('.m4a') || v.endsWith('.aac') || v.endsWith('.ogg');
+  }
+
+  bool _looksLikeVideoPath(String value) {
+    final v = value.toLowerCase();
+    return v.endsWith('.mp4') || v.endsWith('.mov') || v.endsWith('.mkv') || v.endsWith('.webm') || v.endsWith('.3gp') || v.endsWith('.m4v');
+  }
+
+  String _toAbsoluteFileUrl(String value) {
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    return '$base/storage/$value'.replaceFirst(RegExp(r'//+'), '//');
+  }
+
+  Future<void> _toggleSubmissionAudio(String rawValue) async {
+    final url = _toAbsoluteFileUrl(rawValue);
+    try {
+      if (_activeSubmissionAudioUrl == url && _submissionAudioPlaying) {
+        await _submissionAudioPlayer.stop();
+        if (!mounted) return;
+        setState(() {
+          _submissionAudioPlaying = false;
+        });
+        return;
+      }
+
+      await _submissionAudioPlayer.setUrl(url);
+      await _submissionAudioPlayer.play();
+      if (!mounted) return;
+      setState(() {
+        _activeSubmissionAudioUrl = url;
+        _submissionAudioPlaying = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to play this audio file.')),
+      );
+    }
+  }
+
+  Future<void> _openSubmissionVideo(String rawValue) async {
+    final url = _toAbsoluteFileUrl(rawValue);
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open this video.')),
+      );
+    }
+  }
+
+  Widget _buildSubmissionValue(dynamic value) {
+    if (value == null) {
+      return const Text('-', style: TextStyle(color: Colors.black54));
+    }
+
+    if (value is List) {
+      if (value.isEmpty) {
+        return const Text('-', style: TextStyle(color: Colors.black54));
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: value
+            .map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildSubmissionValue(item),
+              ),
+            )
+            .toList(),
+      );
+    }
+
+    if (value is Map) {
+      return Text(jsonEncode(value));
+    }
+
+    final text = value.toString().trim();
+    if (text.isEmpty) {
+      return const Text('-', style: TextStyle(color: Colors.black54));
+    }
+
+    final dataBytes = _decodeDataUrl(text);
+    if (dataBytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.memory(dataBytes, height: 180, fit: BoxFit.contain),
+      );
+    }
+
+    if (_looksLikeImagePath(text)) {
+      final imageUrl = _toAbsoluteFileUrl(text);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          imageUrl,
+          height: 180,
+          fit: BoxFit.contain,
+          headers: const {'ngrok-skip-browser-warning': 'true'},
+          errorBuilder: (_, __, ___) => Text(text),
+        ),
+      );
+    }
+
+    if (_looksLikeAudioPath(text)) {
+      final url = _toAbsoluteFileUrl(text);
+      final isCurrent = _activeSubmissionAudioUrl == url;
+      final isPlaying = isCurrent && _submissionAudioPlaying;
+      return Row(
+        children: [
+          ElevatedButton.icon(
+            onPressed: () => _toggleSubmissionAudio(text),
+            icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+            label: Text(isPlaying ? 'Stop audio' : 'Play audio'),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text.split('/').last,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_looksLikeVideoPath(text)) {
+      return Row(
+        children: [
+          ElevatedButton.icon(
+            onPressed: () => _openSubmissionVideo(text),
+            icon: const Icon(Icons.play_circle_fill),
+            label: const Text('Play video'),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text.split('/').last,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return SelectableText(text);
+  }
+
+  Widget _buildSimpleSubmissionBody() {
+    final fields = widget.form.fields ?? [];
+    fields.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
+
+    if (!_draftLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final fieldNames = fields.map((f) => f.name).toSet();
+    final extraKeys = _values.keys.where((k) => !fieldNames.contains(k)).toList()..sort();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          ),
+        ...fields.map((f) {
+          final label = f.label ?? f.name;
+          final value = _values[f.name];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  _buildSubmissionValue(value),
+                ],
+              ),
+            ),
+          );
+        }),
+        ...extraKeys.map((k) {
+          final value = _values[k];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(k, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  _buildSubmissionValue(value),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
 
   String get _draftKey => 'update_${widget.formId}_${widget.recordId ?? (_recordIdController.text.trim().isEmpty ? "new" : _recordIdController.text.trim())}';
 
@@ -62,6 +324,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _submissionAudioPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      setState(() {
+        _submissionAudioPlaying = state.playing;
+      });
+    });
     if (widget.recordId != null) {
       _recordIdController.text = widget.recordId!;
     }
@@ -117,6 +385,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _draftTimer?.cancel();
+    _submissionAudioPlayer.dispose();
     _recordIdController.dispose();
     if (_hasUserEdited) _saveDraft();
     super.dispose();
@@ -206,6 +475,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       _draftWasCleared = true;
       _fileData.clear();
       _barcodePhotos.clear();
+      _signatureData.clear();
       _values.clear();
       for (final e in _initialValues.entries) {
         _values[e.key] = e.value;
@@ -262,6 +532,23 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     String? path;
     if (value is String && value.trim().isNotEmpty) {
       path = value.trim();
+    } else if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is String && first.trim().isNotEmpty) path = first.trim();
+    }
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    return '$base/storage/$path'.replaceFirst(RegExp(r'//+'), '//');
+  }
+
+  String? _existingSignatureUrl(String fieldName) {
+    final value = _values[fieldName];
+    if (value == null) return null;
+    String? path;
+    if (value is String && value.trim().isNotEmpty) {
+      path = value.trim();
+      if (path.startsWith('data:')) return path;
     } else if (value is List && value.isNotEmpty) {
       final first = value.first;
       if (first is String && first.trim().isNotEmpty) path = first.trim();
@@ -499,11 +786,11 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       _error = null;
       _fieldErrors.clear();
     });
-    final fileTypes = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'];
+    final fileTypes = ['file', 'photo', 'video', 'audio', 'voice_message', 'image', 'signature'];
     final fileFieldNames = <String>{};
     final photoFieldNames = <String>{};
     for (final f in fields) {
-      if (fileTypes.contains(f.type)) {
+      if (fileTypes.contains(f.type) || _isSignatureField(f)) {
         fileFieldNames.add(f.name);
         if (f.type == 'photo' || f.type == 'image') photoFieldNames.add(f.name);
       }
@@ -566,6 +853,9 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       filesToSend.addAll(_fileData);
       for (final e in _barcodePhotos.entries) {
         filesToSend['${e.key}_photo'] = (bytes: e.value.bytes, filename: e.value.filename);
+      }
+      for (final e in _signatureData.entries) {
+        filesToSend[e.key] = (bytes: e.value.bytes, filename: e.value.filename);
       }
 
       final ok = await repo.updateRecord(
@@ -819,6 +1109,63 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   Widget _buildField(FormFieldModel f) {
     if (widget.readOnly) return _buildReadOnlyField(f);
+
+    // PRIORITY CHECK: Any field with signature-like value should render as image
+    final sigValue = _values[f.name];
+    if (_isSignatureLikeValue(sigValue)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          SignatureField(
+            label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+            errorText: _fieldErrors[f.name],
+            currentBytes: _signatureData[f.name]?.bytes,
+            currentUrl: _signatureData[f.name] == null ? _existingSignatureUrl(f.name) : null,
+            readOnly: widget.readOnly,
+            onChanged: (bytes, filename) {
+              setState(() {
+                _signatureData[f.name] = (bytes: bytes, filename: filename);
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            onCleared: () {
+              setState(() => _signatureData.remove(f.name));
+              _scheduleDraftSave();
+            },
+          ),
+          f,
+        ),
+      );
+    }
+
+    // FALLBACK: Treat field as signature if it contains signature-like values
+    if (_isSignatureLikeValue(sigValue) && !['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          SignatureField(
+            label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+            errorText: _fieldErrors[f.name],
+            currentBytes: _signatureData[f.name]?.bytes,
+            currentUrl: _signatureData[f.name] == null ? _existingSignatureUrl(f.name) : null,
+            readOnly: widget.readOnly,
+            onChanged: (bytes, filename) {
+              setState(() {
+                _signatureData[f.name] = (bytes: bytes, filename: filename);
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            onCleared: () {
+              setState(() => _signatureData.remove(f.name));
+              _scheduleDraftSave();
+            },
+          ),
+          f,
+        ),
+      );
+    }
     final isFile = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type);
     if (isFile) {
       if (f.type == 'audio' || f.type == 'voice_message') {
@@ -1006,6 +1353,32 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
               });
             },
             readOnly: widget.readOnly,
+          ),
+          f,
+        ),
+      );
+    }
+    if (_isSignatureField(f)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          SignatureField(
+            label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+            errorText: _fieldErrors[f.name],
+            currentBytes: _signatureData[f.name]?.bytes,
+            currentUrl: _signatureData[f.name] == null ? _existingSignatureUrl(f.name) : null,
+            readOnly: widget.readOnly,
+            onChanged: (bytes, filename) {
+              setState(() {
+                _signatureData[f.name] = (bytes: bytes, filename: filename);
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            onCleared: () {
+              setState(() => _signatureData.remove(f.name));
+              _scheduleDraftSave();
+            },
           ),
           f,
         ),
@@ -1210,6 +1583,15 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.readOnly) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('${widget.form.name} - Submission'),
+        ),
+        body: _buildSimpleSubmissionBody(),
+      );
+    }
+
     final fields = widget.form.fields ?? [];
     fields.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
 
@@ -1296,3 +1678,4 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     );
   }
 }
+

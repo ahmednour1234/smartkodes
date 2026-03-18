@@ -18,6 +18,9 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/mobile/records/{record}/view', [\App\Http\Controllers\Mobile\RecordViewBridgeController::class, 'show'])
+    ->name('mobile.records.view');
+
 /*
 |--------------------------------------------------------------------------
 | Dashboard Redirect (Legacy - redirects to appropriate panel)

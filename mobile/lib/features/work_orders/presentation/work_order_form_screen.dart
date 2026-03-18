@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/widgets/barcode_scanner_field.dart';
+import '../../../core/widgets/signature_field.dart';
 import '../../../core/widgets/voice_recorder_field.dart';
 import '../../../core/widgets/gps_map_field.dart';
 import '../../../data/local/form_draft_store.dart';
@@ -42,12 +43,39 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   final _values = <String, dynamic>{};
   final _fileData = <String, dynamic>{}; // single: (bytes, filename); photo multi: List<(bytes, filename)>
   final _barcodePhotos = <String, ({Uint8List bytes, String filename})>{};
+  final _signatureData = <String, ({Uint8List bytes, String filename})>{};
   final _fieldErrors = <String, String>{};
   bool _loading = true;
   bool _submitting = false;
   String? _error;
   Timer? _draftTimer;
   final _initialValues = <String, dynamic>{};
+
+  bool _isSignatureField(FormFieldModel f) {
+    final type = f.type.toLowerCase().trim();
+    final name = f.name.toLowerCase().trim();
+    return type == 'signature' || type.contains('signature') || name.contains('signature');
+  }
+
+  bool _isSignatureLikeValue(dynamic value) {
+    if (value == null) return false;
+
+    // Handle list/array format (value might be wrapped in a list)
+    if (value is List && value.isNotEmpty) {
+      value = value.first;
+    }
+
+    if (value == null) return false;
+    String str = value.toString().trim();
+
+    // Check if value looks like base64 data URL or signature file path
+    bool isBase64 = str.startsWith('data:image/png;base64,');
+    bool isFilePath = (str.contains('/tenants/') && str.endsWith('.png')) ||
+                      (str.contains('records') && str.endsWith('signature.png')) ||
+                      (str.contains('storage/') && str.endsWith('.png'));
+
+    return isBase64 || isFilePath;
+  }
   bool _hasDraft = false;
   bool _draftWasCleared = false;
   bool _hasUserEdited = false;
@@ -124,6 +152,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       _fieldErrors.clear();
       _fileData.clear();
       _barcodePhotos.clear();
+      _signatureData.clear();
       _values.clear();
       if (form != null) {
         for (final f in form.fields ?? []) {
@@ -156,6 +185,24 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
     String? path;
     if (value is String && value.trim().isNotEmpty) {
       path = value.trim();
+    } else if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is String && first.trim().isNotEmpty) path = first.trim();
+    }
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    return '$base/storage/$path'.replaceFirst(RegExp(r'//+'), '//');
+  }
+
+  String? _existingSignatureUrl(String fieldName) {
+    final value = _values[fieldName];
+    if (value == null) return null;
+    String? path;
+    if (value is String && value.trim().isNotEmpty) {
+      path = value.trim();
+      // Keep base64 data URLs so the signature widget can render them as image bytes.
+      if (path.startsWith('data:')) return path;
     } else if (value is List && value.isNotEmpty) {
       final first = value.first;
       if (first is String && first.trim().isNotEmpty) path = first.trim();
@@ -458,6 +505,9 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       for (final e in _barcodePhotos.entries) {
         filesToSend['${e.key}_photo'] = (bytes: e.value.bytes, filename: e.value.filename);
       }
+      for (final e in _signatureData.entries) {
+        filesToSend[e.key] = (bytes: e.value.bytes, filename: e.value.filename);
+      }
 
       final ok = await repo.submitForm(
         widget.workOrderId,
@@ -669,6 +719,33 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   }
 
   Widget _buildField(FormFieldModel f) {
+    // PRIORITY CHECK: Any field with signature-like value should render as image
+    final sigValue = _values[f.name];
+    if (_isSignatureLikeValue(sigValue)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          SignatureField(
+            label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+            errorText: _fieldErrors[f.name],
+            currentBytes: _signatureData[f.name]?.bytes,
+            currentUrl: _signatureData[f.name] == null ? _existingSignatureUrl(f.name) : null,
+            onChanged: (bytes, filename) {
+              setState(() {
+                _signatureData[f.name] = (bytes: bytes, filename: filename);
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            onCleared: () {
+              setState(() => _signatureData.remove(f.name));
+              _scheduleDraftSave();
+            },
+          ),
+          f,
+        ),
+      );
+    }
     final isFile = ['file', 'photo', 'video', 'audio', 'voice_message', 'image'].contains(f.type);
     if (isFile) {
       if (f.type == 'audio' || f.type == 'voice_message') {
@@ -787,6 +864,31 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
               setState(() {
                 _barcodePhotos[f.name] = (bytes: bytes, filename: filename);
               });
+            },
+          ),
+          f,
+        ),
+      );
+    }
+    if (_isSignatureField(f)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _wrapIfUpdated(
+          SignatureField(
+            label: '${f.label ?? f.name}${f.required ? ' *' : ''}',
+            errorText: _fieldErrors[f.name],
+            currentBytes: _signatureData[f.name]?.bytes,
+            currentUrl: _signatureData[f.name] == null ? _existingSignatureUrl(f.name) : null,
+            onChanged: (bytes, filename) {
+              setState(() {
+                _signatureData[f.name] = (bytes: bytes, filename: filename);
+                _fieldErrors.remove(f.name);
+              });
+              _scheduleDraftSave();
+            },
+            onCleared: () {
+              setState(() => _signatureData.remove(f.name));
+              _scheduleDraftSave();
             },
           ),
           f,

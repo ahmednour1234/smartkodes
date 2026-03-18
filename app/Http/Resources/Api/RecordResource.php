@@ -84,6 +84,15 @@ class RecordResource extends BaseResource
                         if (in_array($type, ['barcode', 'qrcode'], true)) {
                             $photoKey = $fieldName . '_photo';
                             $fields[$photoKey] = count($paths) === 1 ? $paths[0] : $paths;
+                            continue;
+                        }
+                        if ($type === 'signature') {
+                            // Keep base64 value from record_fields if present; otherwise
+                            // expose uploaded signature file path for mobile/web clients.
+                            $existing = $fields[$fieldName] ?? null;
+                            if (!is_string($existing) || !str_starts_with($existing, 'data:')) {
+                                $fields[$fieldName] = count($paths) === 1 ? $paths[0] : $paths;
+                            }
                         }
                     }
                 }

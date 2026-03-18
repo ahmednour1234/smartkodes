@@ -241,16 +241,30 @@
                                     @case('signature')
                                         @php
                                             $signatureValue = is_array($currentValue) && isset($currentValue['value']) ? (string)$currentValue['value'] : (is_array($currentValue) ? '' : (string)($currentValue ?? ''));
+                                            $isUploadedPath = $signatureValue && !str_starts_with($signatureValue, 'data:') && str_contains($signatureValue, '/');
                                         @endphp
-                                        <div class="border-2 border-dashed border-gray-300 rounded-md p-4">
-                                            <label class="text-sm text-gray-600 mb-2 block">Current Signature:</label>
-                                            <input type="text"
-                                                   name="{{ $field->name }}"
+                                        <div class="border-2 border-dashed border-gray-300 rounded-md p-4 space-y-2">
+                                            @if($isUploadedPath)
+                                                <div>
+                                                    <p class="text-xs text-gray-500 mb-1">Current signature:</p>
+                                                    <img src="{{ Storage::url($signatureValue) }}" alt="Current signature"
+                                                         class="h-20 object-contain border border-gray-200 rounded bg-white">
+                                                    <p class="text-xs text-gray-400 mt-1">Draw below to replace, or leave blank to keep current:</p>
+                                                </div>
+                                            @endif
+                                            <canvas id="signature-{{ $field->name }}"
+                                                    class="w-full h-40 border border-gray-200 rounded cursor-crosshair bg-white"
+                                                    data-field="{{ $field->name }}"></canvas>
+                                            <input type="hidden" name="{{ $field->name }}"
                                                    id="{{ $field->name }}-data"
-                                                   value="{{ $signatureValue }}"
-                                                   placeholder="Signature (editable text)"
-                                                   {{ $required ? 'required' : '' }}
-                                                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                                   value="{{ $isUploadedPath ? '' : $signatureValue }}">
+                                            <div class="flex gap-2">
+                                                <button type="button"
+                                                        onclick="clearSignature('{{ $field->name }}')"
+                                                        class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded">
+                                                    Clear
+                                                </button>
+                                            </div>
                                         </div>
                                         @break
 
@@ -375,7 +389,6 @@
         </div>
     </div>
 </div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     initializeSignaturePads();
@@ -387,6 +400,11 @@ document.addEventListener('DOMContentLoaded', function() {
 const signaturePads = {};
 
 function initializeSignaturePads() {
+    if (typeof SignaturePad === 'undefined') {
+        console.error('SignaturePad library failed to load.');
+        return;
+    }
+
     const canvases = document.querySelectorAll('canvas[id^="signature-"]');
     canvases.forEach(canvas => {
         const fieldName = canvas.dataset.field;

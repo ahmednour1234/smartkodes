@@ -148,6 +148,11 @@ class SubmitFormRequest extends BaseApiRequest
                     $rules[$photoKey] = ['nullable', 'array'];
                     $rules[$photoKey . '.*'] = ['file', 'image', 'max:5120'];
                     break;
+                case 'signature':
+                    $fieldRules[] = 'array';
+                    $rules[$field->name] = $fieldRules;
+                    $rules[$field->name . '.*'] = ['file', 'image', 'max:5120'];
+                    continue 2;
             }
 
             // Regex validation

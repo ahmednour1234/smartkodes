@@ -147,15 +147,45 @@
                                                     @break
 
                                                 @case('date')
-                                                    {{ \Carbon\Carbon::parse($value)->format('M d, Y') }}
+                                                    @php
+                                                        $formattedDate = '-';
+                                                        if (!is_null($value) && $value !== '' && $value !== 'null') {
+                                                            try {
+                                                                $formattedDate = \Carbon\Carbon::parse($value)->format('M d, Y');
+                                                            } catch (\Throwable $e) {
+                                                                $formattedDate = is_scalar($value) ? (string) $value : '-';
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    {{ $formattedDate }}
                                                     @break
 
                                                 @case('time')
-                                                    {{ \Carbon\Carbon::parse($value)->format('g:i A') }}
+                                                    @php
+                                                        $formattedTime = '-';
+                                                        if (!is_null($value) && $value !== '' && $value !== 'null') {
+                                                            try {
+                                                                $formattedTime = \Carbon\Carbon::parse($value)->format('g:i A');
+                                                            } catch (\Throwable $e) {
+                                                                $formattedTime = is_scalar($value) ? (string) $value : '-';
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    {{ $formattedTime }}
                                                     @break
 
                                                 @case('datetime')
-                                                    {{ \Carbon\Carbon::parse($value)->format('M d, Y g:i A') }}
+                                                    @php
+                                                        $formattedDateTime = '-';
+                                                        if (!is_null($value) && $value !== '' && $value !== 'null') {
+                                                            try {
+                                                                $formattedDateTime = \Carbon\Carbon::parse($value)->format('M d, Y g:i A');
+                                                            } catch (\Throwable $e) {
+                                                                $formattedDateTime = is_scalar($value) ? (string) $value : '-';
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    {{ $formattedDateTime }}
                                                     @break
 
                                                 @case('checkbox')
@@ -170,6 +200,24 @@
                                                 @case('select')
                                                 @case('dropdown')
                                                     <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">{{ $value }}</span>
+                                                    @break
+
+                                                @case('signature')
+                                                    @php
+                                                        $sigValue = is_array($value) && isset($value['value']) ? $value['value'] : (is_string($value) ? $value : null);
+                                                        $isBase64Sig = $sigValue && str_starts_with($sigValue, 'data:');
+                                                        $sigFile = $record->files->where('form_field_id', $field->id)->first();
+                                                        $sigFileUrl = $sigFile ? Storage::url($sigFile->file_path) : null;
+                                                    @endphp
+                                                    @if($isBase64Sig)
+                                                        <img src="{{ $sigValue }}" alt="Signature" class="max-h-32 max-w-full object-contain border border-gray-100 rounded bg-white p-1">
+                                                    @elseif($sigFileUrl)
+                                                        <img src="{{ $sigFileUrl }}" alt="Signature" class="max-h-32 max-w-full object-contain border border-gray-100 rounded bg-white p-1">
+                                                    @elseif($sigValue)
+                                                        <span class="text-sm text-gray-500 italic">Signature recorded</span>
+                                                    @else
+                                                        <span class="text-sm text-gray-400 italic">No signature</span>
+                                                    @endif
                                                     @break
 
                                                 @case('checkboxgroup')
