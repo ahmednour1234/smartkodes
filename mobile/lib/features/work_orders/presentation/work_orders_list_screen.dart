@@ -122,17 +122,17 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
             }
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          final res = snapshot.data;
-          if (res == null || res.data.isEmpty) {
-            return const Center(child: Text('No work orders'));
-          }
-          final list = res.data.where((wo) {
+          final fullList = snapshot.data?.data ?? const <WorkOrder>[];
+          final list = fullList.where((wo) {
             if (_statusFilter != null && wo.status != _statusFilter) return false;
             if (_projectFilter != null && wo.project?.id != _projectFilter) return false;
             return true;
           }).toList();
           if (_isListView) {
-            return _buildListView(context, res.data, list);
+            return _buildListView(context, fullList, list);
+          }
+          if (fullList.isEmpty) {
+            return const Center(child: Text('No work orders'));
           }
           return _buildMapView(context, list);
         },
@@ -325,13 +325,27 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
           ),
         ),
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async => setState(() {}),
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: list.length,
-            itemBuilder: (context, i) {
+          child: list.isEmpty
+              ? RefreshIndicator(
+                  onRefresh: () async => setState(() {}),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: const [
+                      SizedBox(height: 48),
+                      Center(
+                        child: Text('No work orders match current filters.'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () async => setState(() {}),
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    itemCount: list.length,
+                    itemBuilder: (context, i) {
               final wo = list[i];
               final formName = wo.forms?.isNotEmpty == true ? wo.forms!.first.name : '—';
               final priorityStr = _priorityLabel(wo);
@@ -456,9 +470,9 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                 ),
               ),
             );
-            },
-            ),
-          ),
+                    },
+                  ),
+                ),
         ),
       ],
     );
