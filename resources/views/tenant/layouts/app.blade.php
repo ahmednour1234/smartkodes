@@ -35,10 +35,11 @@
         <div class="min-h-screen bg-gray-100">
             @include('tenant.layouts.sidebar')
 
+            @include('layouts.platform-header')
+
             <!-- Page Heading -->
-        <!-- Page Heading -->
 @isset($header)
-    <header class="bg-white shadow  md:pt-0 md:ml-64">
+    <header class="bg-white shadow md:ml-64">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             {{ $header }}
         </div>
@@ -46,7 +47,7 @@
 @endisset
 
 <!-- Page Content -->
-<main class="pt-14 md:pt-0 md:ml-64">
+<main class="md:ml-64">
     @yield('content')
 </main>
 

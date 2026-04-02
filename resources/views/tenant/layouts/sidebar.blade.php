@@ -8,35 +8,13 @@
     $currentUser = Auth::user();
 @endphp
 
-{{-- Top bar للموبايل --}}
-<div class="md:hidden fixed top-0 inset-x-0 z-[100] bg-sky-700 text-white flex items-center justify-between px-4 py-3 shadow-lg">
-    <div class="flex items-center gap-2 min-w-0">
-        <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Site" class="h-9 w-9 rounded-full object-cover border border-sky-200/70 bg-white">
-        <div class="min-w-0">
-            <h1 class="text-base font-bold leading-tight truncate">Smart Site</h1>
-            <p class="text-xs text-sky-100 truncate">{{ $currentTenant?->name ?? 'Tenant Portal' }}</p>
-        </div>
-    </div>
-
-    <button id="mobileSidebarToggle"
-            type="button"
-            class="inline-flex items-center justify-center rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-sky-700">
-        <span class="sr-only">Open sidebar</span>
-        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-    </button>
-</div>
-
 {{-- Overlay للموبايل --}}
 <div id="mobileSidebarOverlay"
      class="fixed inset-0 z-[90] bg-black/40 hidden md:hidden"></div>
 
 {{-- Drawer للموبايل --}}
 <nav id="mobileSidebar"
-     class="fixed inset-y-0 left-0 z-[95] w-64 bg-sky-700 text-white transform -translate-x-full transition-transform duration-200 ease-in-out md:hidden flex flex-col">
+     class="fixed inset-y-0 left-0 z-[95] w-64 bg-[#008ECC] text-white transform -translate-x-full transition-transform duration-200 ease-in-out md:hidden flex flex-col">
 
     <div class="p-4 flex items-start justify-between">
         <div class="space-y-3">
@@ -157,7 +135,7 @@
 {{-- Desktop Sidebar (زي القديم) --}}
 {{-- ========================= --}}
 
-<nav class="hidden md:flex md:fixed md:top-0 md:left-0 md:h-full md:w-64 md:bg-sky-700 md:text-white md:flex-col md:overflow-y-auto sidebar-scroll z-40">
+<nav class="hidden md:flex md:fixed md:top-0 md:left-0 md:h-full md:w-64 md:bg-[#008ECC] md:text-white md:flex-col md:overflow-y-auto sidebar-scroll z-40">
 
     <div class="p-4 space-y-3">
         <div class="flex items-center gap-3">
@@ -276,10 +254,10 @@
 <style>
 #mobileSidebar details[open] .details-chevron { transform: rotate(180deg); }
 .sidebar-scroll::-webkit-scrollbar { width: 6px; }
-.sidebar-scroll::-webkit-scrollbar-track { background: #0369a1; }
-.sidebar-scroll::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 3px; }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #0ea5e9; }
-.sidebar-scroll { scrollbar-width: thin; scrollbar-color: #0284c7 #0369a1; }
+.sidebar-scroll::-webkit-scrollbar-track { background: #0079ad; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: #006f9f; border-radius: 3px; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #005f88; }
+.sidebar-scroll { scrollbar-width: thin; scrollbar-color: #006f9f #0079ad; }
 </style>
 @endpush
 @push('scripts')

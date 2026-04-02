@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 class SecureStorage {
@@ -12,15 +13,40 @@ class SecureStorage {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
-  Future<String?> getToken() => _storage.read(key: _tokenKey);
+  Future<String?> _readSafe(String key) async {
+    try {
+      return await _storage.read(key: key);
+    } on PlatformException {
+      // Recover from encrypted-shared-preferences decryption issues (BAD_DECRYPT).
+      await _resetCorruptedStorage();
+      return null;
+    }
+  }
+
+  Future<void> _resetCorruptedStorage() async {
+    try {
+      await _storage.deleteAll();
+    } catch (_) {
+      // Ignore cleanup failures to avoid crashing app start.
+    }
+    try {
+      await clearPasscodeConfigured();
+      final skipped = await _passcodeSkippedFile();
+      if (await skipped.exists()) await skipped.delete();
+    } catch (_) {
+      // Ignore file cleanup failures.
+    }
+  }
+
+  Future<String?> getToken() => _readSafe(_tokenKey);
   Future<void> setToken(String token) => _storage.write(key: _tokenKey, value: token);
   Future<void> deleteToken() => _storage.delete(key: _tokenKey);
 
-  Future<String?> getUserJson() => _storage.read(key: _userKey);
+  Future<String?> getUserJson() => _readSafe(_userKey);
   Future<void> setUserJson(String json) => _storage.write(key: _userKey, value: json);
   Future<void> deleteUser() => _storage.delete(key: _userKey);
 
-  Future<String?> getPasscode() => _storage.read(key: _passcodeKey);
+  Future<String?> getPasscode() => _readSafe(_passcodeKey);
   Future<void> setPasscode(String code) => _storage.write(key: _passcodeKey, value: code);
 
   Future<File> _passcodeConfiguredFile() async {

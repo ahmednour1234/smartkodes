@@ -21,9 +21,11 @@
         <div class="min-h-screen bg-gray-100">
             @include('admin.layouts.sidebar')
 
+            @include('layouts.platform-header')
+
             <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow pt-14 lg:pt-0 lg:ml-64">
+                <header class="bg-white shadow lg:ml-64">
                     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
@@ -31,7 +33,7 @@
             @endisset
 
             <!-- Page Content -->
-            <main class="pt-14 lg:pt-0 lg:ml-64">
+            <main class="lg:ml-64">
                 @yield('content')
             </main>
         </div>
