@@ -60,4 +60,9 @@ class FormField extends Model
     {
         return $this->hasMany(RecordField::class);
     }
+
+    public function getLabelAttribute(): string
+    {
+        return $this->config_json['label'] ?? $this->name;
+    }
 }

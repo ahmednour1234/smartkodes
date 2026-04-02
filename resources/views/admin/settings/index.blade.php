@@ -18,15 +18,9 @@
                     @csrf
                     <div class="grid grid-cols-1 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Support Email</label>
-                            <input type="email" name="support_email" value="{{ old('support_email', $settings['support_email'] ?? '') }}" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="support@example.com" />
-                            @error('support_email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">WhatsApp Help URL</label>
-                            <input type="url" name="whatsapp_help_url" value="{{ old('whatsapp_help_url', $settings['whatsapp_help_url'] ?? '') }}" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="https://wa.me/201234567890" />
-                            <p class="mt-1 text-xs text-gray-500">Example: https://wa.me/201234567890</p>
+                            <label class="block text-sm font-medium text-gray-700">WhatsApp Get Help URL</label>
+                            <input type="url" name="whatsapp_help_url" value="{{ old('whatsapp_help_url', $settings['whatsapp_help_url'] ?? '') }}" class="mt-1 block w-full border-gray-300 rounded-md" placeholder="https://wa.me/96171824452" />
+                            <p class="mt-1 text-xs text-gray-500">This URL is shown as the &ldquo;Get Help&rdquo; button in the header for all users. Format: https://wa.me/&lt;number&gt;</p>
                             @error('whatsapp_help_url')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>

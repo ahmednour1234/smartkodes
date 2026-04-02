@@ -45,8 +45,8 @@ return [
 ],
 
 'whatsapp' => [
-    'help_number' => env('WHATSAPP_HELP_NUMBER', '201234567890'),
-    'help_url' => env('WHATSAPP_HELP_URL', 'https://wa.me/' . env('WHATSAPP_HELP_NUMBER', '201234567890')),
+    'help_number' => env('WHATSAPP_HELP_NUMBER', '96171824452'),
+    'help_url' => env('WHATSAPP_HELP_URL', 'https://wa.me/' . env('WHATSAPP_HELP_NUMBER', '96171824452')),
 ],
 
 ];
