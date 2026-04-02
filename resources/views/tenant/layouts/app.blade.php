@@ -11,6 +11,9 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
         <!-- Tailwind CSS CDN -->
         <script src="https://cdn.tailwindcss.com"></script>
 
@@ -31,7 +34,7 @@
         <script src="{{ asset('build/assets/app-CXDpL9bK.js') }}" defer></script>
         @stack('head')
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased overflow-x-hidden">
         <div class="min-h-screen bg-gray-100">
             @include('tenant.layouts.sidebar')
 
@@ -47,7 +50,7 @@
 @endisset
 
 <!-- Page Content -->
-<main class="md:ml-64">
+<main class="md:ml-64 min-w-0">
     @yield('content')
 </main>
 
