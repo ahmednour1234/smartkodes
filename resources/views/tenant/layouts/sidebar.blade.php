@@ -135,38 +135,9 @@
 {{-- Desktop Sidebar (زي القديم) --}}
 {{-- ========================= --}}
 
-<nav class="hidden md:flex md:fixed md:top-0 md:left-0 md:h-full md:w-64 md:bg-[#008ECC] md:text-white md:flex-col md:overflow-y-auto sidebar-scroll z-40">
+<nav class="hidden md:flex md:fixed md:top-[132px] md:left-0 md:h-[calc(100vh-132px)] md:w-64 md:bg-[#008ECC] md:text-white md:flex-col md:overflow-y-auto sidebar-scroll z-40">
 
-    <div class="p-4 space-y-3">
-        <div class="flex items-center gap-3">
-            <img src="{{ asset('assets/NewIcon.png') }}" alt="Smart Site" class="h-10 w-10 rounded-full object-cover border border-sky-200/70 bg-white">
-            <p class="font-semibold">Smart Site</p>
-        </div>
-
-        <div class="flex items-center gap-3">
-            @if($currentTenant?->logo_url)
-                <img src="{{ $currentTenant->logo_url }}" alt="{{ $currentTenant->name }} logo" class="h-9 w-9 rounded-full object-cover border border-sky-200/70 bg-white">
-            @else
-                <div class="h-9 w-9 rounded-full bg-sky-600 border border-sky-200/70 flex items-center justify-center text-sm font-semibold">
-                    {{ strtoupper(substr($currentTenant?->name ?? 'C', 0, 1)) }}
-                </div>
-            @endif
-            <p class="text-sm text-blue-100 truncate">{{ $currentTenant?->name ?? 'Company' }}</p>
-        </div>
-
-        <div class="flex items-center gap-3">
-            @if($currentUser?->photo_url)
-                <img src="{{ $currentUser->photo_url }}" alt="{{ $currentUser->name }}" class="h-9 w-9 rounded-full object-cover border border-sky-200/70 bg-white">
-            @else
-                <div class="h-9 w-9 rounded-full bg-sky-600 border border-sky-200/70 flex items-center justify-center text-sm font-semibold">
-                    {{ strtoupper(substr($currentUser?->name ?? 'U', 0, 1)) }}
-                </div>
-            @endif
-            <p class="text-sm text-blue-100 truncate">{{ $currentUser?->name ?? 'User' }}</p>
-        </div>
-    </div>
-
-    <ul class="mt-4 space-y-1 flex-1">
+    <ul class="mt-0 space-y-1 flex-1">
         <li>
             <a href="{{ route('tenant.dashboard') }}" class="block px-4 py-2 hover:bg-sky-600 {{ request()->routeIs('tenant.dashboard') ? 'bg-sky-600' : '' }}">
                 <i class="fas fa-tachometer-alt mr-2"></i>Dashboard

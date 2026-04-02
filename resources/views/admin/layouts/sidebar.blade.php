@@ -1,15 +1,15 @@
 <div id="adminMobileSidebarOverlay" class="fixed inset-0 z-[90] bg-black/40 hidden lg:hidden"></div>
 
-<nav id="adminMobileSidebar" class="fixed top-0 left-0 h-full w-64 bg-[#008ECC] text-white overflow-y-auto z-[95] transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
-    <div class="p-4 flex items-start justify-between">
+<nav id="adminMobileSidebar" class="fixed top-0 left-0 h-full w-64 bg-[#008ECC] text-white overflow-y-auto z-[95] transform -translate-x-full lg:translate-x-0 lg:top-[132px] lg:h-[calc(100vh-132px)] transition-transform duration-200 ease-in-out">
+    <div class="p-4 flex items-start justify-between bg-white border-b border-gray-200 shadow-sm lg:hidden">
         <div>
-            <h1 class="text-xl font-bold">Smart Site Admin</h1>
-            <p class="text-sm text-gray-300">
+            <h1 class="text-xl font-bold text-gray-900">Smart Site Admin</h1>
+            <p class="text-sm text-gray-600">
                 {{ session('tenant_context.current_tenant') ? session('tenant_context.current_tenant')->name : 'Platform Admin' }}
             </p>
-            <p class="text-xs text-gray-400 mt-1">{{ Auth::user()->name }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ Auth::user()->name }}</p>
         </div>
-        <button id="adminMobileSidebarClose" type="button" class="lg:hidden ml-2 text-gray-300 hover:text-white focus:outline-none">
+        <button id="adminMobileSidebarClose" type="button" class="lg:hidden ml-2 text-gray-500 hover:text-gray-700 focus:outline-none">
             <span class="sr-only">Close sidebar</span>
             <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -17,7 +17,7 @@
         </button>
     </div>
 
-    <ul class="mt-8 space-y-1">
+    <ul class="mt-0 space-y-1">
         <li>
             <a href="{{ route('admin.dashboard') }}" class="admin-nav-link block px-4 py-2 hover:bg-[#0079ad] {{ request()->routeIs('admin.dashboard') ? 'bg-[#0079ad]' : '' }}">
                 <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
