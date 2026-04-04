@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/api/api_response.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../domain/models/user.dart';
 
@@ -84,28 +83,6 @@ class AuthRepository {
     );
     if (!response.success || response.data == null) return null;
     return User.fromJson(response.data!);
-  }
-
-  Future<bool> setPasscode(String passcode) async {
-    await _storage.setPasscode(passcode);
-    await _storage.setPasscodeConfigured();
-    try {
-      await _client.request<dynamic>(
-        'users/set-passcode',
-        method: 'POST',
-        data: {'passcode': passcode},
-      );
-    } catch (_) {}
-    return true;
-  }
-
-  Future<bool> verifyPasscode(String passcode) async {
-    final response = await _client.request<dynamic>(
-      'users/verify-passcode',
-      method: 'POST',
-      data: {'passcode': passcode},
-    );
-    return response.success;
   }
 
   Future<String?> getStoredToken() => _storage.getToken();

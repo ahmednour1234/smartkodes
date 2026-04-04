@@ -31,6 +31,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _emailController.text.trim(),
           _passwordController.text,
         );
+    if (!mounted) return;
+    if (ref.read(authStateProvider).valueOrNull != null) {
+      ref.read(appUnlockedProvider.notifier).state = true;
+    }
   }
 
   void _showAuthError(Object error) {
@@ -51,7 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     ref.listen(authStateProvider, (prev, next) {
-      next?.whenOrNull(
+      next.whenOrNull(
         error: (e, _) => _showAuthError(e),
       );
     });

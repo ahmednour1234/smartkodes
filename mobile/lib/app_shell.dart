@@ -6,9 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/api/api_client_provider.dart';
 import 'features/auth/presentation/auth_providers.dart';
+import 'features/auth/presentation/biometric_unlock_screen.dart';
 import 'features/auth/presentation/login_screen.dart';
-import 'features/auth/presentation/set_passcode_screen.dart';
-import 'features/auth/presentation/verify_passcode_screen.dart';
 import 'features/home/presentation/field_worker_home_screen.dart';
 import 'features/work_orders/presentation/work_order_providers.dart';
 
@@ -38,8 +37,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
-      // Force re-verification after app goes to background/closed from recent apps.
-      ref.read(passcodeVerifiedForSessionProvider.notifier).state = false;
+      ref.read(appUnlockedProvider.notifier).state = false;
     }
   }
 
@@ -53,8 +51,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     ref.listen(authStateProvider, (prev, next) {
       final user = next.valueOrNull;
       if (user == null) {
-        ref.read(passcodeVerifiedForSessionProvider.notifier).state = false;
-        ref.read(skipPasscodeSetupProvider.notifier).state = false;
+        ref.read(appUnlockedProvider.notifier).state = false;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) {
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -71,42 +68,19 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
       error: (_, __) => const LoginScreen(),
       data: (user) {
         if (user == null) return const LoginScreen();
-        final hasPasscode = ref.watch(hasPasscodeProvider);
-        final verified = ref.watch(passcodeVerifiedForSessionProvider);
-        final skipped = ref.watch(skipPasscodeSetupProvider);
-
-        final skippedPersisted = ref.watch(hasPasscodeSkippedProvider).valueOrNull ?? false;
-        final skipPasscode = skipped || skippedPersisted;
-
-        return hasPasscode.when(
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
-          error: (_, __) => _SyncOnConnectivity(child: const FieldWorkerHomeScreen()),
-          data: (has) {
-            if (has && !verified) {
-              return VerifyPasscodeScreen(
-                onSuccess: () {
-                  ref.read(passcodeVerifiedForSessionProvider.notifier).state = true;
-                },
-              );
-            }
-            if (!has && !skipPasscode) {
-              return SetPasscodeScreen(
-                onDone: () {
-                  ref.read(passcodeVerifiedForSessionProvider.notifier).state = true;
-                  ref.invalidate(hasPasscodeProvider);
-                },
-                onSkip: () async {
-                  await ref.read(secureStorageProvider).setPasscodeSkipped();
-                  ref.invalidate(hasPasscodeSkippedProvider);
-                  ref.read(skipPasscodeSetupProvider.notifier).state = true;
-                },
-              );
-            }
-            return _SyncOnConnectivity(child: const FieldWorkerHomeScreen());
-          },
-        );
+        final isUnlocked = ref.watch(appUnlockedProvider);
+        if (!isUnlocked) {
+          return BiometricUnlockScreen(
+            onSuccess: () {
+              ref.read(appUnlockedProvider.notifier).state = true;
+            },
+            onUsePasswordFallback: () {
+              ref.read(appUnlockedProvider.notifier).state = false;
+              ref.read(authStateProvider.notifier).forceUnauthenticated();
+            },
+          );
+        }
+        return const _SyncOnConnectivity(child: FieldWorkerHomeScreen());
       },
     );
   }

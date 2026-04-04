@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/models/user.dart';
-import '../data/auth_repository.dart';
 import 'auth_providers.dart';
 
 class AuthNotifier extends AsyncNotifier<User?> {
@@ -33,13 +32,5 @@ class AuthNotifier extends AsyncNotifier<User?> {
 
   void forceUnauthenticated() {
     state = const AsyncValue.data(null);
-  }
-
-  Future<bool> setPasscode(String passcode) async {
-    return ref.read(authRepositoryProvider).setPasscode(passcode);
-  }
-
-  Future<bool> verifyPasscode(String passcode) async {
-    return ref.read(authRepositoryProvider).verifyPasscode(passcode);
   }
 }

@@ -4,11 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../auth/presentation/auth_providers.dart';
-import '../../auth/presentation/set_passcode_screen.dart';
 import '../../forms/presentation/forms_list_screen.dart';
 import '../../notifications/presentation/notifications_list_screen.dart';
 import '../../work_orders/presentation/work_orders_list_screen.dart';
-import '../../notifications/data/notifications_repository.dart';
 import '../../notifications/presentation/notifications_providers.dart';
 import 'collected_data_screen.dart';
 
@@ -32,21 +30,6 @@ class _FieldWorkerHomeScreenState extends ConsumerState<FieldWorkerHomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.lock_reset),
-              title: const Text('Change password'),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SetPasscodeScreen(
-                      onDone: () => Navigator.pop(context),
-                      onSkip: () => Navigator.pop(context),
-                    ),
-                  ),
-                );
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Log out'),

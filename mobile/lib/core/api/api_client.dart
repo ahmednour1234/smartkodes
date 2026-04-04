@@ -60,8 +60,7 @@ class ApiClient {
     ErrorInterceptorHandler handler,
   ) async {
     if (err.response?.statusCode == 401 &&
-        !err.requestOptions.path.contains('refresh') &&
-        !err.requestOptions.path.contains('set-passcode')) {
+        !err.requestOptions.path.contains('refresh')) {
       final token = await getToken();
       if (token != null && token.isNotEmpty) {
         try {
