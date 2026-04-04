@@ -33,6 +33,7 @@ final syncServiceProvider = Provider<SyncService>((ref) {
   return SyncService(
     ref.watch(workOrderRepositoryProvider),
     ref.watch(pendingSubmissionsStoreProvider),
+    storage: ref.watch(secureStorageProvider),
     formsRepo: ref.watch(formsRepositoryProvider),
     recordUpdatesStore: ref.watch(pendingRecordUpdatesStoreProvider),
   );

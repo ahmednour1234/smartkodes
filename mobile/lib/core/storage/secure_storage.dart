@@ -8,6 +8,7 @@ class SecureStorage {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
   static const _passcodeKey = 'passcode';
+  static const _autoSyncKey = 'auto_sync_enabled';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -48,6 +49,16 @@ class SecureStorage {
 
   Future<String?> getPasscode() => _readSafe(_passcodeKey);
   Future<void> setPasscode(String code) => _storage.write(key: _passcodeKey, value: code);
+
+  Future<bool> getAutoSyncEnabled() async {
+    final raw = await _readSafe(_autoSyncKey);
+    if (raw == null) return true;
+    return raw == '1' || raw.toLowerCase() == 'true';
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) {
+    return _storage.write(key: _autoSyncKey, value: enabled ? '1' : '0');
+  }
 
   Future<File> _passcodeConfiguredFile() async {
     final dir = await getApplicationDocumentsDirectory();

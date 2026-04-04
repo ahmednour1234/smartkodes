@@ -580,6 +580,16 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
         appBar: AppBar(
           title: Text(form.name),
           actions: [
+            TextButton(
+              onPressed: _submitting ? null : _submit,
+              child: _submitting
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Submit'),
+            ),
             if (_hasDraft)
               IconButton(
                 onPressed: () async { await _clearDraft(); },
@@ -588,39 +598,18 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
               ),
           ],
         ),
-        body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(_error!, style: const TextStyle(color: Colors.red)),
-                  ),
-                ...fields.map((f) => KeyedSubtree(key: ValueKey('${f.name}_$_formFieldKey'), child: _buildField(f))),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: FilledButton(
-              onPressed: _submitting ? null : _submit,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(_error!, style: const TextStyle(color: Colors.red)),
               ),
-              child: _submitting
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Submit'),
-            ),
-          ),
-        ],
-      ),
+            ...fields.map((f) =>
+                KeyedSubtree(key: ValueKey('${f.name}_$_formFieldKey'), child: _buildField(f))),
+          ],
+        ),
       ),
     );
   }

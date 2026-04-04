@@ -1,12 +1,11 @@
 import 'dart:io' if (dart.library.html) 'io_stub.dart' as io;
 
-import 'dart:typed_data';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../data/local/pending_record_updates_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../forms/data/forms_repository.dart';
 import 'work_order_repository.dart';
 
@@ -14,15 +13,23 @@ class SyncService {
   SyncService(
     this._repo,
     this._store, {
+    required SecureStorage storage,
     FormsRepository? formsRepo,
     PendingRecordUpdatesStore? recordUpdatesStore,
   })  : _formsRepo = formsRepo,
-        _recordUpdatesStore = recordUpdatesStore;
+        _recordUpdatesStore = recordUpdatesStore,
+        _storage = storage;
 
   final WorkOrderRepository _repo;
   final PendingSubmissionsStore _store;
   final FormsRepository? _formsRepo;
   final PendingRecordUpdatesStore? _recordUpdatesStore;
+  final SecureStorage _storage;
+
+  Future<bool> get isAutoSyncEnabled => _storage.getAutoSyncEnabled();
+
+  Future<void> setAutoSyncEnabled(bool enabled) =>
+      _storage.setAutoSyncEnabled(enabled);
 
   Future<bool> get isOnline async {
     final result = await Connectivity().checkConnectivity();
@@ -44,7 +51,8 @@ class SyncService {
     return fileFields.isEmpty ? null : fileFields;
   }
 
-  Future<int> syncPending() async {
+  Future<int> syncPending({bool force = false}) async {
+    if (!force && !await isAutoSyncEnabled) return 0;
     if (!await isOnline) return 0;
     int synced = 0;
     while (true) {
@@ -84,9 +92,11 @@ class SyncService {
         break;
       }
     }
-    if (_formsRepo != null && _recordUpdatesStore != null) {
+    final formsRepo = _formsRepo;
+    final recordUpdatesStore = _recordUpdatesStore;
+    if (formsRepo != null && recordUpdatesStore != null) {
       while (true) {
-        final list = await _recordUpdatesStore!.load();
+        final list = await recordUpdatesStore.load();
         if (list.isEmpty) break;
         final u = list.first;
         try {
@@ -102,9 +112,9 @@ class SyncService {
                 fileFields[e.key] = (bytes: bytes, filename: name);
               }
             }
-            if (fileFields!.isEmpty) fileFields = null;
+            if (fileFields.isEmpty) fileFields = null;
           }
-          final ok = await _formsRepo!.updateRecord(
+          final ok = await formsRepo.updateRecord(
             u.formId,
             u.recordId,
             u.fields,
@@ -122,7 +132,7 @@ class SyncService {
                 await io.Directory(dirPath).delete(recursive: true);
               } catch (_) {}
             }
-            await _recordUpdatesStore!.removeFirst();
+            await recordUpdatesStore.removeFirst();
             synced++;
           } else {
             break;

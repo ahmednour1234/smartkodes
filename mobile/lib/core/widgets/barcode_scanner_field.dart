@@ -31,8 +31,10 @@ class BarcodeScannerField extends StatefulWidget {
 }
 
 class _BarcodeScannerFieldState extends State<BarcodeScannerField> {
-  Future<void> _scanBarcode() async {
-    if (widget.readOnly) return;
+  bool _processing = false;
+
+  Future<bool> _scanBarcode() async {
+    if (widget.readOnly) return false;
 
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -82,8 +84,9 @@ class _BarcodeScannerFieldState extends State<BarcodeScannerField> {
       },
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted || result == null) return false;
     widget.onValueChanged(result);
+    return true;
   }
 
   Future<void> _captureBarcodePhoto() async {
@@ -95,6 +98,19 @@ class _BarcodeScannerFieldState extends State<BarcodeScannerField> {
     if (bytes.isEmpty) return;
     final filename = x.name.isNotEmpty ? x.name : 'barcode.jpg';
     widget.onPhotoChanged?.call(bytes, filename);
+  }
+
+  Future<void> _scanAndCapture() async {
+    if (widget.readOnly || _processing) return;
+    setState(() => _processing = true);
+    try {
+      final scanned = await _scanBarcode();
+      if (!scanned) return;
+      if (!mounted) return;
+      await _captureBarcodePhoto();
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
   }
 
   @override
@@ -121,7 +137,7 @@ class _BarcodeScannerFieldState extends State<BarcodeScannerField> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                hasCode ? code! : 'No barcode scanned yet',
+                hasCode ? code : 'No barcode scanned yet',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               if (widget.currentPhotoBytes != null || (widget.currentPhotoUrl != null && widget.currentPhotoUrl!.isNotEmpty)) ...[
@@ -151,14 +167,14 @@ class _BarcodeScannerFieldState extends State<BarcodeScannerField> {
                   runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: _scanBarcode,
+                      onPressed: _processing ? null : _scanAndCapture,
                       icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('Scan barcode'),
+                      label: Text(_processing ? 'Processing...' : 'Scan + capture'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: _captureBarcodePhoto,
+                      onPressed: _processing ? null : _captureBarcodePhoto,
                       icon: const Icon(Icons.camera_alt_outlined),
-                      label: const Text('Capture photo'),
+                      label: const Text('Retake photo'),
                     ),
                     if (hasCode)
                       TextButton(

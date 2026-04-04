@@ -88,6 +88,22 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
     return Colors.grey;
   }
 
+  bool _isSubmittedWorkOrder(WorkOrder wo) {
+    final status = wo.status.trim().toLowerCase();
+    final submittedStatuses = {
+      'submitted',
+      'processed',
+      'completed',
+      'closed',
+      'done',
+    };
+    if (submittedStatuses.contains(status)) return true;
+
+    final totalForms = wo.forms?.length ?? 0;
+    final submittedCount = wo.recordsCount ?? 0;
+    return totalForms > 0 && submittedCount >= totalForms;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,16 +138,21 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
             }
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          final fullList = snapshot.data?.data ?? const <WorkOrder>[];
-          final list = fullList.where((wo) {
+          final fetchedList = snapshot.data?.data ?? const <WorkOrder>[];
+          final pageScopedList = fetchedList.where((wo) {
+            final isSubmitted = _isSubmittedWorkOrder(wo);
+            return _submittedOnlyFilter ? isSubmitted : !isSubmitted;
+          }).toList();
+
+          final list = pageScopedList.where((wo) {
             if (_statusFilter != null && wo.status != _statusFilter) return false;
             if (_projectFilter != null && wo.project?.id != _projectFilter) return false;
             return true;
           }).toList();
           if (_isListView) {
-            return _buildListView(context, fullList, list);
+            return _buildListView(context, pageScopedList, list);
           }
-          if (fullList.isEmpty) {
+          if (pageScopedList.isEmpty) {
             return const Center(child: Text('No work orders'));
           }
           return _buildMapView(context, list);
@@ -186,7 +207,7 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
-            'My Orders',
+            _submittedOnlyFilter ? 'Submitted Orders' : 'My Orders',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
@@ -334,7 +355,11 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                     children: const [
                       SizedBox(height: 48),
                       Center(
-                        child: Text('No work orders match current filters.'),
+                        child: Text(
+                          _submittedOnlyFilter
+                              ? 'No submitted work orders match current filters.'
+                              : 'No active work orders match current filters.',
+                        ),
                       ),
                     ],
                   ),

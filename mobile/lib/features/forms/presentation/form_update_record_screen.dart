@@ -102,7 +102,88 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   bool _looksLikeImagePath(String value) {
     final v = value.toLowerCase();
-    return v.endsWith('.png') || v.endsWith('.jpg') || v.endsWith('.jpeg') || v.endsWith('.webp') || v.endsWith('.gif');
+    return v.startsWith('data:image/') ||
+        v.endsWith('.png') ||
+        v.endsWith('.jpg') ||
+        v.endsWith('.jpeg') ||
+        v.endsWith('.webp') ||
+        v.endsWith('.gif');
+  }
+
+  dynamic _tryDecodeStructuredString(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    final looksLikeJson =
+        (s.startsWith('[') && s.endsWith(']')) ||
+        (s.startsWith('{') && s.endsWith('}'));
+    if (!looksLikeJson) return null;
+    try {
+      return jsonDecode(s);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<String> _extractMediaPaths(dynamic value) {
+    final paths = <String>[];
+
+    void addPath(String raw) {
+      final s = raw.trim();
+      if (s.isEmpty) return;
+      if (s.startsWith('http://') ||
+          s.startsWith('https://') ||
+          s.startsWith('data:image/') ||
+          s.contains('/')) {
+        paths.add(s);
+      }
+    }
+
+    void visit(dynamic v) {
+      if (v == null) return;
+      if (v is String) {
+        final decoded = _tryDecodeStructuredString(v);
+        if (decoded != null) {
+          visit(decoded);
+          return;
+        }
+        if (v.contains(',') && !v.startsWith('http') && !v.startsWith('data:')) {
+          for (final part in v.split(',')) {
+            addPath(part);
+          }
+          return;
+        }
+        addPath(v);
+        return;
+      }
+      if (v is List) {
+        for (final item in v) {
+          visit(item);
+        }
+        return;
+      }
+      if (v is Map) {
+        final preferred = [v['url'], v['path'], v['file'], v['src'], v['value']];
+        var usedPreferred = false;
+        for (final candidate in preferred) {
+          if (candidate != null) {
+            usedPreferred = true;
+            visit(candidate);
+          }
+        }
+        if (!usedPreferred) {
+          for (final candidate in v.values) {
+            visit(candidate);
+          }
+        }
+      }
+    }
+
+    visit(value);
+    final seen = <String>{};
+    return [
+      for (final p in paths)
+        if (seen.add(p)) p,
+    ];
   }
 
   bool _looksLikeAudioPath(String value) {
@@ -166,6 +247,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       return const Text('-', style: TextStyle(color: Colors.black54));
     }
 
+    if (value is String) {
+      final decoded = _tryDecodeStructuredString(value);
+      if (decoded != null) {
+        return _buildSubmissionValue(decoded);
+      }
+    }
+
     if (value is List) {
       if (value.isEmpty) {
         return const Text('-', style: TextStyle(color: Colors.black54));
@@ -184,6 +272,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
     }
 
     if (value is Map) {
+      final media = _extractMediaPaths(value)
+          .where((p) => _looksLikeImagePath(p))
+          .toList();
+      if (media.isNotEmpty) {
+        return _buildSubmissionValue(media);
+      }
       return Text(jsonEncode(value));
     }
 
@@ -377,7 +471,13 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
         }
       }
       if (!mounted) return;
-      await _loadDraft();
+      if (widget.readOnly) {
+        setState(() {
+          _draftLoaded = true;
+        });
+      } else {
+        await _loadDraft();
+      }
     });
   }
 
@@ -561,42 +661,22 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   List<String>? _existingImageUrls(dynamic value) {
     if (value == null) return null;
-    final base = Env.apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
-    String? pathToUrl(String s) {
-      if (s.startsWith('http')) return s;
-      if (s.contains('/')) return '$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//');
-      return null;
-    }
-    if (value is String && value.trim().isNotEmpty) {
-      final u = pathToUrl(value.trim());
-      return u != null ? [u] : null;
-    }
-    if (value is List) {
-      final urls = <String>[];
-      for (final e in value) {
-        if (e is String && e.trim().isNotEmpty) {
-          final u = pathToUrl(e.trim());
-          if (u != null) urls.add(u);
-        } else if (e is Map) {
-          final u = e['url'] ?? e['path'];
-          if (u != null) {
-            final s = u.toString().trim();
-            if (s.startsWith('http')) urls.add(s);
-            else if (s.contains('/')) urls.add('$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//'));
-          }
-        }
-      }
-      return urls.isEmpty ? null : urls;
-    }
-    if (value is Map) {
-      final u = value['url'] ?? value['path'];
-      if (u != null) {
-        final s = u.toString().trim();
-        if (s.startsWith('http')) return [s];
-        if (s.contains('/')) return ['$base/storage/$s'.replaceFirst(RegExp(r'//+'), '//')];
+    final paths = _extractMediaPaths(value)
+        .where((p) => _looksLikeImagePath(p))
+        .toList();
+    if (paths.isEmpty) return null;
+
+    final urls = <String>[];
+    final seen = <String>{};
+    for (final path in paths) {
+      final url = path.startsWith('data:image/')
+          ? path
+          : _toAbsoluteFileUrl(path);
+      if (seen.add(url)) {
+        urls.add(url);
       }
     }
-    return null;
+    return urls.isEmpty ? null : urls;
   }
 
   Widget _filePlaceholder(BuildContext context, String? label) {

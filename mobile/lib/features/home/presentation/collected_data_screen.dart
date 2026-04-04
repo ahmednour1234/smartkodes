@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../data/local/pending_record_updates_store.dart';
 import '../../../data/local/pending_submissions_store.dart';
-import '../../forms/data/forms_repository.dart';
 import '../../forms/presentation/forms_providers.dart';
 import '../../work_orders/presentation/work_order_providers.dart';
 import '../../work_orders/presentation/work_order_form_screen.dart';
@@ -19,6 +18,35 @@ class CollectedDataScreen extends ConsumerStatefulWidget {
 class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
   bool _syncing = false;
   int _refreshKey = 0;
+  bool _autoSyncEnabled = true;
+  bool _autoSyncLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoSyncSetting();
+  }
+
+  Future<void> _loadAutoSyncSetting() async {
+    final enabled = await ref.read(syncServiceProvider).isAutoSyncEnabled;
+    if (!mounted) return;
+    setState(() {
+      _autoSyncEnabled = enabled;
+      _autoSyncLoading = false;
+    });
+  }
+
+  Future<void> _setAutoSyncEnabled(bool enabled) async {
+    setState(() {
+      _autoSyncEnabled = enabled;
+      _autoSyncLoading = true;
+    });
+    await ref.read(syncServiceProvider).setAutoSyncEnabled(enabled);
+    if (!mounted) return;
+    setState(() {
+      _autoSyncLoading = false;
+    });
+  }
 
   Future<void> _sync() async {
     final isOnline = await ref.read(syncServiceProvider).isOnline;
@@ -29,7 +57,7 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
       return;
     }
     setState(() => _syncing = true);
-    final n = await ref.read(syncServiceProvider).syncPending();
+    final n = await ref.read(syncServiceProvider).syncPending(force: true);
     setState(() {
       _syncing = false;
       _refreshKey++;
@@ -90,6 +118,30 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: SwitchListTile.adaptive(
+                    title: const Text('Auto Sync'),
+                    subtitle: Text(
+                      _autoSyncEnabled
+                          ? 'Automatically sync pending data when app resumes or connection is restored.'
+                          : 'Auto Sync is off. Use "Sync now" to sync manually.',
+                    ),
+                    value: _autoSyncEnabled,
+                    onChanged: _autoSyncLoading ? null : _setAutoSyncEnabled,
+                    secondary: _autoSyncLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _autoSyncEnabled
+                                ? Icons.sync
+                                : Icons.sync_disabled,
+                          ),
+                  ),
+                ),
                 if (isEmpty)
                   Center(
                     child: Padding(
