@@ -352,8 +352,8 @@ class _WorkOrdersListState extends ConsumerState<WorkOrdersListScreen> {
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    children: const [
-                      SizedBox(height: 48),
+                    children: [
+                      const SizedBox(height: 48),
                       Center(
                         child: Text(
                           _submittedOnlyFilter

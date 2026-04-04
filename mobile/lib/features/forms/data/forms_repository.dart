@@ -54,6 +54,7 @@ class FormsRepository {
     try {
       final response = await _client.dio.get<Uint8List>(
         'records/$recordId/pdf',
+        queryParameters: const {'mode': 'web'},
         options: Options(responseType: ResponseType.bytes),
       );
       return response.data;
