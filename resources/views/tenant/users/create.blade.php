@@ -88,22 +88,19 @@
 
                     <!-- Role -->
                     <div class="mb-6">
-                        <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                        <select name="role" id="role"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('role') border-red-500 @enderror">
+                        <label for="role_id" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                        <select name="role_ids[]" id="role_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('role_ids') border-red-500 @enderror">
                             <option value="">Select a role</option>
-                            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
-                            <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Manager</option>
-                            <option value="field_worker" {{ old('role') == 'field_worker' ? 'selected' : '' }}>Field Worker</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->id }}" {{ old('role_ids.0') == $role->id ? 'selected' : '' }}>
+                                    {{ $role->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('role')
+                        @error('role_ids')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-1 text-sm text-gray-500">
-                            <strong>Administrator:</strong> Full access to all features<br>
-                            <strong>Manager:</strong> Can manage projects, forms, and work orders<br>
-                            <strong>Field Worker:</strong> can only use his account to login to the mobile application
-                        </p>
                     </div>
 
                     <!-- Password -->

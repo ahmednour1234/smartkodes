@@ -51,6 +51,7 @@ class ProjectController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', \App\Models\Project::class);
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -74,6 +75,7 @@ class ProjectController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', \App\Models\Project::class);
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -242,6 +244,7 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $this->authorizeTenant($project);
+        $this->authorize('update', $project);
 
         $oldValues = $project->toArray();
 
@@ -331,6 +334,7 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         $this->authorizeTenant($project);
+        $this->authorize('delete', $project);
         if ($project->workOrders()->exists()) {
             $routePrefix = $this->getRoutePrefix();
             return redirect()->route("{$routePrefix}.projects.index")->with('error', 'Project cannot be deleted because it has related work orders. Remove or reassign work orders first.');

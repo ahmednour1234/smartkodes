@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -38,6 +39,7 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -45,6 +47,7 @@ class ReportController extends Controller
 
         $exportFormat = $request->input('export');
         if (in_array($exportFormat, ['pdf', 'excel'], true)) {
+            Gate::authorize('export-reports');
             return $this->exportSummaryReport($currentTenant, $exportFormat);
         }
 
@@ -155,6 +158,7 @@ class ReportController extends Controller
      */
     public function submissionsByStatus()
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -192,6 +196,7 @@ class ReportController extends Controller
      */
     public function submissionsOverTime(Request $request)
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -229,6 +234,7 @@ class ReportController extends Controller
      */
     public function formAnalytics()
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -253,6 +259,7 @@ class ReportController extends Controller
      */
     public function generate(Request $request)
     {
+        Gate::authorize('export-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -536,6 +543,7 @@ class ReportController extends Controller
      */
     public function workOrderStatus(Request $request)
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -571,6 +579,7 @@ class ReportController extends Controller
      */
     public function formUsage(Request $request)
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -591,6 +600,7 @@ class ReportController extends Controller
      */
     public function userActivity(Request $request)
     {
+        Gate::authorize('view-reports');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');

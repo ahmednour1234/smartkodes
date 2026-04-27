@@ -7,6 +7,7 @@ use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 
@@ -62,6 +63,9 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         $routeName = request()->route()->getName();
+        if (!str_starts_with($routeName, 'admin.')) {
+            Gate::authorize('manage-settings');
+        }
 
         if (str_starts_with($routeName, 'admin.')) {
             $request->validate([
@@ -144,6 +148,7 @@ class SettingController extends Controller
 
     public function updateProfile(Request $request)
     {
+        Gate::authorize('manage-settings');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');

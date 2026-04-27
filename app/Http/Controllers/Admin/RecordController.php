@@ -306,8 +306,7 @@ class RecordController extends Controller
         $record = Record::where('tenant_id', $currentTenant->id)
                        ->with('form.formFields')
                        ->findOrFail($id);
-
-        $fieldNames = $record->form?->formFields?->pluck('name')->toArray() ?? [];
+        $this->authorize('update', $record);
         $isStatusOnlyUpdate = empty($fieldNames) || !$request->hasAny($fieldNames);
 
         if ($isStatusOnlyUpdate) {
@@ -551,6 +550,7 @@ class RecordController extends Controller
         }
 
         $record = Record::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('delete', $record);
         $record->delete();
 
         $routePrefix = $this->getRoutePrefix();
@@ -817,6 +817,9 @@ class RecordController extends Controller
             abort(403, 'No tenant context available.');
         }
 
+        $record = Record::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('requestApproval', $record);
+
         $approval = \App\Models\RecordApproval::where('tenant_id', $currentTenant->id)
                                               ->where('id', $approvalId)
                                               ->where('record_id', $id)
@@ -874,6 +877,9 @@ class RecordController extends Controller
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
         }
+
+        $record = Record::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('requestApproval', $record);
 
         $request->validate([
             'comments' => 'required|string',

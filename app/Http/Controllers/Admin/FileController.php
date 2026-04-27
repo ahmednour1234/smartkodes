@@ -194,6 +194,7 @@ class FileController extends Controller
         }
 
         $file = File::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('delete', $file);
 
         // Delete file from storage
         if (Storage::disk('public')->exists($file->path)) {

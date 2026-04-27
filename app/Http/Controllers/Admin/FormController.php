@@ -128,12 +128,11 @@ class FormController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', \App\Models\Form::class);
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
         }
-
-        $categories = Category::orderBy('name')->get();
 
         $viewPrefix = $this->getViewPrefix();
         return view("{$viewPrefix}.forms.create", compact('categories'));
@@ -144,6 +143,7 @@ class FormController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', \App\Models\Form::class);
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -202,6 +202,7 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('update', $form);
         $categories = Category::orderBy('name')->get();
 
         $viewPrefix = $this->getViewPrefix();
@@ -219,8 +220,7 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
-
-        $hasSubmissions = $this->formHasSubmissions($form);
+        $this->authorize('update', $form);
 
         $request->validate([
             'name'        => $hasSubmissions
@@ -270,8 +270,7 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
-
-        // هنا لو عايز تمنع الحذف لو فيه Records أو WorkOrders تقدر تضيف checks
+        $this->authorize('delete', $form);
 
         $form->delete(); // Soft delete لو الموديل فيه SoftDeletes
 
@@ -291,6 +290,7 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('update', $form);
 
         $viewPrefix = $this->getViewPrefix();
         return view("{$viewPrefix}.forms.builder", compact('form'));
@@ -307,6 +307,7 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('update', $form);
         $hasSubmissions = $this->formHasSubmissions($form);
         $targetForm = $hasSubmissions ? $this->makeVersionedClone($form, $currentTenant->id) : $form;
 
@@ -353,8 +354,7 @@ class FormController extends Controller
         }
 
         $form = Form::where('tenant_id', $currentTenant->id)->findOrFail($id);
-
-        // Create a new version
+        $this->authorize('publish', $form);
         FormVersion::create([
             'tenant_id'   => $currentTenant->id,
             'form_id'     => $form->id,
@@ -418,6 +418,7 @@ class FormController extends Controller
         $originalForm = Form::where('tenant_id', $currentTenant->id)
             ->with('formFields')
             ->findOrFail($id);
+        $this->authorize('clone', $originalForm);
 
         $clonedForm = Form::create([
             'tenant_id'   => $currentTenant->id,

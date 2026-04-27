@@ -127,18 +127,46 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Check if user has a specific role.
+     * Check if user has a specific role by slug (stable — unaffected by display name changes).
+     */
+    public function hasRoleSlug(string $slug): bool
+    {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('slug', $slug);
+        }
+        return $this->roles()->where('slug', $slug)->exists();
+    }
+
+    /**
+     * Check if user has any of the given role slugs.
+     */
+    public function hasAnyRoleSlug(array $slugs): bool
+    {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->whereIn('slug', $slugs)->isNotEmpty();
+        }
+        return $this->roles()->whereIn('slug', $slugs)->exists();
+    }
+
+    /**
+     * Check if user has a specific role by name.
      */
     public function hasRole(string $role): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('name', $role);
+        }
         return $this->roles()->where('name', $role)->exists();
     }
 
     /**
-     * Check if user has any of the given roles.
+     * Check if user has any of the given roles by name.
      */
     public function hasAnyRole(array $roles): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->whereIn('name', $roles)->isNotEmpty();
+        }
         return $this->roles()->whereIn('name', $roles)->exists();
     }
 
@@ -147,17 +175,43 @@ class User extends Authenticatable implements JWTSubject
      */
     public function hasAllRoles(array $roles): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->whereIn('name', $roles)->count() === count($roles);
+        }
         return $this->roles()->whereIn('name', $roles)->count() === count($roles);
     }
 
     /**
-     * Check if user has a specific permission.
+     * Shorthand: is this user the tenant admin?
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRoleSlug('tenant_admin');
+    }
+
+    /**
+     * Shorthand: is this user a manager or higher?
+     */
+    public function isManagerOrAbove(): bool
+    {
+        return $this->hasAnyRoleSlug(['tenant_admin', 'manager']);
+    }
+
+    /**
+     * Check if user has a specific permission (via direct assignment or role).
      */
     public function hasPermission(string $permission): bool
     {
-        return $this->permissions()->where('name', $permission)->exists() ||
+        if ($this->relationLoaded('roles')) {
+            foreach ($this->roles as $role) {
+                if ($role->relationLoaded('permissions') && $role->permissions->contains('slug', $permission)) {
+                    return true;
+                }
+            }
+        }
+        return $this->permissions()->where('slug', $permission)->exists() ||
                $this->roles()->whereHas('permissions', function ($query) use ($permission) {
-                   $query->where('name', $permission);
+                   $query->where('slug', $permission);
                })->exists();
     }
 

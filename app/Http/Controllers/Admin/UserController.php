@@ -44,6 +44,9 @@ class UserController extends Controller
      */
     public function index()
     {
+        if (!$this->isAdminContext()) {
+            $this->authorize('viewAny', User::class);
+        }
         if ($this->isAdminContext()) {
             // Super Admin: manage admin users (no tenant)
             $users = User::whereNull('tenant_id')->with('roles')->paginate(15);
@@ -64,6 +67,9 @@ class UserController extends Controller
      */
     public function create()
     {
+        if (!$this->isAdminContext()) {
+            $this->authorize('create', \App\Models\User::class);
+        }
         if ($this->isAdminContext()) {
             $roles = Role::whereNull('tenant_id')->get();
         } else {
@@ -82,6 +88,9 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$this->isAdminContext()) {
+            $this->authorize('create', \App\Models\User::class);
+        }
         $emailRule = Rule::unique('users', 'email')->whereNull('deleted_at');
         if (!$this->isAdminContext()) {
             $currentTenant = session('tenant_context.current_tenant');
@@ -147,7 +156,8 @@ class UserController extends Controller
         }
 
         if ($request->role_ids) {
-            $user->roles()->attach($request->role_ids);
+            $pivotData = array_fill_keys($request->role_ids, ['tenant_id' => $user->tenant_id]);
+            $user->roles()->attach($pivotData);
         }
 
         $routePrefix = $this->getRoutePrefix();
@@ -172,6 +182,7 @@ class UserController extends Controller
     public function edit(User $user)
     {
         $this->authorizeTenant($user);
+        $user->load('roles');
 
         if ($this->isAdminContext()) {
             $roles = Role::whereNull('tenant_id')->get();
@@ -190,6 +201,9 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $this->authorizeTenant($user);
+        if (!$this->isAdminContext()) {
+            $this->authorize('update', $user);
+        }
 
         $emailRule = Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at');
         if (!$this->isAdminContext()) {
@@ -251,7 +265,8 @@ class UserController extends Controller
         }
 
         if ($request->role_ids !== null) {
-            $user->roles()->sync($request->role_ids);
+            $pivotData = array_fill_keys($request->role_ids, ['tenant_id' => $user->tenant_id]);
+            $user->roles()->sync($pivotData);
         }
 
         $routePrefix = $this->getRoutePrefix();
@@ -265,8 +280,9 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $this->authorizeTenant($user);
-
-        // Prevent deleting self
+        if (!$this->isAdminContext()) {
+            $this->authorize('delete', $user);
+        }
         if ($user->id === Auth::id()) {
             return redirect()->back()->with('error', 'You cannot delete your own account.');
         }

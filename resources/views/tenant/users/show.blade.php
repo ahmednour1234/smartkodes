@@ -51,12 +51,13 @@
                                 </div>
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-sm font-medium text-gray-700">Role:</span>
+@php $primaryRole = $user->roles->first(); @endphp
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                        @if($user->role == 'admin') bg-purple-100 text-purple-800
-                                        @elseif($user->role == 'manager') bg-blue-100 text-blue-800
-                                        @elseif($user->role == 'field_worker') bg-green-100 text-green-800
+                                        @if($primaryRole?->slug == 'tenant_admin') bg-purple-100 text-purple-800
+                                        @elseif($primaryRole?->slug == 'manager') bg-blue-100 text-blue-800
+                                        @elseif($primaryRole?->slug == 'field_worker') bg-green-100 text-green-800
                                         @else bg-gray-100 text-gray-800 @endif">
-                                        {{ ucfirst(str_replace('_', ' ', $user->role ?? 'user')) }}
+                                        {{ $primaryRole?->name ?? 'No Role' }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between items-center">
@@ -103,7 +104,7 @@
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Role</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ ucfirst(str_replace('_', ' ', $user->role ?? 'user')) }}</dd>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ $user->roles->first()?->name ?? 'No Role' }}</dd>
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Account Status</dt>

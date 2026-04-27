@@ -74,14 +74,14 @@ class WorkOrderController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', \App\Models\WorkOrder::class);
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
         }
-
-        $projects = Project::where('tenant_id', $currentTenant->id)->get();
         $forms = Form::where('tenant_id', $currentTenant->id)->where('status', 1)->get();
         $users = User::where('tenant_id', $currentTenant->id)->get();
+        $projects = \App\Models\Project::where('tenant_id', $currentTenant->id)->where('status', '!=', 0)->get();
 
         $viewPrefix = $this->getViewPrefix();
         return view("{$viewPrefix}.work-orders.create", compact('projects', 'forms', 'users'));
@@ -92,12 +92,12 @@ class WorkOrderController extends Controller
      */
   public function store(Request $request)
 {
+    $this->authorize('create', \App\Models\WorkOrder::class);
     $currentTenant = session('tenant_context.current_tenant');
     if (!$currentTenant) {
         abort(403, 'No tenant context available.');
     }
-
-    $request->validate([
+        $request->validate([
         'title'        => ['required', 'string', 'max:255'],
 
         'project_id'   => ['required', 'exists:projects,id'],
@@ -223,6 +223,7 @@ public function update(Request $request, string $id)
 
     /** @var \App\Models\WorkOrder $workOrder */
     $workOrder = WorkOrder::where('tenant_id', $currentTenant->id)->findOrFail($id);
+    $this->authorize('update', $workOrder);
 
     $request->validate([
         'title'        => ['required', 'string', 'max:255'],
@@ -341,6 +342,7 @@ public function update(Request $request, string $id)
         }
 
         $workOrder = WorkOrder::where('tenant_id', $currentTenant->id)->findOrFail($id);
+        $this->authorize('delete', $workOrder);
         $workOrder->delete();
 
         $routePrefix = $this->getRoutePrefix();

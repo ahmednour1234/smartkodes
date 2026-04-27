@@ -109,6 +109,7 @@
             </a>
         </li>
 
+        @can('viewAny', App\Models\User::class)
         {{-- People --}}
         <li class="pt-3">
             <p class="sidebar-section-label px-3 mb-1">People</p>
@@ -120,6 +121,7 @@
                 <span>Users</span>
             </a>
         </li>
+        @endcan
 
         {{-- Insights --}}
         <li class="pt-3">
@@ -144,6 +146,7 @@
                 <span>Files</span>
             </a>
         </li>
+        @can('manage-billing')
         <li>
             <a href="{{ route('tenant.billing.index') }}"
                class="mobile-nav-link nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 {{ request()->routeIs('tenant.billing.*') ? 'nav-active' : 'nav-default' }}">
@@ -151,6 +154,7 @@
                 <span>Billing</span>
             </a>
         </li>
+        @endcan
         <li>
             <a href="{{ route('tenant.notifications.index') }}"
                class="mobile-nav-link nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 {{ request()->routeIs('tenant.notifications.*') ? 'nav-active' : 'nav-default' }}">
@@ -232,6 +236,7 @@
             </a>
         </li>
 
+        @can('viewAny', App\Models\User::class)
         {{-- People --}}
         <li class="pt-4">
             <p class="sidebar-section-label px-3 mb-1">People</p>
@@ -243,6 +248,7 @@
                 <span>Users</span>
             </a>
         </li>
+        @endcan
 
         {{-- Insights --}}
         <li class="pt-4">
@@ -267,6 +273,7 @@
                 <span>Files</span>
             </a>
         </li>
+        @can('manage-billing')
         <li>
             <a href="{{ route('tenant.billing.index') }}"
                class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 {{ request()->routeIs('tenant.billing.*') ? 'nav-active' : 'nav-default' }}">
@@ -274,6 +281,7 @@
                 <span>Billing</span>
             </a>
         </li>
+        @endcan
         <li>
             <a href="{{ route('tenant.notifications.index') }}"
                class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 {{ request()->routeIs('tenant.notifications.*') ? 'nav-active' : 'nav-default' }}">

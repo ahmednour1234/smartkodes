@@ -71,7 +71,9 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Team Members</p>
                         <p class="text-2xl font-bold text-gray-900">{{ $stats['total_users'] ?? 0 }}</p>
+                        @can('viewAny', App\Models\User::class)
                         <a href="{{ route('tenant.users.index') }}" class="text-xs text-purple-600 hover:text-purple-800 font-medium">Manage Users</a>
+                        @endcan
                     </div>
                 </div>
             </div>

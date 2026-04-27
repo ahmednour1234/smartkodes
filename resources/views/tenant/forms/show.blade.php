@@ -48,6 +48,7 @@
                 <div class="p-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
+                            @can('update', $form)
                             <a href="{{ route('tenant.forms.edit', $form->id) }}"
                                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +70,9 @@
                                 </svg>
                                 Clone Form
                             </a>
+                            @endcan
                         </div>
+                        @can('publish', $form)
                         @if($form->status == 0)
                         <form method="POST" action="{{ route('tenant.forms.publish', $form->id) }}" class="inline">
                             @csrf
@@ -82,6 +85,7 @@
                             </button>
                         </form>
                         @endif
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -104,6 +108,7 @@
                                     </svg>
                                     <h3 class="mt-2 text-sm font-medium text-gray-900">No fields yet</h3>
                                     <p class="mt-1 text-sm text-gray-500">Get started by adding fields to your form.</p>
+                                    @can('update', $form)
                                     <div class="mt-6">
                                         <a href="{{ route('tenant.forms.builder', $form->id) }}"
                                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
@@ -113,6 +118,7 @@
                                             Add Fields
                                         </a>
                                     </div>
+                                    @endcan
                                 </div>
                             @else
                                 <div class="space-y-3">
@@ -162,12 +168,14 @@
                                     @endforeach
                                 </div>
 
+                                @can('update', $form)
                                 <div class="mt-4 text-center">
                                     <a href="{{ route('tenant.forms.builder', $form->id) }}"
                                        class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                                         Edit fields in Form Builder →
                                     </a>
                                 </div>
+                                @endcan
                             @endif
                         </div>
                     </div>
@@ -206,7 +214,7 @@
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Assigned to Work Orders</h3>
-                            
+
                             @if($form->workOrders->isEmpty())
                                 <div class="text-center py-8">
                                     <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +256,7 @@
                                 </div>
                                 @if($form->workOrders->count() > 10)
                                     <div class="mt-3 text-center">
-                                        <a href="{{ route('tenant.work-orders.index', ['form' => $form->id]) }}" 
+                                        <a href="{{ route('tenant.work-orders.index', ['form' => $form->id]) }}"
                                            class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                                             View all {{ $form->workOrders->count() }} work orders →
                                         </a>

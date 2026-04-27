@@ -14,6 +14,27 @@ class Tenant extends Model
 {
     use SoftDeletes, HasUlids;
 
+    protected static function booted(): void
+    {
+        static::created(function (Tenant $tenant) {
+            $defaultRoles = [
+                ['name' => 'Admin',        'slug' => 'tenant_admin', 'description' => 'Full access within their tenant organization.'],
+                ['name' => 'Manager',      'slug' => 'manager',      'description' => 'Can manage assigned projects and work orders.'],
+                ['name' => 'Field Worker', 'slug' => 'field_worker', 'description' => 'Can submit records and access assigned work.'],
+            ];
+
+            foreach ($defaultRoles as $role) {
+                Role::create([
+                    'tenant_id'   => $tenant->id,
+                    'name'        => $role['name'],
+                    'slug'        => $role['slug'],
+                    'description' => $role['description'],
+                    'status'      => 1,
+                ]);
+            }
+        });
+    }
+
     protected $fillable = [
         'name',
         'slug',

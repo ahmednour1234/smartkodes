@@ -7,6 +7,7 @@ use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class NotificationController extends Controller
 {
@@ -99,6 +100,9 @@ class NotificationController extends Controller
     public function create()
     {
         $routeName = request()->route()->getName();
+        if (!str_starts_with($routeName, 'admin.')) {
+            Gate::authorize('configure-notifications');
+        }
         if (str_starts_with($routeName, 'admin.')) {
             // Admin global broadcast form does not need users listing
             $users = collect();
@@ -119,6 +123,9 @@ class NotificationController extends Controller
     public function store(Request $request)
     {
         $routeName = request()->route()->getName();
+        if (!str_starts_with($routeName, 'admin.')) {
+            Gate::authorize('configure-notifications');
+        }
         $request->validate([
             'user_id' => 'nullable|exists:users,id',
             'tenant_id' => 'nullable|exists:tenants,id',

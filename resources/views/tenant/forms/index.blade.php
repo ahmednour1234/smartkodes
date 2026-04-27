@@ -12,6 +12,7 @@
                             <p class="text-blue-100 mt-1">Manage your organization's digital forms</p>
                         </div>
                         <div class="flex flex-wrap gap-2 sm:gap-3 items-center">
+                            @can('create', App\Models\Form::class)
                             <!-- Export Dropdown -->
                             <div class="relative inline-block text-left">
                                 <button type="button" onclick="toggleFormExportMenu()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-medium py-2 px-4 rounded-lg transition duration-200 inline-flex items-center">
@@ -54,6 +55,7 @@
                                 </svg>
                                 Create Form
                             </a>
+                            @endcan
                         </div>
                     </div>
                 </div>
@@ -150,10 +152,12 @@
                             </div>
 
                             <div class="flex items-center gap-2">
+                                @can('update', $form)
                                 <a href="{{ route('tenant.forms.builder', $form) }}"
                                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold text-center transition duration-200 shadow-sm">
                                     Builder
                                 </a>
+                                @endcan
                                 <div class="relative inline-block text-left">
                                     <button type="button" onclick="toggleFormActionsMenu('form-actions-{{ $form->id }}')"
                                             class="inline-flex items-center justify-center w-10 h-[42px] border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 transition duration-200">
@@ -164,9 +168,12 @@
                                     <div id="form-actions-{{ $form->id }}" class="hidden origin-top-right absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                                         <div class="py-1" role="menu">
                                             <a href="{{ route('tenant.forms.show', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">View</a>
-                                            <a href="{{ route('tenant.forms.edit', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Edit</a>
                                             <a href="{{ route('tenant.records.index', ['form_id' => $form->id]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Submissions</a>
+                                            @can('update', $form)
+                                            <a href="{{ route('tenant.forms.edit', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Edit</a>
                                             <a href="{{ route('tenant.forms.clone', $form) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Copy</a>
+                                            @endcan
+                                            @can('delete', $form)
                                             <div class="border-t border-gray-100" role="separator"></div>
                                             <form action="{{ route('tenant.forms.destroy', $form) }}" method="POST" class="block" role="menuitem"
                                                   onsubmit="return confirm('Are you sure you want to delete this form? This action cannot be undone.');">
@@ -174,6 +181,7 @@
                                                 @method('DELETE')
                                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50">Delete</button>
                                             </form>
+                                            @endcan
                                         </div>
                                     </div>
                                 </div>

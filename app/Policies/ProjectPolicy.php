@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\Project;
+use App\Models\User;
+
+class ProjectPolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return $user->tenant_id !== null;
+    }
+
+    public function view(User $user, Project $project): bool
+    {
+        return $user->tenant_id === $project->tenant_id;
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->tenant_id !== null && $user->isManagerOrAbove();
+    }
+
+    public function update(User $user, Project $project): bool
+    {
+        return $user->tenant_id === $project->tenant_id && $user->isManagerOrAbove();
+    }
+
+    public function delete(User $user, Project $project): bool
+    {
+        return $user->tenant_id === $project->tenant_id && $user->isAdmin();
+    }
+}

@@ -40,6 +40,7 @@
                         <form method="POST" action="{{ route('tenant.settings.update-profile') }}" enctype="multipart/form-data" class="space-y-4">
                             @csrf
                             @method('PUT')
+                            <fieldset @cannot('manage-settings') disabled @endcannot class="border-0 p-0 m-0">
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -110,15 +111,19 @@
                                 @enderror
                             </div>
 
+                            @can('manage-settings')
                             <div class="flex justify-end">
                                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
                                     Update Profile
                                 </button>
                             </div>
+                            @endcan
+                            </fieldset>
                         </form>
                     </div>
                 </div>
 
+                @can('manage-settings')
                 <!-- Notification Preferences -->
                 <div id="notifications" class="bg-white overflow-hidden shadow-sm sm:rounded-lg scroll-mt-4">
                     <div class="p-6">
@@ -188,7 +193,9 @@
                         </form>
                     </div>
                 </div>
+                @endcan
 
+                @can('manage-settings')
                 <!-- Security Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -239,7 +246,9 @@
                         </div>
                     </div>
                 </div>
+                @endcan
 
+                @can('manage-settings')
                 <!-- Danger Zone -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -260,6 +269,7 @@
                         </div>
                     </div>
                 </div>
+                @endcan
             </div>
         </div>
     </div>

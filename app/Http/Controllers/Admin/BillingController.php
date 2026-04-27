@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class BillingController extends Controller
 {
@@ -36,6 +37,7 @@ class BillingController extends Controller
      */
     public function index()
     {
+        Gate::authorize('manage-billing');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -98,6 +100,7 @@ class BillingController extends Controller
      */
     public function subscription()
     {
+        Gate::authorize('manage-billing');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -123,6 +126,7 @@ class BillingController extends Controller
      */
     public function payments()
     {
+        Gate::authorize('manage-billing');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -142,6 +146,7 @@ class BillingController extends Controller
      */
     public function plans()
     {
+        Gate::authorize('manage-billing');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
@@ -162,6 +167,7 @@ class BillingController extends Controller
      */
     public function changePlan(Request $request)
     {
+        Gate::authorize('manage-billing');
         $currentTenant = session('tenant_context.current_tenant');
         if (!$currentTenant) {
             abort(403, 'No tenant context available.');
