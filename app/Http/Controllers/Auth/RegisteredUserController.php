@@ -86,6 +86,12 @@ class RegisteredUserController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
+            // Assign tenant_admin role to the registering user
+            $adminRole = $tenant->roles()->where('slug', 'tenant_admin')->first();
+            if ($adminRole) {
+                $user->roles()->attach($adminRole->id, ['tenant_id' => $tenant->id]);
+            }
+
             // Store registration data in session for payment
             session([
                 'pending_registration' => [
