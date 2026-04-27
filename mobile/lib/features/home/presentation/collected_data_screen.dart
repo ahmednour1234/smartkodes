@@ -70,8 +70,11 @@ class _CollectedDataScreenState extends ConsumerState<CollectedDataScreen> {
   }
 
   Future<void> _refresh() async {
-    await _sync();
-    setState(() => _refreshKey++);
+    if (_autoSyncEnabled) {
+      await _sync();
+    } else {
+      setState(() => _refreshKey++);
+    }
   }
 
   Future<void> _openFormWithPending(BuildContext context, int index, PendingSubmission p) async {

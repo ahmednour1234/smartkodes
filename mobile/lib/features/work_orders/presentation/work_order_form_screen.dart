@@ -134,6 +134,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       }
       if (flatFiles!.isEmpty) flatFiles = null;
     }
+    // Save drawn signature bytes so they survive a draft reload
+    if (_signatureData.isNotEmpty) {
+      flatFiles ??= {};
+      for (final e in _signatureData.entries) {
+        flatFiles!['__sig__${e.key}'] = e.value;
+      }
+    }
     await store.saveDraft(_draftKey, values, flatFiles);
     if (mounted) setState(() => _hasDraft = true);
   }
@@ -246,6 +253,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
               for (final e in grouped.entries) {
                 e.value.sort((a, b) => a.$1.compareTo(b.$1));
                 _fileData[e.key] = e.value.map((x) => x.$2).toList();
+              }
+              // Restore signature data saved with __sig__ prefix
+              for (final k in _fileData.keys.toList()) {
+                if (k.startsWith('__sig__')) {
+                  final fieldName = k.substring('__sig__'.length);
+                  _signatureData[fieldName] = _fileData.remove(k)! as ({Uint8List bytes, String filename});
+                }
               }
             }
             for (final f in form.fields ?? []) {
@@ -426,6 +440,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
         final hasFile = (f.type == 'photo' || f.type == 'image') ? _getFileList(f.name).isNotEmpty : _fileData[f.name] != null;
         if (!hasFile) errs[f.name] = '${f.label ?? f.name} is required';
       }
+      // Signature field: bytes are in _signatureData, not _values — skip text validation
+      if (_isSignatureField(f)) {
+        if (f.required && !_signatureData.containsKey(f.name)) {
+          errs[f.name] = '${f.label ?? f.name} is required';
+        }
+        continue;
+      }
       final v = _values[f.name];
       final msg = _validateField(f, v);
       if (msg != null) errs[f.name] = msg;
@@ -480,6 +501,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
           }
         }
         if (filesForPending!.isEmpty) filesForPending = null;
+      }
+      // Include drawn signature bytes in the offline payload
+      if (_signatureData.isNotEmpty) {
+        filesForPending ??= {};
+        for (final e in _signatureData.entries) {
+          filesForPending![e.key] = e.value;
+        }
       }
       if (filesForPending != null) {
         await store.addWithFiles(s, filesForPending);

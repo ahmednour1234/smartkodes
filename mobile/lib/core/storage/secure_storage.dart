@@ -8,7 +8,6 @@ class SecureStorage {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
   static const _passcodeKey = 'passcode';
-  static const _autoSyncKey = 'auto_sync_enabled';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -50,14 +49,30 @@ class SecureStorage {
   Future<String?> getPasscode() => _readSafe(_passcodeKey);
   Future<void> setPasscode(String code) => _storage.write(key: _passcodeKey, value: code);
 
-  Future<bool> getAutoSyncEnabled() async {
-    final raw = await _readSafe(_autoSyncKey);
-    if (raw == null) return true;
-    return raw == '1' || raw.toLowerCase() == 'true';
+  // Auto-sync is a non-sensitive preference — store as a plain file so it
+  // survives EncryptedSharedPreferences corruption recovery (which wipes all
+  // encrypted keys and would reset the setting to the default).
+  Future<File> _autoSyncFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/.auto_sync_enabled');
   }
 
-  Future<void> setAutoSyncEnabled(bool enabled) {
-    return _storage.write(key: _autoSyncKey, value: enabled ? '1' : '0');
+  Future<bool> getAutoSyncEnabled() async {
+    try {
+      final file = await _autoSyncFile();
+      if (!await file.exists()) return true; // default: on
+      final s = (await file.readAsString()).trim();
+      return s == '1';
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) async {
+    try {
+      final file = await _autoSyncFile();
+      await file.writeAsString(enabled ? '1' : '0');
+    } catch (_) {}
   }
 
   Future<File> _passcodeConfiguredFile() async {
