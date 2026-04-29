@@ -346,12 +346,12 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
       if (x == null) return;
       final bytes = await x.readAsBytes();
       final list = _getFileList(field.name);
-      if (list.length >= 5) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maximum 5 photos allowed per field.')));
-        return;
-      }
-      if (bytes.length > _maxFileBytes) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Each photo must be 5MB or less.')));
+      final totalBytes = list.fold<int>(0, (s, f) => s + f.bytes.length) + bytes.length;
+      if (totalBytes > _maxFileBytes) {
+        if (mounted) {
+          final totalMB = (totalBytes / (1024 * 1024)).toStringAsFixed(2);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Total would be ${totalMB}MB. Max 5MB for all photos in this field.')));
+        }
         return;
       }
       final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
@@ -619,20 +619,10 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
                   : const Text('Submit'),
             ),
             if (_hasDraft)
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'clear_draft') await _clearDraft();
-                },
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(
-                    value: 'clear_draft',
-                    child: ListTile(
-                      leading: Icon(Icons.delete_outline, color: Colors.orange),
-                      title: Text('Clear draft'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
+              IconButton(
+                onPressed: () async { await _clearDraft(); },
+                icon: const Icon(Icons.delete_outline, color: Colors.orange),
+                tooltip: 'Clear draft',
               ),
           ],
         ),
@@ -856,14 +846,14 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
                 ),
               if (isMultiPhoto && (fileList?.isNotEmpty ?? false)) const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: (isMultiPhoto && (fileList?.length ?? 0) >= 5) ? null : () => _pickFile(f),
+                onPressed: () => _pickFile(f),
                 child: Text(buttonLabel),
               ),
               if (!isMultiPhoto && _fileData[f.name] != null)
                 Text((_fileData[f.name] as ({Uint8List bytes, String filename})).filename,
                     style: Theme.of(context).textTheme.bodySmall),
               if (isMultiPhoto && (fileList?.isNotEmpty ?? false))
-                Text('${fileList!.length}/5 photo(s). Max 5MB each.', style: Theme.of(context).textTheme.bodySmall),
+                Text('${fileList!.length} photo(s). Total max 5MB.', style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
           f,

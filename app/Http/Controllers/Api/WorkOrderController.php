@@ -227,10 +227,12 @@ class WorkOrderController extends BaseApiController
                     if (!is_array($files)) {
                         $files = [$files];
                     }
+                    $totalBytes = 0;
                     foreach ($files as $file) {
-                        if ($file->getSize() > $maxFileBytes) {
-                            return $this->errorResponse('Each file for "' . ($formField->label ?? $fieldName) . '" must not exceed 5MB.', 422);
-                        }
+                        $totalBytes += $file->getSize();
+                    }
+                    if ($totalBytes > $maxFileBytes) {
+                        return $this->errorResponse('Total size of files for "' . ($formField->label ?? $fieldName) . '" must not exceed 5MB.', 422);
                     }
                     $paths = [];
                     foreach ($files as $file) {

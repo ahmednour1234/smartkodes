@@ -760,12 +760,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
       if (x == null) return;
       final bytes = await x.readAsBytes();
       final list = _getFileList(field.name);
-      if (list.length >= 5) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maximum 5 photos allowed per field.')));
-        return;
-      }
-      if (bytes.length > _maxFileBytes) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Each photo must be 5MB or less.')));
+      final totalBytes = list.fold<int>(0, (s, f) => s + f.bytes.length) + bytes.length;
+      if (totalBytes > _maxFileBytes) {
+        if (mounted) {
+          final totalMB = (totalBytes / (1024 * 1024)).toStringAsFixed(2);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Total would be ${totalMB}MB. Max 5MB for all photos in this field.')));
+        }
         return;
       }
       final filename = x.name.isNotEmpty ? x.name : 'image.jpg';
@@ -1401,12 +1401,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
                     if (isMultiPhoto && ((existingUrls?.length ?? 0) + (fileList?.length ?? 0) > 0))
                       Padding(
                         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: Text('${(existingUrls?.length ?? 0) + (fileList?.length ?? 0)}/5 photo(s). Max 5MB each.', style: Theme.of(context).textTheme.bodySmall),
+                        child: Text('${(existingUrls?.length ?? 0) + (fileList?.length ?? 0)} photo(s). Total max 5MB.', style: Theme.of(context).textTheme.bodySmall),
                       ),
                     Padding(
                       padding: const EdgeInsets.all(10),
                       child: OutlinedButton(
-                        onPressed: (isMultiPhoto && (fileList?.length ?? 0) >= 5) ? null : () => _pickFile(f),
+                        onPressed: () => _pickFile(f),
                         child: Text(pickButtonLabel),
                       ),
                     ),
@@ -1716,20 +1716,10 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
           title: Text(widget.readOnly ? widget.form.name : '${widget.form.name} – Update'),
           actions: [
             if (_hasDraft && !widget.readOnly)
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'clear_draft') await _clearDraft();
-                },
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(
-                    value: 'clear_draft',
-                    child: ListTile(
-                      leading: Icon(Icons.delete_outline, color: Colors.orange),
-                      title: Text('Clear draft'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
+              IconButton(
+                onPressed: () async { await _clearDraft(); },
+                icon: const Icon(Icons.delete_outline, color: Colors.orange),
+                tooltip: 'Clear draft',
               ),
           ],
         ),

@@ -113,10 +113,16 @@ class FormController extends BaseApiController
                         }
                         $existingPaths = is_array($prev) ? $prev : ($prev ? [$prev] : []);
                     }
+                    $existingSize = 0;
+                    foreach ($record->files()->where('form_field_id', $formField->id)->get() as $f) {
+                        $existingSize += $f->size ?? 0;
+                    }
+                    $newBytes = 0;
                     foreach ($files as $file) {
-                        if ($file->getSize() > $maxFileBytes) {
-                            return $this->errorResponse('Each file for "' . ($formField->label ?? $fieldName) . '" must not exceed 5MB.', 422);
-                        }
+                        $newBytes += $file->getSize();
+                    }
+                    if ($existingSize + $newBytes > $maxFileBytes) {
+                        return $this->errorResponse('Total size of files for "' . ($formField->label ?? $fieldName) . '" must not exceed 5MB.', 422);
                     }
                     $paths = [];
                     foreach ($files as $file) {
