@@ -9,7 +9,6 @@ use App\Models\WorkOrder;
 use App\Models\FormVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\RecordsExport;
 use App\Constants\RecordStatus;
@@ -550,23 +549,8 @@ class RecordController extends Controller
             abort(403, 'No tenant context available.');
         }
 
-        $record = Record::where('tenant_id', $currentTenant->id)
-            ->with('files')
-            ->findOrFail($id);
+        $record = Record::where('tenant_id', $currentTenant->id)->findOrFail($id);
         $this->authorize('delete', $record);
-
-        // Delete physical files from storage before deleting the record
-        foreach ($record->files as $file) {
-            if ($file->path) {
-                Storage::disk('public')->delete($file->path);
-            }
-        }
-        // Try to remove the now-empty record directory
-        if ($record->files->isNotEmpty()) {
-            $dir = 'tenants/' . $record->tenant_id . '/records/' . $record->id;
-            Storage::disk('public')->deleteDirectory($dir);
-        }
-
         $record->delete();
 
         $routePrefix = $this->getRoutePrefix();
@@ -691,26 +675,7 @@ class RecordController extends Controller
             'record_ids.*' => 'required|string',
         ]);
 
-        $records = Record::where('tenant_id', $currentTenant->id)
-            ->whereIn('id', $request->record_ids)
-            ->with('files')
-            ->get();
-
-        // Delete physical files from storage before deleting records
-        foreach ($records as $rec) {
-            foreach ($rec->files as $file) {
-                if ($file->path) {
-                    Storage::disk('public')->delete($file->path);
-                }
-            }
-            if ($rec->files->isNotEmpty()) {
-                $dir = 'tenants/' . $rec->tenant_id . '/records/' . $rec->id;
-                Storage::disk('public')->deleteDirectory($dir);
-            }
-        }
-
-        $count = $records->count();
-        Record::where('tenant_id', $currentTenant->id)
+        $count = Record::where('tenant_id', $currentTenant->id)
             ->whereIn('id', $request->record_ids)
             ->delete();
 

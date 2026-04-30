@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Resources\Api\RecordResource;
-use App\Models\File;
 use App\Models\Record;
 use App\Services\ApiResponseService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -148,29 +147,5 @@ class RecordController extends BaseApiController
 
         $filename = 'form_' . $recordId . '_' . date('Y-m-d') . '.pdf';
         return $pdf->download($filename);
-    }
-
-    /**
-     * Serve a file that belongs to the authenticated user's tenant.
-     * Replaces direct /storage/ access so files are tenant-protected.
-     */
-    public function downloadFile(string $fileId)
-    {
-        $user = Auth::user();
-
-        $file = File::where('id', $fileId)
-            ->where('tenant_id', $user->tenant_id)
-            ->firstOrFail();
-
-        if (!Storage::disk('public')->exists($file->path)) {
-            abort(404, 'File not found.');
-        }
-
-        $mimeType = $file->mime_type ?: 'application/octet-stream';
-
-        return response()->file(
-            Storage::disk('public')->path($file->path),
-            ['Content-Type' => $mimeType, 'Content-Disposition' => 'inline; filename="' . $file->name . '"']
-        );
     }
 }
