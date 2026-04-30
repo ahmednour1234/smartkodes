@@ -32,11 +32,12 @@ class WorkOrderRepository {
       if (longitude != null) 'longitude': longitude,
       if (radius != null) 'radius': radius,
     };
-    return _client.requestPaginated<WorkOrder>(
+    final result = await _client.requestPaginated<WorkOrder>(
       'work-orders',
       queryParameters: query,
       fromJsonT: (d) => WorkOrder.fromJson(d as Map<String, dynamic>),
     );
+    return result;
   }
 
   Future<WorkOrder?> get(String id, {double? currentLatitude, double? currentLongitude}) async {

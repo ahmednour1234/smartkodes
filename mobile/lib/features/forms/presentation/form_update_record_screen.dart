@@ -14,6 +14,7 @@ import '../../../core/widgets/barcode_scanner_field.dart';
 import '../../../core/widgets/signature_field.dart';
 import '../../../core/widgets/voice_recorder_field.dart';
 import '../../../core/widgets/gps_map_field.dart';
+import '../../../data/local/form_draft_store.dart';
 import '../../../data/local/pending_record_updates_store.dart';
 import '../../../domain/models/form_model.dart';
 import '../../work_orders/presentation/work_order_providers.dart';
@@ -414,9 +415,12 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   String get _draftKey => 'update_${widget.formId}_${widget.recordId ?? (_recordIdController.text.trim().isEmpty ? "new" : _recordIdController.text.trim())}';
 
+  late FormDraftStore _draftStore;
+
   @override
   void initState() {
     super.initState();
+    _draftStore = ref.read(formDraftStoreProvider);
     WidgetsBinding.instance.addObserver(this);
     _submissionAudioPlayer.playerStateStream.listen((state) {
       if (!mounted) return;
@@ -508,7 +512,7 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
 
   Future<void> _saveDraft() async {
     if (!_hasUserEdited) return;
-    final store = ref.read(formDraftStoreProvider);
+    final store = _draftStore;
     final values = <String, dynamic>{};
     for (final e in _values.entries) {
       values[e.key] = _toJsonSafeValue(e.value);
@@ -926,8 +930,11 @@ class _FormUpdateRecordScreenState extends ConsumerState<FormUpdateRecordScreen>
         filesForPending = {};
         for (final e in _fileData.entries) {
           final v = e.value;
-          if (v is List && v.isNotEmpty) {
-            filesForPending![e.key] = v.first as ({Uint8List bytes, String filename});
+          if (v is List) {
+            // Store each photo with an indexed key so all photos are preserved offline
+            for (var i = 0; i < (v as List).length; i++) {
+              filesForPending!['${e.key}__photo_$i'] = v[i] as ({Uint8List bytes, String filename});
+            }
           } else if (v is ({Uint8List bytes, String filename})) {
             filesForPending![e.key] = v;
           }

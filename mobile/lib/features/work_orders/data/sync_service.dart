@@ -36,19 +36,34 @@ class SyncService {
     return result != ConnectivityResult.none;
   }
 
-  Future<Map<String, ({Uint8List bytes, String filename})>?> _loadFileFields(PendingSubmission p) async {
+  Future<Map<String, dynamic>?> _loadFileFields(PendingSubmission p) async {
     if (!p.hasFiles || p.filePaths == null) return null;
     if (kIsWeb) return null;
-    final fileFields = <String, ({Uint8List bytes, String filename})>{};
+    final raw = <String, ({Uint8List bytes, String filename})>{};
     for (final e in p.filePaths!.entries) {
       final f = io.File(e.value);
       if (await f.exists()) {
         final bytes = await f.readAsBytes();
         final filename = e.value.split(RegExp(r'[/\\]')).last;
-        fileFields[e.key] = (bytes: bytes, filename: filename);
+        raw[e.key] = (bytes: bytes, filename: filename);
       }
     }
-    return fileFields.isEmpty ? null : fileFields;
+    if (raw.isEmpty) return null;
+    // Group __photo_N indexed keys back into lists (e.g. field__photo_0, field__photo_1 → field: [...])
+    final grouped = <String, dynamic>{};
+    final photoIdx = RegExp(r'^(.+)__photo_(\d+)$');
+    for (final e in raw.entries) {
+      final m = photoIdx.firstMatch(e.key);
+      if (m != null) {
+        final fieldName = m.group(1)!;
+        final list = (grouped[fieldName] as List<({Uint8List bytes, String filename})>?) ?? [];
+        list.add(e.value);
+        grouped[fieldName] = list;
+      } else {
+        grouped[e.key] = e.value;
+      }
+    }
+    return grouped;
   }
 
   Future<int> syncPending({bool force = false}) async {
@@ -100,19 +115,34 @@ class SyncService {
         if (list.isEmpty) break;
         final u = list.first;
         try {
-          Map<String, ({Uint8List bytes, String filename})>? fileFields;
+          Map<String, dynamic>? fileFields;
           if (u.hasFiles && u.filePaths != null && !kIsWeb) {
-            fileFields = <String, ({Uint8List bytes, String filename})>{};
+            final raw = <String, ({Uint8List bytes, String filename})>{};
             for (final e in u.filePaths!.entries) {
               final f = io.File(e.value);
               if (await f.exists()) {
                 final bytes = await f.readAsBytes();
                 final filename = e.value.split(RegExp(r'[/\\]')).last;
                 final name = filename.contains('_') ? filename.substring(filename.indexOf('_') + 1) : filename;
-                fileFields[e.key] = (bytes: bytes, filename: name);
+                raw[e.key] = (bytes: bytes, filename: name);
               }
             }
-            if (fileFields.isEmpty) fileFields = null;
+            if (raw.isNotEmpty) {
+              // Group __photo_N indexed keys back into lists
+              fileFields = <String, dynamic>{};
+              final photoIdx = RegExp(r'^(.+)__photo_(\d+)$');
+              for (final e in raw.entries) {
+                final m = photoIdx.firstMatch(e.key);
+                if (m != null) {
+                  final fieldName = m.group(1)!;
+                  final list = (fileFields[fieldName] as List<({Uint8List bytes, String filename})>?) ?? [];
+                  list.add(e.value);
+                  fileFields[fieldName] = list;
+                } else {
+                  fileFields[e.key] = e.value;
+                }
+              }
+            }
           }
           final ok = await formsRepo.updateRecord(
             u.formId,

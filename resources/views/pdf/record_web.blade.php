@@ -88,27 +88,28 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 30%;">Field</th>
-                <th style="width: 40%;">File</th>
-                <th style="width: 30%;">Link</th>
+                <th style="width: 25%;">Field</th>
+                <th style="width: 75%;">Files</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($fileRows as $file)
+            @forelse($fileRows as $row)
                 <tr>
-                    <td>{{ $file['field'] }}</td>
-                    <td>{{ $file['name'] }}</td>
+                    <td>{{ $row['field'] }}</td>
                     <td>
-                        @if(!empty($file['url']))
-                            {{ $file['url'] }}
-                        @else
-                            -
-                        @endif
+                        @foreach($row['files'] as $i => $file)
+                            @if($i > 0)<br>@endif
+                            @if(!empty($file['url']))
+                                {{ $file['url'] }}
+                            @else
+                                {{ $file['name'] }}
+                            @endif
+                        @endforeach
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="3" class="empty">No attachments available.</td>
+                    <td colspan="2" class="empty">No attachments available.</td>
                 </tr>
             @endforelse
         </tbody>

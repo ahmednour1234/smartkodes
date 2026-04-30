@@ -80,11 +80,13 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
   bool _draftWasCleared = false;
   bool _hasUserEdited = false;
   int _formFieldKey = 0;
+  late FormDraftStore _draftStore;
   String get _draftKey => 'submission_${widget.workOrderId}_${widget.formId}';
 
   @override
   void initState() {
     super.initState();
+    _draftStore = ref.read(formDraftStoreProvider);
     WidgetsBinding.instance.addObserver(this);
     _load();
   }
@@ -114,7 +116,7 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
 
   Future<void> _saveDraft() async {
     if (!_hasUserEdited || _form == null || _loading) return;
-    final store = ref.read(formDraftStoreProvider);
+    final store = _draftStore;
     final values = <String, dynamic>{};
     for (final e in _values.entries) {
       values[e.key] = _toJsonSafeValue(e.value);
@@ -494,8 +496,11 @@ class _WorkOrderFormScreenState extends ConsumerState<WorkOrderFormScreen>
         filesForPending = {};
         for (final e in _fileData.entries) {
           final v = e.value;
-          if (v is List && v.isNotEmpty) {
-            filesForPending[e.key] = v.first as ({Uint8List bytes, String filename});
+          if (v is List) {
+            // Store each photo with an indexed key so all photos are preserved offline
+            for (var i = 0; i < (v as List).length; i++) {
+              filesForPending['${e.key}__photo_$i'] = v[i] as ({Uint8List bytes, String filename});
+            }
           } else if (v is ({Uint8List bytes, String filename})) {
             filesForPending[e.key] = v;
           }

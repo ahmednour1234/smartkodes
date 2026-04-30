@@ -110,7 +110,8 @@ class RecordController extends BaseApiController
             ];
         }
 
-        $fileRows = [];
+        // Group files by their form field so multiple photos appear in one row
+        $filesByField = [];
         foreach ($record->files as $file) {
             $path = $file->path ?? '';
             $url = '';
@@ -119,13 +120,20 @@ class RecordController extends BaseApiController
                     ? $path
                     : asset(Storage::url($path));
             }
-            $fileRows[] = [
-                'field' => $file->formField?->label ?? $file->formField?->name ?? 'Attachment',
+            $fieldLabel = $file->formField?->label ?? $file->formField?->name ?? 'Attachment';
+            if (!isset($filesByField[$fieldLabel])) {
+                $filesByField[$fieldLabel] = [
+                    'field' => $fieldLabel,
+                    'files' => [],
+                ];
+            }
+            $filesByField[$fieldLabel]['files'][] = [
                 'name' => $file->name ?: basename($path),
                 'url' => $url,
-                'mime' => $file->mime_type,
+                'mime' => $file->mime_type ?? '',
             ];
         }
+        $fileRows = array_values($filesByField);
 
         $pdf = Pdf::loadView('pdf.record_web', [
             'formName' => $record->form?->name ?? 'Form',
