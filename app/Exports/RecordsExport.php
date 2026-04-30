@@ -135,9 +135,14 @@ class RecordsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
                         $cell = $sheet->getCellByColumnAndRow($col, $row);
                         $val = $cell->getValue();
                         if (is_string($val) && (str_starts_with($val, 'http://') || str_starts_with($val, 'https://'))) {
-                            $url = str_contains($val, "\n") ? trim(explode("\n", $val)[0]) : $val;
-                            $cell->getHyperlink()->setUrl($url);
-                            $cell->getStyle()->getFont()->setUnderline(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('0563C1'));
+                            if (!str_contains($val, "\n")) {
+                                // Single URL — make it a clickable hyperlink
+                                $cell->getHyperlink()->setUrl($val);
+                                $cell->getStyle()->getFont()->setUnderline(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('0563C1'));
+                            } else {
+                                // Multiple URLs — keep as plain text so all URLs are visible and copyable
+                                $cell->getStyle()->getAlignment()->setWrapText(true);
+                            }
                         }
                     }
                 }
