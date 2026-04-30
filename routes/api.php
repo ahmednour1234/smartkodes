@@ -53,6 +53,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/records', [RecordController::class, 'index']);
         Route::get('/records/{recordId}', [RecordController::class, 'show']);
         Route::get('/records/{record}/pdf', [RecordController::class, 'pdf']);
+        Route::get('/files/{fileId}', [RecordController::class, 'downloadFile']);
 
         // Notifications
         Route::prefix('notifications')->group(function () {

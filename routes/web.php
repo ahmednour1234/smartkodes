@@ -142,6 +142,7 @@ Route::middleware(['auth:web', 'tenant'])->prefix('tenant')->name('tenant.')->gr
     Route::post('records/{record}/assign', [\App\Http\Controllers\Admin\RecordController::class, 'assign'])->name('records.assign');
 
     // Files (tenant-scoped)
+    Route::get('files/{file}/download', [\App\Http\Controllers\Admin\FileController::class, 'download'])->name('files.download');
     Route::resource('files', \App\Http\Controllers\Admin\FileController::class);
 
     // Users (tenant users only)
