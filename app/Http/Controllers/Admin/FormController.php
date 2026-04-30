@@ -134,6 +134,7 @@ class FormController extends Controller
             abort(403, 'No tenant context available.');
         }
 
+        $categories = Category::orderBy('name')->get();
         $viewPrefix = $this->getViewPrefix();
         return view("{$viewPrefix}.forms.create", compact('categories'));
     }
